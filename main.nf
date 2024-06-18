@@ -43,14 +43,6 @@ process InspectLogs {
     """
 }
 
-workflow {
-    CheckDockerfile()
-    BuildContainer()
-    RunContainer()
-    TestFunctionality()
-    InspectLogs()
-}
-
 process CloneRepository {
     input:
     val repo_url
@@ -112,6 +104,14 @@ process StaticCodeAnalysis {
 }
 
 workflow {
+    // Processes for validating containerized tools
+    CheckDockerfile()
+    BuildContainer()
+    RunContainer()
+    TestFunctionality()
+    InspectLogs()
+
+    // Processes for validating non-containerized tools
     CloneRepository(repo_url: '<repository-url>')
     CheckDependencies()
     RunTests()
