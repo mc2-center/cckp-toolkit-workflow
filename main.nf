@@ -1,119 +1,55 @@
-process CheckDockerfile {
-    input:
-    path 'Dockerfile'
-
-    script:
-    """
-    cat Dockerfile
-    """
-}
-
-process BuildContainer {
-    input:
-    path 'Dockerfile'
-
-    script:
-    """
-    docker build -t tool-name .
-    """
-}
-
-process RunContainer {
-    script:
-    """
-    docker run -it tool-name
-    """
-}
-
-process TestFunctionality {
-    script:
-    """
-    # Replace with actual test commands
-    docker run tool-name --help
-    """
-}
-
-process InspectLogs {
-    input:
-    file 'container.log'
-
-    script:
-    """
-    cat container.log
-    """
-}
+params.repo_url = null
 
 process CloneRepository {
-    input:
-    val repo_url
-
     output:
-    path 'repo'
+    path 'repo_path'
+
+    publishDir '.', mode: 'copy'
 
     script:
     """
-    git clone ${repo_url} repo
+    if [ -z "${params.repo_url}" ]; then
+        echo "Error: Please provide a repository URL using '--repo_url <repository-url>'"
+        exit 1
+    fi
+    echo "Cloning repository from ${params.repo_url}"
+    mkdir -p repo
+    git clone ${params.repo_url} repo
+    ls -la repo
+    echo "repo_path=${PWD}/repo" > repo_path
     """
 }
 
 process CheckDependencies {
     input:
-    path 'repo'
+    path repo_path
 
     script:
     """
-    cd repo
+    cd ${repo_path}
     if [ -f requirements.txt ]; then
-        pip install -r requirements.txt
+        echo "Found requirements.txt"
     elif [ -f environment.yml ]; then
-        conda env create -f environment.yml
+        echo "Found environment.yml"
     elif [ -f package.json ]; then
-        npm install
-    fi
-    """
-}
-
-process RunTests {
-    input:
-    path 'repo'
-
-    script:
-    """
-    cd repo
-    if [ -f requirements.txt ]; then
-        pytest
-    elif [ -f package.json ]; then
-        npm test
-    fi
-    """
-}
-
-process StaticCodeAnalysis {
-    input:
-    path 'repo'
-
-    script:
-    """
-    cd repo
-    if [ -f requirements.txt ]; then
-        flake8 .
-    elif [ -f package.json ]; then
-        eslint .
+        echo "Found package.json"
+    else
+        echo "No dependency files found" >&2
+        exit 1
     fi
     """
 }
 
 workflow {
-    // Processes for validating containerized tools
-    CheckDockerfile()
-    BuildContainer()
-    RunContainer()
-    TestFunctionality()
-    InspectLogs()
+    // Debugging output
+    println "Workflow starting with repo_url: ${params.repo_url}"
 
-    // Processes for validating non-containerized tools
-    CloneRepository(repo_url: '<repository-url>')
-    CheckDependencies()
-    RunTests()
-    StaticCodeAnalysis()
+    if (!params.repo_url) {
+        error "Please provide a repository URL using '--repo_url <repository-url>'"
+    }
+
+    // Execute processes
+    def clonedRepo = CloneRepository()
+    CheckDependencies(clonedRepo.repo_path)
 }
+
