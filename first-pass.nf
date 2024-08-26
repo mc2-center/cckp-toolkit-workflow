@@ -46,8 +46,8 @@ process CheckDependencies {
     cd repo
 
     # Python Dependency Files
-    if [ -f requirements.txt ]; then
-        echo "Found requirements.txt for Python"
+    if find . -maxdepth 1 -type f -name '*requirements*' | grep -q .; then
+    echo "Found a requirements file"
     elif [ -f Pipfile ]; then
         echo "Found Pipfile for Python"
     elif [ -f Pipfile.lock ]; then
