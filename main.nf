@@ -20,25 +20,25 @@ process CloneRepository {
     """
 }
 
-process CheckDependencies {
-    input:
-    path repo_path
+// process CheckDependencies {
+//     input:
+//     path repo_path
 
-    script:
-    """
-    cd ${repo_path}
-    if [ -f requirements.txt ]; then
-        echo "Found requirements.txt"
-    elif [ -f environment.yml ]; then
-        echo "Found environment.yml"
-    elif [ -f package.json ]; then
-        echo "Found package.json"
-    else
-        echo "No dependency files found" >&2
-        exit 1
-    fi
-    """
-}
+//     script:
+//     """
+//     cd ${repo_path}
+//     if [ -f requirements.txt ]; then
+//         echo "Found requirements.txt"
+//     elif [ -f environment.yml ]; then
+//         echo "Found environment.yml"
+//     elif [ -f package.json ]; then
+//         echo "Found package.json"
+//     else
+//         echo "No dependency files found" >&2
+//         exit 1
+//     fi
+//     """
+// }
 
 workflow {
     // Debugging output
@@ -50,6 +50,8 @@ workflow {
 
     // Execute processes
     def clonedRepo = CloneRepository()
-    CheckDependencies(clonedRepo.repo_path)
+    // CheckDependencies(clonedRepo.repo_path)
 }
+
+
 

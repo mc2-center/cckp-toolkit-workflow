@@ -1,59 +1,42 @@
-# cckp-toolkit-workflow
+# CCKP Toolkit Workflow README
 
-# Tool Validation Workflow
+## Description
 
-```markdown
-# cckp-toolkit-workflow
+This Nextflow workflow `first-pass.nf` performs a high level quality check on tools. The workflow consists of the following processes:
 
-## Tool Validation Workflow
+1. **CloneRepository**: This process clones a Git repository from the provided URL into a temporary directory and then copies the repository to a designated location.
 
-This Nextflow workflow validates containerized and non-containerized tools.
+2. **CheckReadme**: This process checks the cloned repository for the presence of a README file. It looks for various common README file names and reports whether one was found.
 
-### Setup
+3. **CheckDependencies**: This process scans the repository for dependency files associated with different programming languages. It reports the presence of files for Python, JavaScript/Node.js, Java, and R.
+
+4. **CheckTests**: This process looks for test directories or files within the repository.
+
+## Setup
 
 Install Nextflow:
 
 ```sh
 curl -s https://get.nextflow.io | bash
 ```
+## Configuration
 
-### Usage
+You can configure the workflow using `nextflow.config`. Set your working dir here.
 
-Run the workflow with the repository URL:
+## Usage
 
-```sh
-nextflow run main.nf --repo_url <repository-url>
+To run the workflow, you need to provide the URL of the Git repository you want to analyze as a parameter. Here's how you can execute the workflow:
+
+```bash
+nextflow run first-pass.nf --repo_url <repository-url>
 ```
 
-### Processes
+Replace <repository-url> with the URL of the Git repository you wish to check.
 
-- **CheckDockerfile**: Reviews the Dockerfile.
-- **BuildContainer**: Builds the Docker container.
-- **RunContainer**: Runs the Docker container.
-- **TestFunctionality**: Tests the tool within the container.
-- **InspectLogs**: Inspects logs for errors or warnings.
-- **CloneRepository**: Clones the repository.
-- **CheckDependencies**: Installs dependencies.
-- **RunTests**: Runs provided tests.
-- **StaticCodeAnalysis**: Performs static code analysis.
-
-### Configuration
-
-You can configure the workflow using `nextflow.config`.
-
-### Example
-
-```sh
-nextflow run main.nf --repo_url https://github.com/user/repo
+## Example
+```bash
+nextflow run first-pass.nf --repo_url https://github.com/example/repo.git
 ```
 
-### Execute the Workflow
-
-Run your Nextflow workflow with the specified repository URL to validate your tool:
-
-```sh
-nextflow run main.nf --repo_url https://github.com/user/repo
-```
-
-By following these steps, you can create a comprehensive Nextflow workflow to validate both containerized and non-containerized tools effectively.
-```
+## Notes
+Ensure Git is installed on your system as the workflow uses git clone to clone the repository. The workflow assumes the repository is public or accessible with the provided URL.
