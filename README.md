@@ -47,7 +47,7 @@ nextflow run first-pass.nf --repo_url https://github.com/example/repo.git
 2. **TARGet**  
    - Synapse: [TARGet](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=TARGet)  
    - GitHub: [RabadanLab/TARGet](https://github.com/RabadanLab/TARGet/tree/master)  
-   - Note: Fails CheckDependencies
+   - Note: Fails CheckDependencies, CheckTests
 
 3. **memSeqASEanalysis**  
    - Synapse: [memSeqASEanalysis](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=memSeqASEanalysis)  
