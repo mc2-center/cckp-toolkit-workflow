@@ -37,6 +37,24 @@ Replace <repository-url> with the URL of the Git repository you wish to check.
 ```bash
 nextflow run first-pass.nf --repo_url https://github.com/example/repo.git
 ```
+### Tools You Can Test With:
+
+1. **Python Optimal Transport Library**  
+   - Synapse: [POT](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=POT)  
+   - GitHub: [PythonOT/POT](https://github.com/PythonOT/POT)  
+   - Note: Should pass all tests
+
+2. **TARGet**  
+   - Synapse: [TARGet](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=TARGet)  
+   - GitHub: [RabadanLab/TARGet](https://github.com/RabadanLab/TARGet/tree/master)  
+   - Note: Fails CheckDependencies
+
+3. **memSeqASEanalysis**  
+   - Synapse: [memSeqASEanalysis](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=memSeqASEanalysis)  
+   - GitHub: [arjunrajlaboratory/memSeqASEanalysis](https://github.com/arjunrajlaboratory/memSeqASEanalysis)
+   - Note: Fails CheckDependencies, CheckTests
+
+**Subset of tools to test**: Any from [this list](https://cancercomplexity.synapse.org/Explore/Tools) with a GitHub repository.
 
 ## Notes
 Ensure Git is installed on your system as the workflow uses git clone to clone the repository. The workflow assumes the repository is public or accessible with the provided URL.
