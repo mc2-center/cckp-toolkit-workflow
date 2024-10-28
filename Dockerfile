@@ -7,6 +7,10 @@ RUN apt-get update && apt-get install -y git python3 python3-pip curl openjdk-11
 # Install Nextflow
 RUN curl -s https://get.nextflow.io | bash && mv nextflow /usr/local/bin/
 
+# Install Software Gardening Almanack
+RUN pip install --upgrade pip && \
+    pip install almanack
+
 # Set working directory
 WORKDIR /workspace
 
