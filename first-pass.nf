@@ -116,7 +116,7 @@ process CheckAlmanack {
     path repo
 
     output:
-    path "${params.output_dir}/example.json", emit: almanack_results
+    path "${params.output_dir}/almanack-results.json", emit: almanack_results
 
     script:
     """
