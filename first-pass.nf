@@ -122,7 +122,7 @@ process CheckAlmanack {
     """
     mkdir -p ${params.output_dir}  # Create the output directory if it doesn't exist
     python -c "import json; import almanack; print(json.dumps(almanack.table(repo_path='${repo}'), indent=4))" > \
-         ${params.output_dir}/example.json
+         ${params.output_dir}/almanack-results.json
     """
 }
 
