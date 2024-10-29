@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 WORKDIR /workspace
 
 # Copy Nextflow script into the working directory
-COPY first-pass.nf /workspace/first-pass.nf
+COPY first-pass.nf nextflow.config /workspace/
 
 # Add execute permissions to the Nextflow script
 RUN chmod +x /workspace/first-pass.nf
