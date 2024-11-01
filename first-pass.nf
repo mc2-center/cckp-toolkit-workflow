@@ -111,6 +111,22 @@ process CheckTests {
     """
 }
 
+process CheckAlmanack {
+    input:
+    path repo
+
+    output:
+    path "${params.output_dir}/almanack-results.json", emit: almanack_results
+
+    script:
+    """
+    mkdir -p ${params.output_dir}  # Create the output directory if it doesn't exist
+    python -c "import json; import almanack; print(json.dumps(almanack.table(repo_path='${repo}'), indent=4))" > \
+         ${params.output_dir}/almanack-results.json
+    """
+}
+
+
 
 workflow {
     repo_url = params.repo_url
@@ -119,5 +135,6 @@ workflow {
     CheckReadme(repoPath)
     CheckDependencies(repoPath)
     CheckTests(repoPath)
+    CheckAlmanack(repoPath)
 
 }

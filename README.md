@@ -12,6 +12,8 @@ This Nextflow workflow `first-pass.nf` performs a high level quality check on to
 
 4. **CheckTests**: This process looks for test directories or files within the repository.
 
+5. **CheckAlmanack**: This process implements the [Software Gardening Almanack](https://github.com/software-gardening/almanack) to gather various metrics about the repository.
+
 ## Setup
 
 Install Nextflow:
@@ -37,6 +39,21 @@ Replace <repository-url> with the URL of the Git repository you wish to check.
 ```bash
 nextflow run first-pass.nf --repo_url https://github.com/example/repo.git
 ```
+
+## Docker Usage
+
+You may also use Docker to run the CCKP Toolkit Workflow as an alternative to the above.
+First, [install Docker](https://docs.docker.com/engine/install/) on your system.
+Then, use the commands below as an example of how to run the workflow.
+
+```bash
+# build an image for cckp toolkit workflow
+docker build -t cckp-toolkit-workflow .
+
+# run the image for cckp toolkit workflow, passing in a git repo url
+docker run cckp-toolkit-workflow https://github.com/mc2-center/cckp-toolkit-workflow
+```
+
 ### Tools You Can Test With:
 
 1. **Python Optimal Transport Library**  
