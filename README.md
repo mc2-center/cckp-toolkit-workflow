@@ -21,6 +21,13 @@ Install Nextflow:
 ```sh
 curl -s https://get.nextflow.io | bash
 ```
+
+Install Almanack:
+
+```
+pip install almanack
+```
+
 ## Configuration
 
 You can configure the workflow using `nextflow.config`. Set your working dir here.
