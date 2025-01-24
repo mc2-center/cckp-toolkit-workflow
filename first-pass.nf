@@ -106,7 +106,8 @@ process CheckTests {
     
     else
         echo "No test files or directories found" >&2
-        exit 1
+        echo "No test files found in the repository" > no_tests_found.log
+        exit 1  
     fi
     """
 }
@@ -121,12 +122,18 @@ process CheckAlmanack {
     script:
     """
     mkdir -p ${params.output_dir}  # Create the output directory if it doesn't exist
-    python -c "import json; import almanack; print(json.dumps(almanack.table(repo_path='${repo}'), indent=4))" > \
-         ${params.output_dir}/almanack-results.json
+    python -c "
+    try:
+        import json
+        import almanack
+        result = almanack.table(repo_path='${repo}')
+        print(json.dumps(result, indent=4))
+    except Exception as e:
+        print(f'Error: {e}')
+        exit(1)
+    " > ${params.output_dir}/almanack-results.json 2> ${params.output_dir}/almanack-error.log
     """
 }
-
-
 
 workflow {
     repo_url = params.repo_url
@@ -136,5 +143,4 @@ workflow {
     CheckDependencies(repoPath)
     CheckTests(repoPath)
     CheckAlmanack(repoPath)
-
 }
