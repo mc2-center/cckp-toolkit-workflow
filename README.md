@@ -2,17 +2,19 @@
 
 ## Description
 
-This Nextflow workflow `first-pass.nf` performs a high level quality check on tools. The workflow consists of the following processes:
+This Nextflow workflow `main.nf` performs a high-level quality check on tools. The workflow consists of the following processes:
 
-1. **CloneRepository**: This process clones a Git repository from the provided URL into a temporary directory and then copies the repository to a designated location.
+1. **CloneRepository**: Clones a Git repository from the provided URL into a temporary directory and copies the repository to a designated location.
 
-2. **CheckReadme**: This process checks the cloned repository for the presence of a README file. It looks for various common README file names and reports whether one was found.
+2. **CheckReadme**: Checks the cloned repository for the presence of a README file. It looks for various common README file names and reports whether one was found.
 
-3. **CheckDependencies**: This process scans the repository for dependency files associated with different programming languages. It reports the presence of files for Python, JavaScript/Node.js, Java, and R.
+3. **CheckDependencies**: Scans the repository for dependency files associated with different programming languages. It reports the presence of files for Python, JavaScript/Node.js, Java, and R.
 
-4. **CheckTests**: This process looks for test directories or files within the repository.
+4. **CheckTests**: Looks for test directories or files within the repository.
 
-5. **CheckAlmanack**: This process implements the [Software Gardening Almanack](https://github.com/software-gardening/almanack) to gather various metrics about the repository.
+5. **CheckAlmanack**: Implements the [Software Gardening Almanack](https://github.com/software-gardening/almanack) to gather various metrics about the repository.
+
+6. **SaveToSynapse** (Optional): Uploads workflow results of the toolkit to a specified Synapse folder if the upload option is enabled. 
 
 ## Setup
 
@@ -45,6 +47,15 @@ Replace <repository-url> with the URL of the Git repository you wish to check.
 ## Example
 ```bash
 nextflow run first-pass.nf --repo_url https://github.com/example/repo.git
+```
+
+### To upload results to synapse
+```bash 
+nextflow run first-pass.nf \
+    --repo_url https://github.com/PythonOT/POT.git \
+    --upload_to_synapse true \
+    --synapse_folder_id syn64626421 \
+    -with-trace trace.txt
 ```
 
 ## Docker Usage
