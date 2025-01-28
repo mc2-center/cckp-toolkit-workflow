@@ -1,3 +1,5 @@
+params.upload_to_synapse = false  // default is false, can be overridden at runtime
+
 process CloneRepository {
     input:
     val repo_url
@@ -135,12 +137,70 @@ process CheckAlmanack {
     """
 }
 
-workflow {
-    repo_url = params.repo_url
+process SaveToSynapse {
+    input:
+    path trace_file
+    path almanack_results
+    val repo_name
+    val synapse_folder_id
 
-    repoPath = CloneRepository(repo_url)
+    script:
+    """
+    if [ "${params.upload_to_synapse}" = "true" ]; then
+        # Synapse parent folder ID from params
+        # synapse_folder_id="${params.synapse_folder_id}"
+
+        # Initialize Synapse client and upload files
+        python3 -c "
+import synapseclient
+from synapseclient import Folder, File
+
+syn = synapseclient.Synapse()
+syn.login()
+
+try:
+    subfolder = next((folder for folder in syn.getChildren('${synapse_folder_id}') if folder['name'] == '${repo_name}'), None)
+    if not subfolder:
+        subfolder = syn.store(Folder(name='${repo_name}', parentId='${synapse_folder_id}'))
+    else:
+        subfolder = syn.get(subfolder['id'])
+
+    syn.store(File('${trace_file}', parentId=subfolder.id))
+    syn.store(File('${almanack_results}', parentId=subfolder.id))
+
+    print('Files successfully uploaded to Synapse subfolder:', subfolder.name)
+except Exception as e:
+    print(f'Error uploading files to Synapse: {e}')
+    exit(1)
+        "
+    else
+        echo "Skipping Synapse upload as 'upload_to_synapse' is false."
+    fi
+    """
+}
+
+
+workflow {
+
+    params.synapse_folder_id = null // Default to null, must be provided during execution
+    if (!params.synapse_folder_id) {
+    throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
+    }
+    output_dir = params.output_dir ?: 'results'
+    trace_file = file("${baseDir}/trace.txt")
+
+    def repo_name = params.repo_url.tokenize('/').last().replace('.git', '')
+    def synapse_folder_id = params.synapse_folder_id
+
+
+    repoPath = CloneRepository(params.repo_url)
     CheckReadme(repoPath)
     CheckDependencies(repoPath)
     CheckTests(repoPath)
-    CheckAlmanack(repoPath)
+    almanack_results = CheckAlmanack(repoPath)
+
+    // Save to Synapse if enabled
+    if (params.upload_to_synapse) {
+        SaveToSynapse(trace_file, almanack_results, repo_name, synapse_folder_id)
+    }
 }
