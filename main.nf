@@ -124,7 +124,7 @@ process CheckAlmanack {
     script:
     """
     mkdir -p ${params.output_dir}  # Create the output directory if it doesn't exist
-    python -c "
+    python3 -c "
     try:
         import json
         import almanack
