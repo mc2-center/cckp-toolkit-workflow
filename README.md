@@ -13,8 +13,9 @@ This Nextflow workflow `main.nf` performs a high-level quality check on tools. T
 4. **CheckTests**: Looks for test directories or files within the repository.
 
 5. **CheckAlmanack**: Implements the [Software Gardening Almanack](https://github.com/software-gardening/almanack) to gather various metrics about the repository.
+   - **Note:** The `CheckAlmanack` process now uses `python3` to execute the Python command. If you encounter issues, ensure that Python 3 is installed and that `python3` is in your system's PATH.
 
-6. **SaveToSynapse** (Optional): Uploads workflow results of the toolkit to a specified Synapse folder if the upload option is enabled. 
+6. **SaveToSynapse** (Optional): Uploads workflow results of the toolkit to a specified Synapse folder if the upload option is enabled.
 
 ## Setup
 
@@ -26,13 +27,13 @@ curl -s https://get.nextflow.io | bash
 
 Install Almanack:
 
-```
+```sh
 pip install almanack
 ```
 
 ## Configuration
 
-You can configure the workflow using `nextflow.config`. Set your working dir here.
+You can configure the workflow using `nextflow.config`. Set your working directory here.
 
 ## Usage
 
@@ -42,15 +43,17 @@ To run the workflow, you need to provide the URL of the Git repository you want 
 nextflow run first-pass.nf --repo_url <repository-url>
 ```
 
-Replace <repository-url> with the URL of the Git repository you wish to check.
+Replace `<repository-url>` with the URL of the Git repository you wish to check.
 
 ## Example
+
 ```bash
 nextflow run first-pass.nf --repo_url https://github.com/example/repo.git
 ```
 
-### To upload results to synapse
-```bash 
+### To upload results to Synapse
+
+```bash
 nextflow run first-pass.nf \
     --repo_url https://github.com/PythonOT/POT.git \
     --upload_to_synapse true \
@@ -65,14 +68,14 @@ First, [install Docker](https://docs.docker.com/engine/install/) on your system.
 Then, use the commands below as an example of how to run the workflow.
 
 ```bash
-# build an image for cckp toolkit workflow
+# Build an image for the CCKP Toolkit Workflow
 docker build -t cckp-toolkit-workflow .
 
-# run the image for cckp toolkit workflow, passing in a git repo url
+# Run the image for the CCKP Toolkit Workflow, passing in a Git repository URL
 docker run cckp-toolkit-workflow https://github.com/mc2-center/cckp-toolkit-workflow
 ```
 
-### Tools You Can Test With:
+### Tools You Can Test With
 
 1. **Python Optimal Transport Library**  
    - Synapse: [POT](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=POT)  
@@ -86,10 +89,11 @@ docker run cckp-toolkit-workflow https://github.com/mc2-center/cckp-toolkit-work
 
 3. **memSeqASEanalysis**  
    - Synapse: [memSeqASEanalysis](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=memSeqASEanalysis)  
-   - GitHub: [arjunrajlaboratory/memSeqASEanalysis](https://github.com/arjunrajlaboratory/memSeqASEanalysis)
+   - GitHub: [arjunrajlaboratory/memSeqASEanalysis](https://github.com/arjunrajlaboratory/memSeqASEanalysis)  
    - Note: Fails CheckDependencies, CheckTests
 
 **Subset of tools to test**: Any from [this list](https://cancercomplexity.synapse.org/Explore/Tools) with a GitHub repository.
 
 ## Notes
-Ensure Git is installed on your system as the workflow uses git clone to clone the repository. The workflow assumes the repository is public or accessible with the provided URL.
+
+Ensure Git is installed on your system as the workflow uses `git clone` to clone the repository. The workflow assumes the repository is public or accessible with the provided URL.
