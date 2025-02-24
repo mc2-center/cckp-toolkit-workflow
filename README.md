@@ -54,7 +54,7 @@ nextflow run first-pass.nf --repo_url https://github.com/example/repo.git
 ### To upload results to Synapse
 
 ```bash
-nextflow run first-pass.nf \
+nextflow run main.nf \
     --repo_url https://github.com/PythonOT/POT.git \
     --upload_to_synapse true \
     --synapse_folder_id syn64626421 \
