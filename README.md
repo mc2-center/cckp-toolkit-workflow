@@ -48,7 +48,7 @@ Replace `<repository-url>` with the URL of the Git repository you wish to check.
 ## Example
 
 ```bash
-nextflow run first-pass.nf --repo_url https://github.com/example/repo.git
+nextflow run main.nf --repo_url https://github.com/example/repo.git
 ```
 
 ### To upload results to Synapse
