@@ -40,7 +40,7 @@ You can configure the workflow using `nextflow.config`. Set your working directo
 To run the workflow, you need to provide the URL of the Git repository you want to analyze as a parameter. Here's how you can execute the workflow:
 
 ```bash
-nextflow run first-pass.nf --repo_url <repository-url>
+nextflow run main.nf --repo_url <repository-url>
 ```
 
 Replace `<repository-url>` with the URL of the Git repository you wish to check.
