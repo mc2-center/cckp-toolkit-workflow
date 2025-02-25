@@ -21,14 +21,14 @@ This Nextflow workflow `main.nf` performs a high-level quality check on tools. T
 
 Install Nextflow:
 
-```sh
-curl -s https://get.nextflow.io | bash
+```
+sh curl -s https://get.nextflow.io | bash
 ```
 
 Install Almanack:
 
-```sh
-pip install almanack
+```
+sh pip install almanack
 ```
 
 ## Configuration
