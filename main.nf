@@ -13,11 +13,10 @@ if( params.upload_to_synapse && !params.synapse_folder_id ) {
 
 /*-----------------------------------------------
    Process: ProcessRepo
-   - Combines CloneRepository, CheckReadme,
-     CheckDependencies, CheckTests, and CheckAlmanack
-     into one process.
-   - Writes a table-formatted trace file named <repo_name>_trace.txt.
-   - Outputs a tuple: (repo_url, repo_name, almanack-results.json, trace_file)
+   - Clones the repository and performs initial checks:
+     - CloneRepository, CheckReadme, CheckDependencies, CheckTests.
+   - Builds a summary file (status_repo.txt) that is a CSV row of the form:
+     ToolName,CloneRepository,CheckReadme,CheckDependencies,CheckTests
 -----------------------------------------------*/
 process ProcessRepo {
     errorStrategy 'ignore'
@@ -25,46 +24,32 @@ process ProcessRepo {
        // Each input is a tuple: (repo_url, repo_name, out_dir)
        tuple val(repo_url), val(repo_name), val(out_dir)
     output:
-       // Emit a tuple containing:
-       // (repo_url, repo_name, path to Almanack results, path to trace file)
-       tuple val(repo_url), val(repo_name), path("${out_dir}/almanack-results.json"), path("${repo_name}_trace.txt")
+       // Emit a tuple: (repo_url, repo_name, path(repo), out_dir, status_repo.txt)
+       tuple val(repo_url), val(repo_name), path("repo"), val(out_dir), path("status_repo.txt")
     script:
     """
     set -euo pipefail
 
-    # Define a per-repository trace file with a table header.
-    TRACE_FILE="${repo_name}_trace.txt"
-    echo "Step | Status | Message" > \$TRACE_FILE
-    echo "-----|--------|--------" >> \$TRACE_FILE
+    # Initialize statuses as FAIL (default)
+    CLONE_STATUS="FAIL"
+    README_STATUS="FAIL"
+    DEP_STATUS="FAIL"
+    TESTS_STATUS="FAIL"
 
     ###############################
     # Clone Repository Step
     ###############################
-    echo "CloneRepository | IN PROGRESS | Cloning repository" >> \$TRACE_FILE
-    rm -rf /tmp/nextflow_repo_${repo_name}
-    mkdir -p /tmp/nextflow_repo_${repo_name}
-    if git clone ${repo_url} /tmp/nextflow_repo_${repo_name}/repo >> \$TRACE_FILE 2>&1; then
-       cp -r /tmp/nextflow_repo_${repo_name}/repo ./repo >> \$TRACE_FILE 2>&1
-       echo "CloneRepository | PASSED | Successfully cloned repository" >> \$TRACE_FILE
-    else
-       echo "CloneRepository | FAILED | Error cloning repository" >> \$TRACE_FILE
+    rm -rf repo
+    if git clone ${repo_url} repo >> /dev/null 2>&1; then
+       CLONE_STATUS="PASS"
     fi
-    rm -rf /tmp/nextflow_repo_${repo_name}
 
     ###############################
     # Check README Step
     ###############################
     cd repo
-    if [ -f README.md ]; then
-       echo "CheckReadme | PASSED | Found README.md" >> ../\$TRACE_FILE
-    elif [ -f README.rst ]; then
-       echo "CheckReadme | PASSED | Found README.rst" >> ../\$TRACE_FILE
-    elif [ -f README.txt ]; then
-       echo "CheckReadme | PASSED | Found README.txt" >> ../\$TRACE_FILE
-    elif [ -f README ]; then
-       echo "CheckReadme | PASSED | Found README" >> ../\$TRACE_FILE
-    else
-       echo "CheckReadme | FAILED | No README file found" >> ../\$TRACE_FILE
+    if [ -f README.md ] || [ -f README.rst ] || [ -f README.txt ] || [ -f README ]; then
+       README_STATUS="PASS"
     fi
     cd ..
 
@@ -73,35 +58,9 @@ process ProcessRepo {
     ###############################
     cd repo
     if find . -maxdepth 1 -type f -name '*requirements*' | grep -q .; then
-       echo "CheckDependencies | PASSED | Found requirements file" >> ../\$TRACE_FILE
-    elif [ -f Pipfile ]; then
-       echo "CheckDependencies | PASSED | Found Pipfile" >> ../\$TRACE_FILE
-    elif [ -f Pipfile.lock ]; then
-       echo "CheckDependencies | PASSED | Found Pipfile.lock" >> ../\$TRACE_FILE
-    elif [ -f setup.py ]; then
-       echo "CheckDependencies | PASSED | Found setup.py" >> ../\$TRACE_FILE
-    elif [ -f pyproject.toml ]; then
-       echo "CheckDependencies | PASSED | Found pyproject.toml" >> ../\$TRACE_FILE
-    elif [ -f package.json ]; then
-       echo "CheckDependencies | PASSED | Found package.json" >> ../\$TRACE_FILE
-    elif [ -f package-lock.json ]; then
-       echo "CheckDependencies | PASSED | Found package-lock.json" >> ../\$TRACE_FILE
-    elif [ -f yarn.lock ]; then
-       echo "CheckDependencies | PASSED | Found yarn.lock" >> ../\$TRACE_FILE
-    elif [ -f pom.xml ]; then
-       echo "CheckDependencies | PASSED | Found pom.xml" >> ../\$TRACE_FILE
-    elif [ -f build.gradle ]; then
-       echo "CheckDependencies | PASSED | Found build.gradle" >> ../\$TRACE_FILE
-    elif [ -f settings.gradle ]; then
-       echo "CheckDependencies | PASSED | Found settings.gradle" >> ../\$TRACE_FILE
-    elif [ -f DESCRIPTION ]; then
-       echo "CheckDependencies | PASSED | Found DESCRIPTION" >> ../\$TRACE_FILE
-    elif [ -f renv.lock ]; then
-       echo "CheckDependencies | PASSED | Found renv.lock" >> ../\$TRACE_FILE
-    elif [ -d packrat ] && [ -f packrat/packrat.lock ]; then
-       echo "CheckDependencies | PASSED | Found packrat.lock" >> ../\$TRACE_FILE
-    else
-       echo "CheckDependencies | FAILED | No recognized dependency files found" >> ../\$TRACE_FILE
+       DEP_STATUS="PASS"
+    elif [ -f Pipfile ] || [ -f Pipfile.lock ] || [ -f setup.py ] || [ -f pyproject.toml ] || [ -f package.json ] || [ -f package-lock.json ] || [ -f yarn.lock ] || [ -f pom.xml ] || [ -f build.gradle ] || [ -f settings.gradle ] || [ -f DESCRIPTION ] || [ -f renv.lock ] || ( [ -d packrat ] && [ -f packrat/packrat.lock ] ); then
+       DEP_STATUS="PASS"
     fi
     cd ..
 
@@ -110,94 +69,70 @@ process ProcessRepo {
     ###############################
     cd repo
     if [ -d tests ] || [ -d test ]; then
-       echo "CheckTests | PASSED | Found test directory" >> ../\$TRACE_FILE
+       TESTS_STATUS="PASS"
     elif find . -maxdepth 1 -name '*.test.js' -o -name '*.test.py' -o -name '*.test.java' | grep -q .; then
-       echo "CheckTests | PASSED | Found test files" >> ../\$TRACE_FILE
-    else
-       echo "CheckTests | FAILED | No test files or directories found" >> ../\$TRACE_FILE
-       echo "No test files found in the repository" > no_tests_found.log
+       TESTS_STATUS="PASS"
     fi
     cd ..
 
-    ###############################
-    # Run Almanack Step
-    ###############################
-    echo "Running Almanack | IN PROGRESS | Running Almanack analysis" >> \$TRACE_FILE
+    # Write out a summary status file
     mkdir -p ${out_dir}
-    if python3 -c "import json, almanack; 
-try:
-    result = almanack.table(repo_path='repo')
-    print(json.dumps(result, indent=4))
-except Exception as e:
-    print(f'Error: {e}')
-    exit(1)" > ${out_dir}/almanack-results.json 2> ${out_dir}/almanack-error.log; then
-         echo "Running Almanack | PASSED | Almanack complete" >> \$TRACE_FILE
-    else
-         echo "Running Almanack | FAILED | Almanack encountered an error" >> \$TRACE_FILE
-    fi
-    # Ensure an output file exists even if Almanack fails.
-    [ -f ${out_dir}/almanack-results.json ] || echo "{}" > ${out_dir}/almanack-results.json
-
-    echo "ProcessRepo | COMPLETED" >> \$TRACE_FILE
+    echo "${repo_name},\${CLONE_STATUS},\${README_STATUS},\${DEP_STATUS},\${TESTS_STATUS}" > status_repo.txt
     """
 }
 
 /*-----------------------------------------------
-   Process: UploadToSynapse
-   - Uses your working Python snippet (from first‑pass.nf)
-     to upload the trace and Almanack results.
+   Process: RunAlmanack
+   - Runs the Almanack analysis in a separate container.
+   - Copies the repository to /tmp for faster I/O.
+   - Appends the Almanack status (PASS/FAIL) to the summary from ProcessRepo,
+     producing status_almanack.txt in CSV format:
+     ToolName,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack
 -----------------------------------------------*/
-process UploadToSynapse {
+process RunAlmanack {
+    container = 'cckp-toolkit-almanack:latest'
     errorStrategy 'ignore'
     input:
-       // Expect a tuple: (repo_url, repo_name, almanack_results, trace_file)
-       tuple val(repo_url), val(repo_name), path(almanack_results), path(trace_file)
+      tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path("status_repo.txt")
+    output:
+      // Emit a tuple: (repo_url, repo_name, out_dir, status_almanack.txt)
+      tuple val(repo_url), val(repo_name), val(out_dir), path("status_almanack.txt")
     script:
     """
-    export UPLOAD_TO_SYNAPSE="${params.upload_to_synapse}"
-    export SYNAPSE_FOLDER_ID="${params.synapse_folder_id}"
-    if [ "\$UPLOAD_TO_SYNAPSE" = "true" ]; then
-        python3 -u -c "
-import os
-import synapseclient
-from synapseclient import Folder, File
-
-# Get absolute paths for the files
-trace_path = os.path.abspath('${trace_file}')
-results_path = os.path.abspath('${almanack_results}')
-
-print('DEBUG: trace_file:', trace_path, 'exists:', os.path.exists(trace_path))
-print('DEBUG: almanack_results:', results_path, 'exists:', os.path.exists(results_path))
-
-syn = synapseclient.Synapse()
-syn.login()
-try:
-    children = syn.getChildren(os.environ['SYNAPSE_FOLDER_ID'])
-    subfolder = None
-    for folder in children:
-        if folder['name'] == '${repo_name}':
-            subfolder = folder
-            break
-    if not subfolder:
-        print('DEBUG: Creating subfolder for', '${repo_name}')
-        subfolder = syn.store(Folder(name='${repo_name}', parentId=os.environ['SYNAPSE_FOLDER_ID']))
-    else:
-        subfolder = syn.get(subfolder['id'])
-    
-    print('DEBUG: Uploading trace file:', trace_path, 'to subfolder:', subfolder.id)
-    syn.store(File(trace_path, parentId=subfolder.id), forceVersion=True)
-    
-    print('DEBUG: Uploading results file:', results_path, 'to subfolder:', subfolder.id)
-    syn.store(File(results_path, parentId=subfolder.id), forceVersion=True)
-    
-    print('Files successfully uploaded to Synapse subfolder:', subfolder.name)
-except Exception as e:
-    print('Error uploading files to Synapse:', e)
-    exit(1)
-" 2>&1 | tee upload_debug.log
+    mkdir -p ${out_dir}
+    # Copy the repository to /tmp to avoid slow mounted I/O
+    cp -r ${repo_dir} /tmp/repo
+    # Run Almanack analysis; we consider exit code 0 as PASS
+    if python3 -c "import json, almanack; print(json.dumps(almanack.table(repo_path='/tmp/repo')))" > ${out_dir}/almanack-results.json 2>/dev/null; then
+         ALMANACK_STATUS="PASS"
     else
-        echo "Skipping Synapse upload as 'upload_to_synapse' is not true."
+         ALMANACK_STATUS="FAIL"
     fi
+    # Append Almanack status to the previous summary line
+    PREV_STATUS=\$(cat status_repo.txt)
+    echo "\${PREV_STATUS},\${ALMANACK_STATUS}" > status_almanack.txt
+    """
+}
+
+/*-----------------------------------------------
+   Process: GenerateReport
+   - Aggregates all status_almanack.txt files from RunAlmanack
+     into a single consolidated CSV report.
+-----------------------------------------------*/
+process GenerateReport {
+    errorStrategy 'ignore'
+    input:
+      file(status_files) from almanackStatuses
+    output:
+      file "consolidated_report.csv"
+    script:
+    """
+    # Write header
+    echo "Tool,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack" > consolidated_report.csv
+    # Append each status row
+    for file in ${status_files}; do
+      cat \$file >> consolidated_report.csv
+    done
     """
 }
 
@@ -205,11 +140,10 @@ except Exception as e:
    Workflow Section
    - Creates a channel from a sample sheet (or single repo_url)
    - Maps each repository URL to a tuple: (repo_url, repo_name, out_dir)
-   - Pipes these tuples to ProcessRepo and then (if enabled)
-     to UploadToSynapse.
+   - Pipes these tuples through ProcessRepo and RunAlmanack.
+   - Finally, aggregates all status files into a consolidated CSV report.
 -----------------------------------------------*/
 workflow {
-
     // Build a channel from either a sample sheet or a single repo URL.
     def repoCh = params.sample_sheet ? 
          Channel.fromPath(params.sample_sheet)
@@ -224,11 +158,15 @@ workflow {
          tuple(repo, repo_name, out_dir)
     }
     
-    // Process each repository with ProcessRepo.
+    // Process each repository with ProcessRepo (checks and summary)
     def repoOutputs = repoTuples | ProcessRepo
     
-    // If upload is enabled, pipe the outputs to UploadToSynapse.
-    if ( params.upload_to_synapse.toString().toLowerCase() == "true" ) {
-         repoOutputs | UploadToSynapse
-    }
+    // Run Almanack analysis in a separate container and update the summary
+    def almanackOutputs = repoOutputs | RunAlmanack
+
+    // Collect all status files from RunAlmanack
+    almanackStatuses = almanackOutputs.map { repo_url, repo_name, out_dir, status_file -> status_file }
+    
+    // Generate consolidated report
+    almanackStatuses | GenerateReport
 }
