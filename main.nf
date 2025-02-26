@@ -90,7 +90,7 @@ process ProcessRepo {
      ToolName,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack
 -----------------------------------------------*/
 process RunAlmanack {
-    container = 'cckp-toolkit-almanack:latest'
+    container = 'aditigopalan/cckp-toolkit-almanack:latest'
     errorStrategy 'ignore'
     input:
       tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path("status_repo.txt")
