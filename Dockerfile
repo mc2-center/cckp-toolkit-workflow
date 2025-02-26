@@ -4,9 +4,9 @@ FROM python:3.11-bullseye
 # Install apt dependencies
 RUN apt-get update && \
     apt-get install -y \
-    git \
-    curl \
-    openjdk-11-jre
+      git \
+      curl \
+      openjdk-11-jre
 
 # Install Nextflow
 RUN curl -s https://get.nextflow.io | bash && mv nextflow /usr/local/bin/
@@ -18,15 +18,15 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Set working directory
 WORKDIR /workspace
 
-# Copy Nextflow script into the working directory
-COPY first-pass.nf nextflow.config /workspace/
+# Copy the Nextflow script and configuration file into the container
+COPY main.nf nextflow.config /workspace/
 
-# Add execute permissions to the Nextflow script
-RUN chmod +x /workspace/first-pass.nf
+# Add execute permissions to the main Nextflow script
+RUN chmod +x /workspace/main.nf
 
-# Set entrypoint for Nextflow, allowing for an HTTP link to be passed in
-# i.e. docker run cckp-toolkit https://some-git-url
-ENTRYPOINT ["bash", "-c", "nextflow run /workspace/first-pass.nf --repo_url $0"]
+# Set entrypoint: when a repo URL is passed as the first argument,
+# Nextflow runs main.nf with that repo URL
+ENTRYPOINT ["bash", "-c", "nextflow run /workspace/main.nf --repo_url $0"]
 
 
 
