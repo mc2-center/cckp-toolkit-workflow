@@ -2,3 +2,4 @@
 .nextflow
 work
 .nextflow.log*
+.DS_Store
