@@ -89,3 +89,4 @@ Ensure your Synapse credentials are properly set up (e.g., by mounting your .syn
 - The entire workflow is containerized, so you only need Docker installed.
 - All dependencies are included in the Docker images, making setup and execution straightforward.
 - The consolidated report provides a quick overview of each tool’s status across all checks.
+- 
