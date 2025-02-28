@@ -1,81 +1,60 @@
-# CCKP Toolkit Workflow README
+# CCKP Toolkit Workflow
 
 ## Description
 
-This Nextflow workflow `main.nf` performs a high-level quality check on tools. The workflow consists of the following processes:
+This Nextflow workflow (`main.nf`) performs quality and metadata checks on software tools by running a series of checks:
 
-1. **CloneRepository**: Clones a Git repository from the provided URL into a temporary directory and copies the repository to a designated location.
+- **CloneRepository**: Clones the repository.
+- **CheckReadme**: Verifies the existence of a README file.
+- **CheckDependencies**: Looks for dependency files (e.g., `requirements.txt`, `Pipfile`, `setup.py`, etc.).
+- **CheckTests**: Checks for the presence of test directories or test files.
+- **CheckAlmanack**: Runs the [Software Gardening Almanack](https://github.com/software-gardening/almanack) analysis.
 
-2. **CheckReadme**: Checks the cloned repository for the presence of a README file. It looks for various common README file names and reports whether one was found.
+The final output is a **consolidated CSV report** where each row represents a tool (i.e., a repository) with the following columns:
 
-3. **CheckDependencies**: Scans the repository for dependency files associated with different programming languages. It reports the presence of files for Python, JavaScript/Node.js, Java, and R.
+```Tool, CloneRepository, CheckReadme, CheckDependencies, CheckTests, Almanack```
 
-4. **CheckTests**: Looks for test directories or files within the repository.
+Each column shows the status (`PASS`/`FAIL`) for the respective check.
 
-5. **CheckAlmanack**: Implements the [Software Gardening Almanack](https://github.com/software-gardening/almanack) to gather various metrics about the repository.
-   - **Note:** The `CheckAlmanack` process now uses `python3` to execute the Python command. If you encounter issues, ensure that Python 3 is installed and that `python3` is in your system's PATH.
+## Running the Workflow
+You can execute the workflow in one of two ways:
+- Analyze a single tool by specifying its repository URL.
+- Analyze multiple tools using a sample sheet (CSV file) that includes a repo_url header.
 
-6. **SaveToSynapse** (Optional): Uploads workflow results of the toolkit to a specified Synapse folder if the upload option is enabled.
+### Install Nextflow 
+Follow the official installation guide [here](https://www.nextflow.io/docs/latest/install.html) or use the command below:
 
-## Setup
-
-Install Nextflow:
-
-```sh
+```bash
 curl -s https://get.nextflow.io | bash
 ```
 
-Install Almanack:
-
-```sh
-pip install almanack
-```
-
-## Configuration
-
-You can configure the workflow using `nextflow.config`. Set your working directory here.
-
-## Usage
-
-To run the workflow, you need to provide the URL of the Git repository you want to analyze as a parameter. Here's how you can execute the workflow:
-
-```bash
-nextflow run main.nf --repo_url <repository-url>
-```
-
-Replace `<repository-url>` with the URL of the Git repository you wish to check.
-
-## Example
-
+### Run with a Single Repository URL
 ```bash
 nextflow run main.nf --repo_url https://github.com/example/repo.git
 ```
 
-### To upload results to Synapse
+### Run with a Sample Sheet
+Prepare a CSV file (e.g., example-input.csv) with a header repo_url and one URL per row, then run:
+
+```bash
+nextflow run main.nf --sample_sheet <samplesheet>
+```
+
+## Output
+After the workflow completes, you'll find a consolidated CSV report (consolidated_report.csv) in your output directory (by default, under the results folder). Each row in this report represents a tool and its corresponding check statuses.
+
+## Optional: Uploading Results to Synapse
+To upload results to Synapse, run the workflow with the following parameters:
 
 ```bash
 nextflow run main.nf \
-    --repo_url https://github.com/PythonOT/POT.git \
-    --upload_to_synapse true \
-    --synapse_folder_id syn64626421 \
-    -with-trace trace.txt
+    --repo_url https://github.com/example/repo.git \
+    --upload_to_synapse true\
+    --synapse_folder_id syn64626421
 ```
+Ensure your Synapse credentials are properly set up (e.g., by mounting your .synapseConfig file).
 
-## Docker Usage
-
-You may also use Docker to run the CCKP Toolkit Workflow as an alternative to the above.
-First, [install Docker](https://docs.docker.com/engine/install/) on your system.
-Then, use the commands below as an example of how to run the workflow.
-
-```bash
-# Build an image for the CCKP Toolkit Workflow
-docker build -t cckp-toolkit-workflow .
-
-# Run the image for the CCKP Toolkit Workflow, passing in a Git repository URL
-docker run cckp-toolkit-workflow https://github.com/mc2-center/cckp-toolkit-workflow
-```
-
-### Tools You Can Test With
+## Tools You Can Test With
 
 1. **Python Optimal Transport Library**  
    - Synapse: [POT](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=POT)  
@@ -95,5 +74,4 @@ docker run cckp-toolkit-workflow https://github.com/mc2-center/cckp-toolkit-work
 **Subset of tools to test**: Any from [this list](https://cancercomplexity.synapse.org/Explore/Tools) with a GitHub repository.
 
 ## Notes
-
-Ensure Git is installed on your system as the workflow uses `git clone` to clone the repository. The workflow assumes the repository is public or accessible with the provided URL.
+- Ensure Nextflow and Docker are installed 
