@@ -12,8 +12,25 @@ if (params.upload_to_synapse && !params.synapse_folder_id) {
 // Include modules (ensure these files are in your modules folder)
 include { ProcessRepo }   from './modules/ProcessRepo.nf'
 include { RunAlmanack }   from './modules/RunAlmanack.nf'
-include { GenerateReport } from './modules/GenerateReport.nf'
 include { UploadToSynapse } from './modules/UploadToSynapse.nf'
+
+// Define the GenerateReport process
+process GenerateReport {
+    publishDir path: "${params.output_dir}", mode: 'copy'
+    input:
+        file status_files
+    output:
+        file "consolidated_report.csv"
+    script:
+    """
+    # Write header
+    echo "Tool,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack" > consolidated_report.csv
+    # Append each status row from all files
+    for file in ${status_files}; do
+      cat \$file >> consolidated_report.csv
+    done
+    """
+}
 
 workflow {
     // Build a channel from either a sample sheet or a single repo URL.
@@ -29,20 +46,26 @@ workflow {
     }
     
     // Map each repository URL to a tuple: (repo_url, repo_name, out_dir)
-    def repoTuples = repoCh.map { repo ->
-         def repo_name = repo.tokenize('/')[-1].replace('.git','')
+    def repoTuples = repoCh.map { repo_url ->
+         def repo_name = repo_url.tokenize('/')[-1].replace('.git','')
          def out_dir = "${params.output_dir}/${repo_name}"
-         tuple(repo, repo_name, out_dir)
+         tuple(repo_url, repo_name, out_dir)
     }
     
     // Process each repository with ProcessRepo (this process clones the repo and writes a status file)
     def repoOutputs = repoTuples | ProcessRepo
     
-    // Run the Almanack analysis (using the unmodified logic from your original workflow)
+    // Run the Almanack analysis
     def almanackOutputs = repoOutputs | RunAlmanack
 
-    // Generate a consolidated report from the Almanack outputs.
-    almanackOutputs | GenerateReport
+    // Collect all unique status files into one list
+    almanackOutputs
+        .map { repo_url, repo_name, out_dir, status_file -> status_file }
+        .collect()
+        .set { allStatusFiles }
+    
+    // Generate the consolidated report
+    allStatusFiles | GenerateReport
 
     // Optionally, if upload_to_synapse is enabled, run that process.
     if (params.upload_to_synapse) {
