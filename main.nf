@@ -1,206 +1,175 @@
-params.upload_to_synapse = false  // default is false, can be overridden at runtime
+#!/usr/bin/env nextflow
+nextflow.enable.dsl=2
 
-process CloneRepository {
+// Global parameters
+params.upload_to_synapse = false              // default is false; override at runtime
+params.sample_sheet        = params.sample_sheet ?: null   // CSV file with header "repo_url"
+params.repo_url            = params.repo_url     ?: null   // fallback for a single repo URL
+params.output_dir          = params.output_dir   ?: 'results'  // base output directory
+
+if( params.upload_to_synapse && !params.synapse_folder_id ) {
+    error "synapse_folder_id must be provided when --upload_to_synapse is true."
+}
+
+/*-----------------------------------------------
+   Process: ProcessRepo
+   - Clones the repository and performs initial checks:
+     * CloneRepository, CheckReadme, CheckDependencies, CheckTests.
+   - Writes a summary status file (status_repo.txt) with a CSV row:
+     ToolName,CloneRepository,CheckReadme,CheckDependencies,CheckTests
+-----------------------------------------------*/
+process ProcessRepo {
+    errorStrategy 'ignore'
     input:
-    val repo_url
-
+       // Each input is a tuple: (repo_url, repo_name, out_dir)
+       tuple val(repo_url), val(repo_name), val(out_dir)
     output:
-    path 'repo'
-
+       // Emit a tuple: (repo_url, repo_name, path(repo directory), out_dir, path(status_repo.txt))
+       tuple val(repo_url), val(repo_name), path("repo"), val(out_dir), path("status_repo.txt")
     script:
     """
-    rm -rf /tmp/nextflow_repo/repo
-    mkdir -p /tmp/nextflow_repo
-    git clone ${repo_url} /tmp/nextflow_repo/repo
-    cp -r /tmp/nextflow_repo/repo ./repo
-    """
-}
+    set -euo pipefail
 
-process CheckReadme {
-    input:
-    path repo
+    # Initialize statuses as FAIL (default)
+    CLONE_STATUS="FAIL"
+    README_STATUS="FAIL"
+    DEP_STATUS="FAIL"
+    TESTS_STATUS="FAIL"
 
-    script:
-    """
-    cd repo
-
-    if [ -f README.md ]; then
-        echo "Found README.md"
-    elif [ -f README.rst ]; then
-        echo "Found README.rst"
-    elif [ -f README.txt ]; then
-        echo "Found README.txt"
-    elif [ -f README ]; then
-        echo "Found README"
-    else
-        echo "No README file found" >&2
-        exit 1
+    ###############################
+    # Clone Repository Step
+    ###############################
+    rm -rf repo
+    if git clone ${repo_url} repo >> /dev/null 2>&1; then
+       CLONE_STATUS="PASS"
     fi
-    """
-}
 
-process CheckDependencies {
-    input:
-    path repo
-
-    script:
-    """
+    ###############################
+    # Check README Step
+    ###############################
     cd repo
+    if [ -f README.md ] || [ -f README.rst ] || [ -f README.txt ] || [ -f README ]; then
+       README_STATUS="PASS"
+    fi
+    cd ..
 
-    # Python Dependency Files
+    ###############################
+    # Check Dependencies Step
+    ###############################
+    cd repo
     if find . -maxdepth 1 -type f -name '*requirements*' | grep -q .; then
-    echo "Found a requirements file"
-    elif [ -f Pipfile ]; then
-        echo "Found Pipfile for Python"
-    elif [ -f Pipfile.lock ]; then
-        echo "Found Pipfile.lock for Python"
-    elif [ -f setup.py ]; then
-        echo "Found setup.py for Python"
-    elif [ -f pyproject.toml ]; then
-        echo "Found pyproject.toml for Python"
-
-    # JavaScript/Node.js Dependency Files
-    elif [ -f package.json ]; then
-        echo "Found package.json for JavaScript/Node.js"
-    elif [ -f package-lock.json ]; then
-        echo "Found package-lock.json for JavaScript/Node.js"
-    elif [ -f yarn.lock ]; then
-        echo "Found yarn.lock for JavaScript/Node.js"
-
-    # Java Dependency Files
-    elif [ -f pom.xml ]; then
-        echo "Found pom.xml for Java"
-    elif [ -f build.gradle ]; then
-        echo "Found build.gradle for Java"
-    elif [ -f settings.gradle ]; then
-        echo "Found settings.gradle for Java"
-
-    # R Dependency Files
-    elif [ -f DESCRIPTION ]; then
-        echo "Found DESCRIPTION file for R"
-    elif [ -f renv.lock ]; then
-        echo "Found renv.lock file for R"
-    elif [ -d packrat ] && [ -f packrat/packrat.lock ]; then
-        echo "Found packrat.lock file for R"
-
-    else
-        echo "No recognized dependency files found" >&2
-        exit 1
+       DEP_STATUS="PASS"
+    elif [ -f Pipfile ] || [ -f Pipfile.lock ] || [ -f setup.py ] || [ -f pyproject.toml ] || [ -f package.json ] || [ -f package-lock.json ] || [ -f yarn.lock ] || [ -f pom.xml ] || [ -f build.gradle ] || [ -f settings.gradle ] || [ -f DESCRIPTION ] || [ -f renv.lock ] || ( [ -d packrat ] && [ -f packrat/packrat.lock ] ); then
+       DEP_STATUS="PASS"
     fi
-    """
-}
+    cd ..
 
-process CheckTests {
-    input:
-    path repo
-
-    script:
-    """
+    ###############################
+    # Check Tests Step
+    ###############################
     cd repo
-
-    # Check for test directories
     if [ -d tests ] || [ -d test ]; then
-        echo "Found test directory (tests or test)"
-    
-    # Check for test files with common extensions
+       TESTS_STATUS="PASS"
     elif find . -maxdepth 1 -name '*.test.js' -o -name '*.test.py' -o -name '*.test.java' | grep -q .; then
-        echo "Found test files with common extensions (*.test.js, *.test.py, *.test.java)"
-    
-    else
-        echo "No test files or directories found" >&2
-        echo "No test files found in the repository" > no_tests_found.log
-        exit 1  
+       TESTS_STATUS="PASS"
     fi
+    cd ..
+
+    # Write out a summary status file in CSV format
+    mkdir -p ${out_dir}
+    echo "${repo_name},\${CLONE_STATUS},\${README_STATUS},\${DEP_STATUS},\${TESTS_STATUS}" > status_repo.txt
     """
 }
 
-process CheckAlmanack {
+/*-----------------------------------------------
+   Process: RunAlmanack
+   - Runs the Almanack analysis in a dedicated container.
+   - Copies the repository to /tmp (to avoid slow mounted I/O) and runs Almanack.
+   - Reads the summary from ProcessRepo and appends the Almanack status,
+     producing a uniquely named file (status_almanack_<repo_name>.txt) with columns:
+     ToolName,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack
+-----------------------------------------------*/
+process RunAlmanack {
+    container = 'aditigopalan/cckp-toolkit-almanack:latest'
+    errorStrategy 'ignore'
     input:
-    path repo
-
+      tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path("status_repo.txt")
     output:
-    path "${params.output_dir}/almanack-results.json", emit: almanack_results
-
+      // Emit a tuple: (repo_url, repo_name, out_dir, file(status_almanack_<repo_name>.txt))
+      tuple val(repo_url), val(repo_name), val(out_dir), file("status_almanack_${repo_name}.txt")
     script:
     """
-    mkdir -p ${params.output_dir}  # Create the output directory if it doesn't exist
-    python3 -c "
-    try:
-        import json
-        import almanack
-        result = almanack.table(repo_path='${repo}')
-        print(json.dumps(result, indent=4))
-    except Exception as e:
-        print(f'Error: {e}')
-        exit(1)
-    " > ${params.output_dir}/almanack-results.json 2> ${params.output_dir}/almanack-error.log
-    """
-}
-
-process SaveToSynapse {
-    input:
-    path trace_file
-    path almanack_results
-    val repo_name
-    val synapse_folder_id
-
-    script:
-    """
-    if [ "${params.upload_to_synapse}" = "true" ]; then
-        # Synapse parent folder ID from params
-        # synapse_folder_id="${params.synapse_folder_id}"
-
-        # Initialize Synapse client and upload files
-        python3 -c "
-import synapseclient
-from synapseclient import Folder, File
-
-syn = synapseclient.Synapse()
-syn.login()
-
-try:
-    subfolder = next((folder for folder in syn.getChildren('${synapse_folder_id}') if folder['name'] == '${repo_name}'), None)
-    if not subfolder:
-        subfolder = syn.store(Folder(name='${repo_name}', parentId='${synapse_folder_id}'))
-    else:
-        subfolder = syn.get(subfolder['id'])
-
-    syn.store(File('${trace_file}', parentId=subfolder.id))
-    syn.store(File('${almanack_results}', parentId=subfolder.id))
-
-    print('Files successfully uploaded to Synapse subfolder:', subfolder.name)
-except Exception as e:
-    print(f'Error uploading files to Synapse: {e}')
-    exit(1)
-        "
+    mkdir -p ${out_dir}
+    # Copy the repository to /tmp for faster I/O
+    cp -r ${repo_dir} /tmp/repo
+    # Run Almanack analysis; if it completes without error, mark as PASS
+    if python3 -c "import json, almanack; print(json.dumps(almanack.table(repo_path='/tmp/repo')))" > ${out_dir}/almanack-results.json 2>/dev/null; then
+         ALMANACK_STATUS="PASS"
     else
-        echo "Skipping Synapse upload as 'upload_to_synapse' is false."
+         ALMANACK_STATUS="FAIL"
     fi
+    # Append Almanack status to the previous summary line from status_repo.txt and write to a unique file
+    PREV_STATUS=\$(cat status_repo.txt)
+    echo "\${PREV_STATUS},\${ALMANACK_STATUS}" > status_almanack_${repo_name}.txt
     """
 }
 
+/*-----------------------------------------------
+   Process: GenerateReport
+   - Aggregates all uniquely named status_almanack files into one CSV file.
+-----------------------------------------------*/
+process GenerateReport {
+    errorStrategy 'ignore'
+    input:
+      // Collect all status files (with names matching the pattern)
+      file(status_files)
+    output:
+      file "consolidated_report.csv"
+    script:
+    """
+    # Write header
+    echo "Tool,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack" > consolidated_report.csv
+    # Append each status row from all files
+    for file in ${status_files}; do
+      cat \$file >> consolidated_report.csv
+    done
+    """
+}
 
+/*-----------------------------------------------
+   Workflow Section
+   - Creates a channel from a sample sheet (or single repo_url)
+   - Maps each repository URL to a tuple: (repo_url, repo_name, out_dir)
+   - Pipes these tuples through ProcessRepo and RunAlmanack.
+   - Then collects all unique status files into one list and sends them to GenerateReport.
+-----------------------------------------------*/
 workflow {
-
-    params.synapse_folder_id = null // Default to null, must be provided during execution
-    if (!params.synapse_folder_id) {
-    throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
+    // Build a channel from either a sample sheet or a single repo URL.
+    def repoCh = params.sample_sheet ? 
+         Channel.fromPath(params.sample_sheet)
+                .splitCsv(header:true)
+                .map { row -> row.repo_url } :
+         ( params.repo_url ? Channel.value(params.repo_url) : error("You must provide either a sample_sheet or a repo_url parameter.") )
+    
+    // Map each repository URL to a tuple: (repo_url, repo_name, out_dir)
+    def repoTuples = repoCh.map { repo ->
+         def repo_name = repo.tokenize('/')[-1].replace('.git','')
+         def out_dir = "${params.output_dir}/${repo_name}"
+         tuple(repo, repo_name, out_dir)
     }
-    output_dir = params.output_dir ?: 'results'
-    trace_file = file("${baseDir}/trace.txt")
+    
+    // Process each repository with ProcessRepo (performs clone and all checks)
+    def repoOutputs = repoTuples | ProcessRepo
+    
+    // Run Almanack analysis in a separate container and update the summary
+    def almanackOutputs = repoOutputs | RunAlmanack
 
-    def repo_name = params.repo_url.tokenize('/').last().replace('.git', '')
-    def synapse_folder_id = params.synapse_folder_id
-
-
-    repoPath = CloneRepository(params.repo_url)
-    CheckReadme(repoPath)
-    CheckDependencies(repoPath)
-    CheckTests(repoPath)
-    almanack_results = CheckAlmanack(repoPath)
-
-    // Save to Synapse if enabled
-    if (params.upload_to_synapse) {
-        SaveToSynapse(trace_file, almanack_results, repo_name, synapse_folder_id)
-    }
+    // Collect all unique status files into one list
+    almanackOutputs
+        .map { repo_url, repo_name, out_dir, status_file -> status_file }
+        .collect()
+        .set { allStatusFiles }
+    
+    // Pipe the collected status files to GenerateReport to create the consolidated CSV report
+    allStatusFiles | GenerateReport
 }
