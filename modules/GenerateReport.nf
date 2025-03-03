@@ -1,40 +1,33 @@
+/**
+ * Process: GenerateReport
+ * 
+ * Aggregates all status files into a single consolidated CSV report.
+ * The report includes the following columns:
+ * - Tool: Repository name
+ * - CloneRepository: Status of repository cloning
+ * - CheckReadme: Status of README check
+ * - CheckDependencies: Status of dependencies check
+ * - CheckTests: Status of tests check
+ * - Almanack: Status of Almanack analysis
+ */
+
 process GenerateReport {
-    errorStrategy 'ignore'
+    publishDir path: "${params.output_dir}", mode: 'copy'
+    
     input:
-        path status_lines
+        file status_files
+    
     output:
         file "consolidated_report.csv"
-
-    publishDir params.output_dir, mode: 'copy'  // Save report in output directory
-
+    
     script:
     """
-    #!/bin/bash
-    set -euxo pipefail
-
-    echo "Debug: Starting report generation" >&2
-    echo "Debug: Status lines:" >&2
-    for f in ${status_lines}; do
-        echo "  \$f" >&2
-        echo "  Contents:" >&2
-        cat "\$f" >&2
-        echo "---" >&2
+    # Write header with column names
+    echo "Tool,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack" > consolidated_report.csv
+    
+    # Append each status row from all files
+    for file in ${status_files}; do
+        cat \$file >> consolidated_report.csv
     done
-
-    # Create the header
-    echo "Tool,CloneRepo,CheckDependencies,CheckTests,RunAlmanack" > consolidated_report.csv
-
-    # Process each status line
-    for status_line in ${status_lines}; do
-        echo "Processing status line: \$status_line" >&2
-        cat "\$status_line" >> consolidated_report.csv
-        echo "Added to report" >&2
-        echo "Current report contents:" >&2
-        cat consolidated_report.csv >&2
-        echo "---" >&2
-    done
-
-    echo "Report generation complete. Final contents:" >&2
-    cat consolidated_report.csv >&2
     """
 }

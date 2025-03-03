@@ -1,39 +1,35 @@
+#!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-params.upload_to_synapse = false
-params.sample_sheet     = params.sample_sheet ?: null
-params.repo_url         = params.repo_url     ?: null
-params.output_dir       = params.output_dir   ?: 'results'
+/**
+ * Main workflow for CCKP Toolkit
+ * 
+ * This workflow processes GitHub repositories to:
+ * 1. Clone and perform initial checks (ProcessRepo)
+ * 2. Run Almanack analysis (RunAlmanack)
+ * 3. Generate a consolidated report (GenerateReport)
+ * 4. Optionally upload results to Synapse (UploadToSynapse)
+ */
 
+// Global parameters
+params.upload_to_synapse = false              // default is false; override at runtime
+params.sample_sheet     = params.sample_sheet ?: null   // CSV file with header "repo_url"
+params.repo_url         = params.repo_url     ?: null   // fallback for a single repo URL
+params.output_dir       = params.output_dir   ?: 'results'  // base output directory
+
+// Validate Synapse parameters
 if (params.upload_to_synapse && !params.synapse_folder_id) {
     error "synapse_folder_id must be provided when --upload_to_synapse is true."
 }
 
-// Include modules (ensure these files are in your modules folder)
+// Include required modules
 include { ProcessRepo }   from './modules/ProcessRepo.nf'
 include { RunAlmanack }   from './modules/RunAlmanack.nf'
 include { UploadToSynapse } from './modules/UploadToSynapse.nf'
-
-// Define the GenerateReport process
-process GenerateReport {
-    publishDir path: "${params.output_dir}", mode: 'copy'
-    input:
-        file status_files
-    output:
-        file "consolidated_report.csv"
-    script:
-    """
-    # Write header
-    echo "Tool,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack" > consolidated_report.csv
-    # Append each status row from all files
-    for file in ${status_files}; do
-      cat \$file >> consolidated_report.csv
-    done
-    """
-}
+include { GenerateReport } from './modules/GenerateReport.nf'
 
 workflow {
-    // Build a channel from either a sample sheet or a single repo URL.
+    // Build a channel from either a sample sheet or a single repo URL
     def repoCh
     if (params.sample_sheet) {
         repoCh = Channel.fromPath(params.sample_sheet)
@@ -52,10 +48,10 @@ workflow {
          tuple(repo_url, repo_name, out_dir)
     }
     
-    // Process each repository with ProcessRepo (this process clones the repo and writes a status file)
+    // Process each repository with ProcessRepo (clones repo and performs initial checks)
     def repoOutputs = repoTuples | ProcessRepo
     
-    // Run the Almanack analysis
+    // Run the Almanack analysis on each repository
     def almanackOutputs = repoOutputs | RunAlmanack
 
     // Collect all unique status files into one list
@@ -64,10 +60,10 @@ workflow {
         .collect()
         .set { allStatusFiles }
     
-    // Generate the consolidated report
+    // Generate the consolidated report from all status files
     allStatusFiles | GenerateReport
 
-    // Optionally, if upload_to_synapse is enabled, run that process.
+    // Optionally upload results to Synapse if enabled
     if (params.upload_to_synapse) {
         almanackOutputs | UploadToSynapse
     }
