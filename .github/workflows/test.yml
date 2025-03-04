@@ -21,9 +21,15 @@ jobs:
       
       - name: Install nf-test
         run: |
-          curl -fsSL https://code.askimed.com/install/nf-test | bash
-          # Add nf-test to PATH
-          export PATH="$HOME/.local/bin:$PATH"
+          # Download nf-test
+          curl -L https://github.com/askimed/nf-test/releases/download/v0.9.2/nf-test-0.9.2.tar.gz -o nf-test.tar.gz
+          # Extract it
+          tar xzf nf-test.tar.gz
+          # Move binary to /usr/local/bin
+          sudo mv nf-test-0.9.2/nf-test /usr/local/bin/
+          # Clean up
+          rm -rf nf-test.tar.gz nf-test-0.9.2
+          # Verify installation
           nf-test --version
       
       - name: Set up Docker
@@ -31,7 +37,6 @@ jobs:
       
       - name: Run tests
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
           nf-test test main.nf.test
       
       - name: Upload test results
