@@ -1,7 +1,0 @@
-task_id	hash	native_id	name	status	exit	submit	duration	realtime	%cpu	peak_rss	peak_vmem	rchar	wchar
-1	e3/3b24f1	4515	CloneRepository	COMPLETED	0	2025-02-21 11:32:34.250	1.8s	2s	-	-	-	-	-
-3	97/1fb455	4542	CheckReadme	COMPLETED	0	2025-02-21 11:32:36.137	80ms	0ms	-	-	-	-	-
-5	e3/d9f5cf	4544	CheckDependencies	COMPLETED	0	2025-02-21 11:32:36.142	79ms	0ms	-	-	-	-	-
-4	48/124b2e	4545	CheckTests	COMPLETED	0	2025-02-21 11:32:36.146	72ms	0ms	-	-	-	-	-
-2	63/1f590a	4547	CheckAlmanack	COMPLETED	0	2025-02-21 11:32:36.150	38.6s	38s	-	-	-	-	-
-6	04/a10dbd	4661	SaveToSynapse	COMPLETED	0	2025-02-21 11:33:14.807	4.1s	4s	-	-	-	-	-
