@@ -1,0 +1,142 @@
+name: Test CCKP Toolkit Workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Nextflow
+        uses: nextflow-io/setup-nextflow@v1
+        with:
+          version: "latest"
+      
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Run workflow with test repository
+        run: |
+          rm -rf test_results
+          nextflow run main.nf \
+            --repo_url https://github.com/PythonOT/POT.git \
+            --output_dir test_results
+      
+      - name: Run workflow with example input
+        run: |
+          rm -rf test_results_example
+          nextflow run main.nf \
+            --sample_sheet examples/example-input.csv \
+            --output_dir test_results_example
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: integration-test-results
+          path: |
+            test_results/
+            test_results_example/
+          retention-days: 7
+
+  output-validation:
+    name: Output Validation
+    needs: integration-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download integration test results
+        uses: actions/download-artifact@v3
+        with:
+          name: integration-test-results
+          path: test_results
+      
+      - name: Validate outputs
+        run: |
+          # Test 1: Check consolidated report
+          if [ ! -f "test_results/consolidated_report.csv" ] || [ ! -s "test_results/consolidated_report.csv" ]; then
+            echo "❌ Consolidated report is missing or empty"
+            exit 1
+          fi
+          echo "✓ Consolidated report exists and is not empty"
+          
+          # Test 2: Check Almanack results
+          if [ ! -f "test_results/PythonOT_POT_almanack-results.json" ] || [ ! -s "test_results/PythonOT_POT_almanack-results.json" ]; then
+            echo "❌ Almanack results are missing or empty"
+            exit 1
+          fi
+          echo "✓ Almanack results exist and are not empty"
+          
+          # Test 3: Validate CSV structure
+          if ! head -n 1 "test_results/consolidated_report.csv" | grep -q "target"; then
+            echo "❌ CSV header is missing or incorrect"
+            exit 1
+          fi
+          echo "✓ CSV header is valid"
+          
+          # Test 4: Check status values
+          if ! grep -q "PASS\|FAIL" "test_results/consolidated_report.csv"; then
+            echo "❌ No valid status values found in CSV"
+            exit 1
+          fi
+          echo "✓ Status values are present"
+          
+          # Test 5: Check status files
+          if [ ! -f "test_results/status_repo.txt" ]; then
+            echo "❌ Repository status file is missing"
+            exit 1
+          fi
+          echo "✓ Repository status file exists"
+          
+          if [ ! -f "test_results/status_almanack_POT.txt" ]; then
+            echo "❌ Almanack status file is missing"
+            exit 1
+          fi
+          echo "✓ Almanack status file exists"
+
+  error-handling:
+    name: Error Handling
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Nextflow
+        uses: nextflow-io/setup-nextflow@v1
+        with:
+          version: "latest"
+      
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Test invalid repository URL
+        run: |
+          rm -rf error_test_results
+          if nextflow run main.nf --repo_url "invalid-url" --output_dir error_test_results; then
+            echo "❌ Workflow should fail with invalid repository URL"
+            exit 1
+          fi
+          echo "✓ Invalid repository URL test passed"
+      
+      - name: Test invalid sample sheet
+        run: |
+          rm -rf error_test_results
+          if nextflow run main.nf --sample_sheet "nonexistent.csv" --output_dir error_test_results; then
+            echo "❌ Workflow should fail with invalid sample sheet"
+            exit 1
+          fi
+          echo "✓ Invalid sample sheet test passed"
+      
+      - name: Upload error test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: error-test-results
+          path: error_test_results/
+          retention-days: 7 
