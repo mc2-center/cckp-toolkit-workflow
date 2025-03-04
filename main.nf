@@ -22,6 +22,13 @@ if (params.upload_to_synapse && !params.synapse_folder_id) {
     throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
 }
 
+// Validate repository URL format
+def validateRepoUrl = { url ->
+    if (!url) return false
+    def validUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+\.git$/
+    return url ==~ validUrlPattern
+}
+
 // Include required modules
 include { ProcessRepo }   from './modules/ProcessRepo.nf'
 include { RunAlmanack }   from './modules/RunAlmanack.nf'
@@ -35,7 +42,11 @@ workflow {
         repoCh = Channel.fromPath(params.sample_sheet)
                         .splitCsv(header:true)
                         .map { row -> row.repo_url }
+                        .filter { url -> validateRepoUrl(url) }
     } else if (params.repo_url) {
+        if (!validateRepoUrl(params.repo_url)) {
+            throw new IllegalArgumentException("ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git")
+        }
         repoCh = Channel.value(params.repo_url)
     } else {
         error "Provide either a sample_sheet or repo_url."

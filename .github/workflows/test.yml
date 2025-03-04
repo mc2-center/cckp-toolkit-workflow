@@ -120,7 +120,7 @@ jobs:
       - name: Test invalid repository URL
         run: |
           rm -rf error_test_results
-          if nextflow run main.nf --repo_url "invalid-url" --output_dir error_test_results 2>&1 | grep -q "ERROR: Provide either a sample_sheet or repo_url"; then
+          if nextflow run main.nf --repo_url "invalid-url" --output_dir error_test_results 2>&1 | grep -q "ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git"; then
             echo "✓ Invalid repository URL test passed"
           else
             echo "❌ Workflow should fail with invalid repository URL"
