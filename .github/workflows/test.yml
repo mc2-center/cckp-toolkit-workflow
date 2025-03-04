@@ -120,20 +120,22 @@ jobs:
       - name: Test invalid repository URL
         run: |
           rm -rf error_test_results
-          if nextflow run main.nf --repo_url "invalid-url" --output_dir error_test_results; then
+          if nextflow run main.nf --repo_url "invalid-url" --output_dir error_test_results 2>&1 | grep -q "ERROR: Provide either a sample_sheet or repo_url"; then
+            echo "✓ Invalid repository URL test passed"
+          else
             echo "❌ Workflow should fail with invalid repository URL"
             exit 1
           fi
-          echo "✓ Invalid repository URL test passed"
       
       - name: Test invalid sample sheet
         run: |
           rm -rf error_test_results
-          if nextflow run main.nf --sample_sheet "nonexistent.csv" --output_dir error_test_results; then
+          if nextflow run main.nf --sample_sheet "nonexistent.csv" --output_dir error_test_results 2>&1 | grep -q "ERROR: Provide either a sample_sheet or repo_url"; then
+            echo "✓ Invalid sample sheet test passed"
+          else
             echo "❌ Workflow should fail with invalid sample sheet"
             exit 1
           fi
-          echo "✓ Invalid sample sheet test passed"
       
       - name: Test conflicting parameters
         run: |
@@ -141,11 +143,12 @@ jobs:
           if nextflow run main.nf \
             --repo_url https://github.com/PythonOT/POT.git \
             --sample_sheet tests/fixtures/example-input.csv \
-            --output_dir error_test_results; then
+            --output_dir error_test_results 2>&1 | grep -q "ERROR: Provide either a sample_sheet or repo_url"; then
+            echo "✓ Conflicting parameters test passed"
+          else
             echo "❌ Workflow should fail when both repo_url and sample_sheet are provided"
             exit 1
           fi
-          echo "✓ Conflicting parameters test passed"
       
       - name: Test Synapse parameter validation
         run: |
@@ -163,11 +166,12 @@ jobs:
           if nextflow run main.nf \
             --repo_url https://github.com/PythonOT/POT.git \
             --upload_to_synapse \
-            --output_dir error_test_results; then
+            --output_dir error_test_results 2>&1 | grep -q "ERROR: synapse_folder_id must be provided when --upload_to_synapse is true"; then
+            echo "✓ Workflow fails without synapse_folder_id when upload_to_synapse is true"
+          else
             echo "❌ Workflow should fail without synapse_folder_id when upload_to_synapse is true"
             exit 1
           fi
-          echo "✓ Workflow fails without synapse_folder_id when upload_to_synapse is true"
       
       - name: Upload error test results
         uses: actions/upload-artifact@v4
