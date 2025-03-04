@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - ".github/workflows/docker_almanack.yml"
-      - ".github/workflows/Dockerfile"
+      - "docker/almanack/Dockerfile"
 
 env:
   REGISTRY: ghcr.io
