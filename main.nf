@@ -17,9 +17,9 @@ params.sample_sheet     = params.sample_sheet ?: null   // CSV file with header 
 params.repo_url         = params.repo_url     ?: null   // fallback for a single repo URL
 params.output_dir       = params.output_dir   ?: 'results'  // base output directory
 
-// Validate Synapse parameters
+// Parameter validation
 if (params.upload_to_synapse && !params.synapse_folder_id) {
-    error "synapse_folder_id must be provided when --upload_to_synapse is true."
+    throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
 }
 
 // Include required modules
