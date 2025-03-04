@@ -22,6 +22,8 @@ jobs:
       - name: Install nf-test
         run: |
           curl -fsSL https://code.askimed.com/install/nf-test | bash
+          # Add nf-test to PATH
+          export PATH="$HOME/.local/bin:$PATH"
           nf-test --version
       
       - name: Set up Docker
@@ -29,6 +31,7 @@ jobs:
       
       - name: Run tests
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           nf-test test main.nf.test
       
       - name: Upload test results
