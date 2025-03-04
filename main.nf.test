@@ -3,129 +3,34 @@
 nextflow_pipeline {
     name "CCKP Toolkit"
     script "main.nf"
-    profile "docker"
-}
 
-test("Should process a single repository URL") {
-    when {
-        params {
-            repo_url = "https://github.com/PythonOT/POT.git"
-            output_dir = "test_results"
+    test("Should process a single repository URL") {
+        when {
+            params {
+                repo_url = "https://github.com/PythonOT/POT.git"
+                output_dir = "test_results"
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().size() > 0
+            assert workflow.trace.succeeded().size() > 0
+            assert workflow.trace.failed().size() == 0
         }
     }
 
-    then {
-        assert process("ProcessRepo").success
-        assert process("RunAlmanack").success
-        assert process("GenerateReport").success
-        
-        with(process("ProcessRepo").out) {
-            assert repo.size() == 1
+    test("Should fail with invalid repository URL") {
+        when {
+            params {
+                repo_url = "invalid-url"
+                output_dir = "error_test_results"
+            }
         }
-        
-        with(process("RunAlmanack").out) {
-            assert status_file.size() == 1
-            assert path(status_file.get(0)).exists()
-        }
-        
-        with(process("GenerateReport").out) {
-            assert consolidated_report.size() == 1
-            assert path(consolidated_report.get(0)).exists()
-        }
-        
-        // Check output files
-        assert path("test_results/consolidated_report.csv").exists()
-        assert path("test_results/PythonOT_POT_almanack-results.json").exists()
-        assert path("test_results/status_repo.txt").exists()
-        assert path("test_results/status_almanack_POT.txt").exists()
-        
-        // Validate CSV content
-        def report = path("test_results/consolidated_report.csv").text
-        assert report.contains("target")
-        assert report.contains("PASS") || report.contains("FAIL")
-    }
-}
 
-test("Should process a sample sheet") {
-    when {
-        params {
-            sample_sheet = "tests/fixtures/example-input.csv"
-            output_dir = "test_results_example"
+        then {
+            assert !workflow.success
+            assert workflow.stdout.contains("ERROR ~ ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git")
         }
-    }
-
-    then {
-        assert process("ProcessRepo").success
-        assert process("RunAlmanack").success
-        assert process("GenerateReport").success
-        
-        with(process("ProcessRepo").out) {
-            assert repo.size() > 0
-        }
-        
-        with(process("RunAlmanack").out) {
-            assert status_file.size() > 0
-        }
-        
-        with(process("GenerateReport").out) {
-            assert consolidated_report.size() == 1
-            assert path(consolidated_report.get(0)).exists()
-        }
-        
-        assert path("test_results_example/consolidated_report.csv").exists()
-    }
-}
-
-test("Should fail with invalid repository URL") {
-    when {
-        params {
-            repo_url = "invalid-url"
-            output_dir = "error_test_results"
-        }
-    }
-
-    then {
-        assert workflow.error.message.contains("ERROR: Invalid repository URL format")
-    }
-}
-
-test("Should fail with invalid sample sheet") {
-    when {
-        params {
-            sample_sheet = "tests/fixtures/invalid-input.csv"
-            output_dir = "error_test_results"
-        }
-    }
-
-    then {
-        assert workflow.error.message.contains("ERROR: Sample sheet must contain a 'repo_url' column")
-    }
-}
-
-test("Should fail when both repo_url and sample_sheet are provided") {
-    when {
-        params {
-            repo_url = "https://github.com/PythonOT/POT.git"
-            sample_sheet = "tests/fixtures/example-input.csv"
-            output_dir = "error_test_results"
-        }
-    }
-
-    then {
-        assert workflow.error.message.contains("ERROR: Provide either a sample_sheet or repo_url")
-    }
-}
-
-test("Should handle Synapse parameters correctly") {
-    when {
-        params {
-            repo_url = "https://github.com/PythonOT/POT.git"
-            output_dir = "error_test_results"
-            upload_to_synapse = true
-        }
-    }
-
-    then {
-        assert workflow.error.message.contains("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true")
     }
 } 

@@ -10,7 +10,7 @@ nextflow.enable.dsl=2
  * 3. Generate a consolidated report (GenerateReport)
  * 4. Optionally upload results to Synapse (UploadToSynapse)
  */
-
+ 
 // Global parameters
 params.upload_to_synapse = false              // default is false; override at runtime
 params.sample_sheet     = params.sample_sheet ?: null   // CSV file with header "repo_url"
@@ -30,10 +30,10 @@ def validateRepoUrl = { url ->
 }
 
 // Include required modules
-include { ProcessRepo }   from './modules/ProcessRepo.nf'
-include { RunAlmanack }   from './modules/RunAlmanack.nf'
-include { UploadToSynapse } from './modules/UploadToSynapse.nf'
+include { ProcessRepo } from './modules/ProcessRepo.nf'
+include { RunAlmanack } from './modules/RunAlmanack.nf'
 include { GenerateReport } from './modules/GenerateReport.nf'
+include { UploadToSynapse } from './modules/UploadToSynapse.nf'
 
 workflow {
     // Build a channel from either a sample sheet or a single repo URL

@@ -1,35 +1,46 @@
+#!/usr/bin/env nextflow
+nextflow.enable.dsl=2
+
 /**
  * Process: UploadToSynapse
  * 
- * Uploads analysis results to Synapse if enabled.
+ * Uploads the analysis results to Synapse.
  * The process:
- * 1. Logs into Synapse
- * 2. Uploads the Almanack results JSON file to the specified Synapse folder
- * 
- * Input: Tuple containing:
- * - repo_url: GitHub repository URL
- * - repo_name: Repository name
- * - out_dir: Output directory containing results
- * - almanack_status.txt: Status file from Almanack analysis
- * 
- * Note: This process only runs if params.upload_to_synapse is set to true
- * and params.synapse_folder_id is provided.
+ * 1. Authenticates with Synapse
+ * 2. Creates a new folder for the results
+ * 3. Uploads all output files
  */
 
 process UploadToSynapse {
+    container = 'python:3.11-slim'
     errorStrategy 'ignore'
     
     input:
-        tuple val(repo_url), val(repo_name), val(out_dir), file("almanack_status.txt")
+        tuple val(repo_url), val(repo_name), val(out_dir), path(status_file)
+    
+    output:
+        path "synapse_upload_status.txt"
     
     script:
     """
-    if [ "\${params.upload_to_synapse}" = "true" ]; then
-        # Log into Synapse
-        synapse login
-        
-        # Upload results to specified Synapse folder
-        synapse store --parentid ${params.synapse_folder_id} ${out_dir}/almanack-results.json
-    fi
+    #!/bin/bash
+    set -euxo pipefail
+
+    # Install synapseclient
+    pip install synapseclient
+
+    # Authenticate with Synapse
+    synapse login -u ${params.synapse_username} -p ${params.synapse_password}
+
+    # Create a new folder for the results
+    synapse create -parentid ${params.synapse_folder_id} -name "${repo_name}_results"
+
+    # Upload all output files
+    for f in ${out_dir}/*; do
+        synapse store "\$f" --parentid ${params.synapse_folder_id}
+    done
+
+    # Record upload status
+    echo "Upload completed successfully" > synapse_upload_status.txt
     """
 }

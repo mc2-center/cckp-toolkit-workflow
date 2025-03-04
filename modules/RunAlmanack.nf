@@ -1,3 +1,6 @@
+#!/usr/bin/env nextflow
+nextflow.enable.dsl=2
+
 /**
  * Process: RunAlmanack
  * 
@@ -24,7 +27,7 @@
  */
 
 process RunAlmanack {
-    container = 'python:3.11-slim'
+    container = 'python:3.11'
     errorStrategy 'ignore'
     
     input:
@@ -46,7 +49,7 @@ process RunAlmanack {
     echo "Output directory: ${out_dir}" >&2
 
     # Install git and pip
-    apt-get update && apt-get install -y git
+    apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
     # Install Almanack and its dependencies
     pip install --upgrade pip

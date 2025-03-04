@@ -1,33 +1,36 @@
+#!/usr/bin/env nextflow
+nextflow.enable.dsl=2
+
 /**
  * Process: GenerateReport
  * 
- * Aggregates all status files into a single consolidated CSV report.
- * The report includes the following columns:
- * - Tool: Repository name
- * - CloneRepository: Status of repository cloning
- * - CheckReadme: Status of README check
- * - CheckDependencies: Status of dependencies check
- * - CheckTests: Status of tests check
- * - Almanack: Status of Almanack analysis
+ * Generates a consolidated report from all status files.
+ * The report includes:
+ * - Repository name
+ * - Clone status
+ * - Dependencies status
+ * - Tests status
+ * - Almanack status
  */
 
 process GenerateReport {
-    publishDir path: "${params.output_dir}", mode: 'copy'
-    
     input:
-        file status_files
+        path "*status_*.txt"
     
     output:
-        file "consolidated_report.csv"
+        path "consolidated_report.csv"
     
     script:
     """
-    # Write header with column names
-    echo "Tool,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack" > consolidated_report.csv
-    
-    # Append each status row from all files
-    for file in ${status_files}; do
-        cat \$file >> consolidated_report.csv
+    #!/bin/bash
+    set -euo pipefail
+
+    # Create header
+    echo "repo_name,clone_status,deps_status,tests_status,almanack_status" > consolidated_report.csv
+
+    # Append each status file
+    for f in status_*.txt; do
+        cat "\$f" >> consolidated_report.csv
     done
     """
 }
