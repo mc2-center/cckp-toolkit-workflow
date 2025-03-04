@@ -28,10 +28,6 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
       
-      - name: Initialize nf-test
-        run: |
-          nf-test init
-      
       - name: Run tests
         run: |
           nf-test test main.nf.test
