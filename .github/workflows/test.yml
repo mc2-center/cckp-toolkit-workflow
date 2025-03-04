@@ -7,96 +7,92 @@ on:
     branches: [ main ]
 
 jobs:
-  integration-test:
-    name: Integration Test
+  test:
+    name: Run nf-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       
-      - name: Set up Nextflow
+      - name: Install Nextflow
         run: |
           curl -s https://get.nextflow.io | bash
           mv nextflow /usr/local/bin/
           nextflow -version
       
+      - name: Install nf-test
+        run: |
+          curl -fsSL https://code.askimed.com/install/nf-test | bash
+          nf-test --version
+      
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
       
-      - name: Run workflow with test repository
+      - name: Run tests
         run: |
-          rm -rf test_results
-          nextflow run main.nf \
-            --repo_url https://github.com/PythonOT/POT.git \
-            --output_dir test_results
-      
-      - name: Run workflow with test fixture
-        run: |
-          rm -rf test_results_example
-          nextflow run main.nf \
-            --sample_sheet tests/fixtures/example-input.csv \
-            --output_dir test_results_example
+          nf-test test main.nf.test
       
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: integration-test-results
+          name: test-results
           path: |
-            test_results/
-            test_results_example/
+            work/
+            .nextflow/
+            .nextflow.log
           retention-days: 7
 
   output-validation:
     name: Output Validation
-    needs: integration-test
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       
-      - name: Download integration test results
+      - name: Download test results
         uses: actions/download-artifact@v4
         with:
-          name: integration-test-results
-          path: test_results
+          name: test-results
+          path: work/
       
       - name: Validate outputs
         run: |
           # Test 1: Check consolidated report
-          if [ ! -f "test_results/consolidated_report.csv" ] || [ ! -s "test_results/consolidated_report.csv" ]; then
+          if [ ! -f "work/consolidated_report.csv" ] || [ ! -s "work/consolidated_report.csv" ]; then
             echo "❌ Consolidated report is missing or empty"
             exit 1
           fi
           echo "✓ Consolidated report exists and is not empty"
           
           # Test 2: Check Almanack results
-          if [ ! -f "test_results/PythonOT_POT_almanack-results.json" ] || [ ! -s "test_results/PythonOT_POT_almanack-results.json" ]; then
+          if [ ! -f "work/PythonOT_POT_almanack-results.json" ] || [ ! -s "work/PythonOT_POT_almanack-results.json" ]; then
             echo "❌ Almanack results are missing or empty"
             exit 1
           fi
           echo "✓ Almanack results exist and are not empty"
           
           # Test 3: Validate CSV structure
-          if ! head -n 1 "test_results/consolidated_report.csv" | grep -q "target"; then
+          if ! head -n 1 "work/consolidated_report.csv" | grep -q "target"; then
             echo "❌ CSV header is missing or incorrect"
             exit 1
           fi
           echo "✓ CSV header is valid"
           
           # Test 4: Check status values
-          if ! grep -q "PASS\|FAIL" "test_results/consolidated_report.csv"; then
+          if ! grep -q "PASS\|FAIL" "work/consolidated_report.csv"; then
             echo "❌ No valid status values found in CSV"
             exit 1
           fi
           echo "✓ Status values are present"
           
           # Test 5: Check status files
-          if [ ! -f "test_results/status_repo.txt" ]; then
+          if [ ! -f "work/status_repo.txt" ]; then
             echo "❌ Repository status file is missing"
             exit 1
           fi
           echo "✓ Repository status file exists"
           
-          if [ ! -f "test_results/status_almanack_POT.txt" ]; then
+          if [ ! -f "work/status_almanack_POT.txt" ]; then
             echo "❌ Almanack status file is missing"
             exit 1
           fi
@@ -130,8 +126,9 @@ jobs:
       - name: Test invalid sample sheet
         run: |
           rm -rf error_test_results
-          # Create a temporary invalid CSV file with wrong column name
+          # Create a temporary invalid CSV file with wrong column name and data
           echo "wrong_column" > invalid.csv
+          echo "https://github.com/test/repo.git" >> invalid.csv
           if nextflow run main.nf --sample_sheet invalid.csv --output_dir error_test_results 2>&1 | grep -q "ERROR: Sample sheet must contain a 'repo_url' column"; then
             echo "✓ Invalid sample sheet test passed"
           else
