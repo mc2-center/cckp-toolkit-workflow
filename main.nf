@@ -41,7 +41,8 @@ workflow {
     if (params.sample_sheet) {
         def sampleSheet = Channel.fromPath(params.sample_sheet)
         def header = sampleSheet.splitCsv(header:true).first()
-        if (!header.containsKey('repo_url')) {
+        def hasRepoUrl = header.keySet().contains('repo_url')
+        if (!hasRepoUrl) {
             throw new IllegalArgumentException("ERROR: Sample sheet must contain a 'repo_url' column")
         }
         repoCh = sampleSheet
