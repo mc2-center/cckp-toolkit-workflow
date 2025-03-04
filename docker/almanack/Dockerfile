@@ -1,4 +1,4 @@
-FROM --platform=linux/arm64 python:3.12-slim-bullseye
+FROM --platform=linux/arm64 python:3.11-slim-bullseye
 
 #get linux packages
 RUN apt-get -y update \
