@@ -133,6 +133,40 @@ jobs:
           fi
           echo "✓ Invalid sample sheet test passed"
       
+      - name: Test conflicting parameters
+        run: |
+          rm -rf error_test_results
+          if nextflow run main.nf \
+            --repo_url https://github.com/PythonOT/POT.git \
+            --sample_sheet examples/example-input.csv \
+            --output_dir error_test_results; then
+            echo "❌ Workflow should fail when both repo_url and sample_sheet are provided"
+            exit 1
+          fi
+          echo "✓ Conflicting parameters test passed"
+      
+      - name: Test Synapse parameter validation
+        run: |
+          rm -rf error_test_results
+          # Test that workflow runs without synapse_folder_id when upload_to_synapse is false
+          if ! nextflow run main.nf \
+            --repo_url https://github.com/PythonOT/POT.git \
+            --output_dir error_test_results; then
+            echo "❌ Workflow should run without synapse_folder_id when upload_to_synapse is false"
+            exit 1
+          fi
+          echo "✓ Workflow runs without synapse_folder_id when upload_to_synapse is false"
+          
+          # Test that workflow fails without synapse_folder_id when upload_to_synapse is true
+          if nextflow run main.nf \
+            --repo_url https://github.com/PythonOT/POT.git \
+            --upload_to_synapse \
+            --output_dir error_test_results; then
+            echo "❌ Workflow should fail without synapse_folder_id when upload_to_synapse is true"
+            exit 1
+          fi
+          echo "✓ Workflow fails without synapse_folder_id when upload_to_synapse is true"
+      
       - name: Upload error test results
         uses: actions/upload-artifact@v3
         if: always()
