@@ -130,12 +130,15 @@ jobs:
       - name: Test invalid sample sheet
         run: |
           rm -rf error_test_results
-          if nextflow run main.nf --sample_sheet "nonexistent.csv" --output_dir error_test_results 2>&1 | grep -q "ERROR: Provide either a sample_sheet or repo_url"; then
+          # Create a temporary invalid CSV file
+          echo "invalid_column" > invalid.csv
+          if nextflow run main.nf --sample_sheet invalid.csv --output_dir error_test_results 2>&1 | grep -q "ERROR: Sample sheet must contain a 'repo_url' column"; then
             echo "✓ Invalid sample sheet test passed"
           else
             echo "❌ Workflow should fail with invalid sample sheet"
             exit 1
           fi
+          rm invalid.csv
       
       - name: Test conflicting parameters
         run: |

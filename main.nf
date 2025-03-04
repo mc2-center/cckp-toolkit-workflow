@@ -39,7 +39,12 @@ workflow {
     // Build a channel from either a sample sheet or a single repo URL
     def repoCh
     if (params.sample_sheet) {
-        repoCh = Channel.fromPath(params.sample_sheet)
+        def sampleSheet = Channel.fromPath(params.sample_sheet)
+        def header = sampleSheet.splitCsv(header:true).first()
+        if (!header.repo_url) {
+            throw new IllegalArgumentException("ERROR: Sample sheet must contain a 'repo_url' column")
+        }
+        repoCh = sampleSheet
                         .splitCsv(header:true)
                         .map { row -> row.repo_url }
                         .filter { url -> validateRepoUrl(url) }
