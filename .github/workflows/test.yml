@@ -28,11 +28,11 @@ jobs:
             --repo_url https://github.com/PythonOT/POT.git \
             --output_dir test_results
       
-      - name: Run workflow with example input
+      - name: Run workflow with test fixture
         run: |
           rm -rf test_results_example
           nextflow run main.nf \
-            --sample_sheet examples/example-input.csv \
+            --sample_sheet tests/fixtures/example-input.csv \
             --output_dir test_results_example
       
       - name: Upload test results
@@ -138,7 +138,7 @@ jobs:
           rm -rf error_test_results
           if nextflow run main.nf \
             --repo_url https://github.com/PythonOT/POT.git \
-            --sample_sheet examples/example-input.csv \
+            --sample_sheet tests/fixtures/example-input.csv \
             --output_dir error_test_results; then
             echo "❌ Workflow should fail when both repo_url and sample_sheet are provided"
             exit 1
