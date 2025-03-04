@@ -1,0 +1,100 @@
+#!/usr/bin/env nextflow
+
+nextflow_pipeline {
+    name "CCKP Toolkit"
+    script "main.nf"
+    profile "docker"
+}
+
+// Test valid repository URL
+test("Should process a single repository URL") {
+    when {
+        params {
+            repo_url = "https://github.com/PythonOT/POT.git"
+            output_dir = "test_results"
+        }
+    }
+
+    then {
+        assert process("ProcessRepo").out.repo.size() == 1
+        assert process("RunAlmanack").out.status_file.size() == 1
+        assert process("GenerateReport").out.consolidated_report.size() == 1
+        assert path("test_results/consolidated_report.csv").exists()
+        assert path("test_results/PythonOT_POT_almanack-results.json").exists()
+    }
+}
+
+// Test valid sample sheet
+test("Should process a sample sheet") {
+    when {
+        params {
+            sample_sheet = "tests/fixtures/example-input.csv"
+            output_dir = "test_results_example"
+        }
+    }
+
+    then {
+        assert process("ProcessRepo").out.repo.size() > 0
+        assert process("RunAlmanack").out.status_file.size() > 0
+        assert process("GenerateReport").out.consolidated_report.size() == 1
+        assert path("test_results_example/consolidated_report.csv").exists()
+    }
+}
+
+// Test invalid repository URL
+test("Should fail with invalid repository URL") {
+    when {
+        params {
+            repo_url = "invalid-url"
+            output_dir = "error_test_results"
+        }
+    }
+
+    then {
+        assert workflow.error.message.contains("ERROR: Invalid repository URL format")
+    }
+}
+
+// Test invalid sample sheet
+test("Should fail with invalid sample sheet") {
+    when {
+        params {
+            sample_sheet = "tests/fixtures/invalid-input.csv"
+            output_dir = "error_test_results"
+        }
+    }
+
+    then {
+        assert workflow.error.message.contains("ERROR: Sample sheet must contain a 'repo_url' column")
+    }
+}
+
+// Test conflicting parameters
+test("Should fail when both repo_url and sample_sheet are provided") {
+    when {
+        params {
+            repo_url = "https://github.com/PythonOT/POT.git"
+            sample_sheet = "tests/fixtures/example-input.csv"
+            output_dir = "error_test_results"
+        }
+    }
+
+    then {
+        assert workflow.error.message.contains("ERROR: Provide either a sample_sheet or repo_url")
+    }
+}
+
+// Test Synapse parameter validation
+test("Should handle Synapse parameters correctly") {
+    when {
+        params {
+            repo_url = "https://github.com/PythonOT/POT.git"
+            output_dir = "error_test_results"
+            upload_to_synapse = true
+        }
+    }
+
+    then {
+        assert workflow.error.message.contains("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true")
+    }
+} 
