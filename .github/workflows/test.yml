@@ -130,8 +130,8 @@ jobs:
       - name: Test invalid sample sheet
         run: |
           rm -rf error_test_results
-          # Create a temporary invalid CSV file
-          echo "invalid_column" > invalid.csv
+          # Create a temporary invalid CSV file with wrong column name
+          echo "wrong_column" > invalid.csv
           if nextflow run main.nf --sample_sheet invalid.csv --output_dir error_test_results 2>&1 | grep -q "ERROR: Sample sheet must contain a 'repo_url' column"; then
             echo "✓ Invalid sample sheet test passed"
           else
