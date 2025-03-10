@@ -48,7 +48,15 @@ workflow {
         repoCh = sampleSheet
                         .splitCsv(header:true)
                         .map { row -> row.repo_url }
-                        .filter { url -> validateRepoUrl(url) }
+                        .filter { url -> 
+                            if (!validateRepoUrl(url)) {
+                                log.warn "Skipping invalid repository URL: ${url}"
+                                return false
+                            }
+                            return true
+                        }
+                        .map { url -> [url, getRepoName(url)] }
+                        .set { repo_ch }
     } else if (params.repo_url) {
         if (!validateRepoUrl(params.repo_url)) {
             throw new IllegalArgumentException("ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git")
