@@ -12,7 +12,7 @@ nextflow.enable.dsl=2
  */
 
 process UploadToSynapse {
-    container = 'python:3.11-slim'
+    container 'python:3.11-slim'
     errorStrategy 'ignore'
     
     input:
