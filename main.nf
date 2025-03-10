@@ -59,11 +59,11 @@ workflow {
                         .set { repo_ch }
     } else if (params.repo_url) {
         if (!validateRepoUrl(params.repo_url)) {
-            throw new IllegalArgumentException("ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git")
+            throw new IllegalArgumentException("ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git or https://gitlab.com/username/repo.git")
         }
         repoCh = Channel.value(params.repo_url)
     } else {
-        error "Provide either a sample_sheet or repo_url."
+        throw new IllegalArgumentException("ERROR: Provide either a sample_sheet or repo_url parameter")
     }
     
     // Map each repository URL to a tuple: (repo_url, repo_name, out_dir)
