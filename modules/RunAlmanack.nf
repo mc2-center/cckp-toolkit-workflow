@@ -27,7 +27,7 @@ nextflow.enable.dsl=2
  */
 
 process RunAlmanack {
-    container = 'python:3.11'
+    container 'python:3.11'
     errorStrategy 'ignore'
     
     input:
