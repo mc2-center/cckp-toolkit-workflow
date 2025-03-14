@@ -40,7 +40,7 @@ csv_data = {
     'URL': "${repo_url}",
     'License Status': 'Unknown',
     'Documentation Status': 'Unknown',
-    'Code Quality': 'Unknown',
+    'Tests Status': 'Unknown',
     'Community Status': 'Unknown',
     'Almanack Score': 'N/A',
     'Key Recommendations': ''
@@ -61,22 +61,21 @@ else:
         # Update CSV data with criteria statuses
         csv_data['License Status'] = criteria.get('license', {}).get('status', 'Unknown')
         csv_data['Documentation Status'] = criteria.get('documentation', {}).get('status', 'Unknown')
-        csv_data['Code Quality'] = criteria.get('code_quality', {}).get('status', 'Unknown')
+        csv_data['Tests Status'] = criteria.get('tests', {}).get('status', 'Unknown')
         csv_data['Community Status'] = criteria.get('community', {}).get('status', 'Unknown')
         
         # Extract Almanack score
-        if "code_quality" in criteria:
-            code_quality = criteria["code_quality"]
-            if "details" in code_quality and "workflow_success_rate" in code_quality["details"]:
-                csv_data['Almanack Score'] = str(code_quality["details"]["workflow_success_rate"])
+        if "almanack_score" in analysis_data:
+            almanack_score = analysis_data["almanack_score"]
+            csv_data['Almanack Score'] = str(almanack_score["value"])
+            csv_data['Almanack Score Description'] = almanack_score["description"]
     
     # Add recommendations
     if "recommendations" in analysis_data:
         csv_data['Key Recommendations'] = '; '.join(analysis_data["recommendations"])
     
     final_report["summary"] = {
-        "almanack_score": csv_data['Almanack Score'],
-        "almanack_definition": "Code quality score based on workflow success rate and code coverage",
+        "almanack_score": analysis_data.get("almanack_score", {}),
         "recommendations": analysis_data.get("recommendations", [])
     }
 
