@@ -29,6 +29,12 @@ def validateRepoUrl = { url ->
     return url ==~ validUrlPattern
 }
 
+// Extract repository name from URL
+def getRepoName = { url ->
+    def urlStr = url instanceof List ? url[0] : url
+    urlStr.tokenize('/')[-1].replace('.git','')
+}
+
 // Include required modules
 include { ProcessRepo } from './modules/ProcessRepo.nf'
 include { RunAlmanack } from './modules/RunAlmanack.nf'
@@ -63,7 +69,7 @@ workflow {
         }
         repoCh = Channel.value(params.repo_url)
     } else {
-        error "Provide either a sample_sheet or repo_url."
+        throw new IllegalArgumentException("ERROR: Provide either a sample_sheet or repo_url parameter")
     }
     
     // Map each repository URL to a tuple: (repo_url, repo_name, out_dir)
