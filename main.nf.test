@@ -20,6 +20,22 @@ nextflow_pipeline {
         }
     }
 
+    test("Should process multiple repositories from sample sheet") {
+        when {
+            params {
+                sample_sheet = "${projectDir}/tests/fixtures/example-input.csv"
+                output_dir = "test_results"
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().size() > 0
+            assert workflow.trace.succeeded().size() > 0
+            assert workflow.trace.failed().size() == 0
+        }
+    }
+
     test("Should fail with invalid repository URL") {
         when {
             params {
