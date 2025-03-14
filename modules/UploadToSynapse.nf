@@ -12,7 +12,7 @@ nextflow.enable.dsl=2
  */
 
 process UploadToSynapse {
-    container 'python:3.11-slim'
+    container 'ghcr.io/sage-bionetworks/synapsepythonclient:latest'
     errorStrategy 'ignore'
     
     input:
@@ -25,9 +25,6 @@ process UploadToSynapse {
     """
     #!/bin/bash
     set -euxo pipefail
-
-    # Install synapseclient
-    pip install synapseclient
 
     # Authenticate with Synapse
     synapse login -u ${params.synapse_username} -p ${params.synapse_password}
