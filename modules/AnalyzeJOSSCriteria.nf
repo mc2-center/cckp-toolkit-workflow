@@ -12,8 +12,10 @@
  * Input: Tuple containing:
  * - repo_url: GitHub repository URL
  * - repo_name: Repository name
- * - almanack_results: JSON file with Almanack analysis results
+ * - repo_dir: Repository directory
  * - out_dir: Output directory
+ * - status_file: Status file
+ * - almanack_results: JSON file with Almanack analysis results
  * 
  * Output: Tuple containing:
  * - repo_url: GitHub repository URL
@@ -26,10 +28,10 @@ process AnalyzeJOSSCriteria {
     errorStrategy 'ignore'
     
     input:
-        tuple val(repo_url), val(repo_name), path(almanack_results), val(out_dir)
+        tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path(status_file), path(almanack_results)
     
     output:
-        tuple val(repo_url), val(repo_name), file("joss_report_${repo_name}.json")
+        tuple val(repo_url), val(repo_name), path("joss_report_${repo_name}.json")
     
     script:
     """
