@@ -1,42 +1,57 @@
 #!/usr/bin/env nextflow
 
-/**
- * Process: GenerateReport
- * 
- * Aggregates all status files into a single consolidated CSV report.
- * The report includes the following columns:
- * - Tool: Repository name
- * - CloneRepository: Status of repository cloning
- * - CheckReadme: Status of README check
- * - CheckDependencies: Status of dependencies check
- * - CheckTests: Status of tests check
- * - Almanack: Status of Almanack analysis
- */
-
 process GenerateReport {
-    publishDir path: "${params.output_dir}", mode: 'copy'
+    container 'ubuntu:22.04'
+    publishDir params.out_dir ?: 'results', mode: 'copy'
     
     input:
-        path status_files
+        tuple val(repo_url), val(repo_name), path(joss_report)
     
     output:
-        path "consolidated_report.csv"
+        tuple val(repo_url), val(repo_name), path("${repo_name}_final_report.json")
     
     script:
     """
     #!/bin/bash
-    set -euo pipefail
-
-    # Write header with column names
-    echo "Tool,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack" > consolidated_report.csv
     
-    # Append each status row from all files
-    for f in ${status_files}; do
-        if [ -f "\$f" ]; then
-            cat "\$f" >> consolidated_report.csv
-        else
-            echo "Warning: File \$f not found" >&2
-        fi
-    done
+    apt-get update && apt-get install -y python3
+    
+    cat > script.py << 'EOF'
+    import json
+    import os
+    
+    # Read JOSS analysis report
+    with open("${joss_report.name}", "r") as f:
+        joss_data = json.load(f)
+    
+    # Extract Almanack score from code quality criteria
+    almanack_score = None
+    almanack_definition = "Code quality score based on workflow success rate and code coverage"
+    
+    if "criteria" in joss_data and "code_quality" in joss_data["criteria"]:
+        code_quality = joss_data["criteria"]["code_quality"]
+        if "details" in code_quality and "workflow_success_rate" in code_quality["details"]:
+            almanack_score = code_quality["details"]["workflow_success_rate"]
+    
+    # Create final report
+    final_report = {
+        "repository": {
+            "url": "${repo_url}",
+            "name": "${repo_name}"
+        },
+        "joss_analysis": joss_data,
+        "summary": {
+            "almanack_score": almanack_score,
+            "almanack_definition": almanack_definition,
+            "recommendations": joss_data.get("recommendations", [])
+        }
+    }
+    
+    # Write final report
+    with open("${repo_name}_final_report.json", "w") as f:
+        json.dump(final_report, f, indent=2)
+    EOF
+    
+    python3 script.py
     """
-}
+} 
