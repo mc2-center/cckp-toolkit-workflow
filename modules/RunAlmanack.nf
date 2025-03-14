@@ -48,9 +48,6 @@ process RunAlmanack {
     echo "Repository URL: ${repo_url}" >&2
     echo "Output directory: ${out_dir}" >&2
 
-    # Install git and pip
-    apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
-
     # Install Almanack and its dependencies
     pip install --upgrade pip
     pip install almanack
