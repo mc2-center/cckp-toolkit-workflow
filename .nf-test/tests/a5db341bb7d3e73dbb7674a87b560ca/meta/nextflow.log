@@ -1,53 +1,53 @@
-Mar-14 11:06:59.702 [main] DEBUG nextflow.cli.Launcher - $> nextflow -quiet -log /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/meta/nextflow.log run /Users/agopalan/cckp-toolkit-workflow/main.nf -c /Users/agopalan/cckp-toolkit-workflow/nextflow.config -params-file /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/meta/params.json -ansi-log false -with-trace /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/meta/trace.csv -w /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/work
-Mar-14 11:06:59.745 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 24.04.3
-Mar-14 11:06:59.757 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/Users/agopalan/.nextflow/plugins; core-plugins: nf-amazon@2.5.2,nf-azure@1.6.0,nf-cloudcache@0.4.1,nf-codecommit@0.2.0,nf-console@1.1.3,nf-ga4gh@1.3.0,nf-google@1.13.2-patch1,nf-tower@1.9.1,nf-wave@1.4.2
-Mar-14 11:06:59.766 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
-Mar-14 11:06:59.767 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
-Mar-14 11:06:59.769 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.10.0 in 'deployment' mode
-Mar-14 11:06:59.777 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
-Mar-14 11:06:59.792 [main] DEBUG nextflow.config.ConfigBuilder - Found config base: /Users/agopalan/cckp-toolkit-workflow/nextflow.config
-Mar-14 11:06:59.796 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /Users/agopalan/cckp-toolkit-workflow/nextflow.config
-Mar-14 11:06:59.797 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /Users/agopalan/cckp-toolkit-workflow/nextflow.config
-Mar-14 11:06:59.797 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /Users/agopalan/cckp-toolkit-workflow/nextflow.config
-Mar-14 11:06:59.816 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /Users/agopalan/.nextflow/secrets/store.json
-Mar-14 11:06:59.819 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@4d7e7435] - activable => nextflow.secret.LocalSecretsProvider@4d7e7435
-Mar-14 11:06:59.832 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
-Mar-14 11:07:00.112 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
-Mar-14 11:07:00.137 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
-Mar-14 11:07:00.147 [main] INFO  nextflow.cli.CmdRun - Launching `/Users/agopalan/cckp-toolkit-workflow/main.nf` [zen_lumiere] DSL2 - revision: 3453bd90d8
-Mar-14 11:07:00.148 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
-Mar-14 11:07:00.148 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
-Mar-14 11:07:00.179 [main] DEBUG nextflow.Session - Session UUID: 2876055e-cad2-4e85-b398-ddcf0c312fda
-Mar-14 11:07:00.179 [main] DEBUG nextflow.Session - Run name: zen_lumiere
-Mar-14 11:07:00.180 [main] DEBUG nextflow.Session - Executor pool size: 8
-Mar-14 11:07:00.184 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
-Mar-14 11:07:00.207 [main] DEBUG nextflow.cli.CmdRun - 
+Mar-14 11:18:08.369 [main] DEBUG nextflow.cli.Launcher - $> nextflow -quiet -log /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/meta/nextflow.log run /Users/agopalan/cckp-toolkit-workflow/main.nf -c /Users/agopalan/cckp-toolkit-workflow/nextflow.config -params-file /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/meta/params.json -ansi-log false -with-trace /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/meta/trace.csv -w /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/work
+Mar-14 11:18:08.412 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 24.04.3
+Mar-14 11:18:08.425 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/Users/agopalan/.nextflow/plugins; core-plugins: nf-amazon@2.5.2,nf-azure@1.6.0,nf-cloudcache@0.4.1,nf-codecommit@0.2.0,nf-console@1.1.3,nf-ga4gh@1.3.0,nf-google@1.13.2-patch1,nf-tower@1.9.1,nf-wave@1.4.2
+Mar-14 11:18:08.432 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-14 11:18:08.433 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-14 11:18:08.435 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.10.0 in 'deployment' mode
+Mar-14 11:18:08.443 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-14 11:18:08.459 [main] DEBUG nextflow.config.ConfigBuilder - Found config base: /Users/agopalan/cckp-toolkit-workflow/nextflow.config
+Mar-14 11:18:08.463 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /Users/agopalan/cckp-toolkit-workflow/nextflow.config
+Mar-14 11:18:08.464 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /Users/agopalan/cckp-toolkit-workflow/nextflow.config
+Mar-14 11:18:08.464 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /Users/agopalan/cckp-toolkit-workflow/nextflow.config
+Mar-14 11:18:08.483 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /Users/agopalan/.nextflow/secrets/store.json
+Mar-14 11:18:08.486 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@4d7e7435] - activable => nextflow.secret.LocalSecretsProvider@4d7e7435
+Mar-14 11:18:08.498 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Mar-14 11:18:08.775 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Mar-14 11:18:08.799 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-14 11:18:08.808 [main] INFO  nextflow.cli.CmdRun - Launching `/Users/agopalan/cckp-toolkit-workflow/main.nf` [infallible_tuckerman] DSL2 - revision: 3453bd90d8
+Mar-14 11:18:08.809 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-14 11:18:08.809 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-14 11:18:08.839 [main] DEBUG nextflow.Session - Session UUID: e8e34009-3256-43e4-9b7a-a3a2771908e0
+Mar-14 11:18:08.840 [main] DEBUG nextflow.Session - Run name: infallible_tuckerman
+Mar-14 11:18:08.840 [main] DEBUG nextflow.Session - Executor pool size: 8
+Mar-14 11:18:08.844 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-14 11:18:08.865 [main] DEBUG nextflow.cli.CmdRun - 
   Version: 24.04.3 build 5916
   Created: 09-07-2024 19:35 UTC (15:35 EDT)
   System: Mac OS X 13.4
   Runtime: Groovy 4.0.21 on Java HotSpot(TM) 64-Bit Server VM 22.0.1+8-16
   Encoding: UTF-8 (UTF-8)
-  Process: 35240@w218.lan [192.168.1.213]
-  CPUs: 8 - Mem: 16 GB (335.6 MB) - Swap: 3 GB (1.5 GB) - Virtual threads ON
-Mar-14 11:07:00.220 [main] DEBUG nextflow.Session - Work-dir: /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/work [Mac OS X]
-Mar-14 11:07:00.221 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /Users/agopalan/cckp-toolkit-workflow/bin
-Mar-14 11:07:00.229 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
-Mar-14 11:07:00.237 [main] DEBUG nextflow.Session - Observer factory: DefaultObserverFactory
-Mar-14 11:07:00.256 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
-Mar-14 11:07:00.261 [main] DEBUG nextflow.util.CustomPoolFactory - Creating virtual thread pool
-Mar-14 11:07:00.306 [main] DEBUG nextflow.Session - Session start
-Mar-14 11:07:00.307 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/meta/trace.csv
-Mar-14 11:07:00.535 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
-Mar-14 11:07:00.542 [main] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `sample_sheet` -- Initialise it to a default value eg. `params.sample_sheet = some_value`
-Mar-14 11:07:00.543 [main] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `repo_url` -- Initialise it to a default value eg. `params.repo_url = some_value`
-Mar-14 11:07:00.665 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Process: 39757@w218.lan [192.168.1.213]
+  CPUs: 8 - Mem: 16 GB (172.4 MB) - Swap: 2 GB (982.6 MB) - Virtual threads ON
+Mar-14 11:18:08.879 [main] DEBUG nextflow.Session - Work-dir: /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/work [Mac OS X]
+Mar-14 11:18:08.879 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /Users/agopalan/cckp-toolkit-workflow/bin
+Mar-14 11:18:08.887 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-14 11:18:08.895 [main] DEBUG nextflow.Session - Observer factory: DefaultObserverFactory
+Mar-14 11:18:08.913 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-14 11:18:08.919 [main] DEBUG nextflow.util.CustomPoolFactory - Creating virtual thread pool
+Mar-14 11:18:08.958 [main] DEBUG nextflow.Session - Session start
+Mar-14 11:18:08.960 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /Users/agopalan/cckp-toolkit-workflow/.nf-test/tests/a5db341bb7d3e73dbb7674a87b560ca/meta/trace.csv
+Mar-14 11:18:09.172 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-14 11:18:09.188 [main] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `sample_sheet` -- Initialise it to a default value eg. `params.sample_sheet = some_value`
+Mar-14 11:18:09.188 [main] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `repo_url` -- Initialise it to a default value eg. `params.repo_url = some_value`
+Mar-14 11:18:09.327 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
   Script_100a024ad1fdb262: /Users/agopalan/cckp-toolkit-workflow/main.nf
+  Script_7bf84a8238833391: /Users/agopalan/cckp-toolkit-workflow/./modules/UploadToSynapse.nf
   Script_6808e3e6620ba4a8: /Users/agopalan/cckp-toolkit-workflow/./modules/ProcessRepo.nf
-  Script_e83435815e318c20: /Users/agopalan/cckp-toolkit-workflow/./modules/UploadToSynapse.nf
   Script_b42c232dce21cd87: /Users/agopalan/cckp-toolkit-workflow/./modules/GenerateReport.nf
   Script_a7eaeb7d289b794c: /Users/agopalan/cckp-toolkit-workflow/./modules/RunAlmanack.nf
-Mar-14 11:07:00.665 [main] DEBUG nextflow.Session - Session aborted -- Cause: Provide either a sample_sheet or repo_url parameter
-Mar-14 11:07:00.669 [main] ERROR nextflow.cli.Launcher - Provide either a sample_sheet or repo_url parameter
+Mar-14 11:18:09.327 [main] DEBUG nextflow.Session - Session aborted -- Cause: Provide either a sample_sheet or repo_url parameter
+Mar-14 11:18:09.331 [main] ERROR nextflow.cli.Launcher - Provide either a sample_sheet or repo_url parameter
 java.lang.IllegalArgumentException: Provide either a sample_sheet or repo_url parameter
 	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
 	at Script_100a024ad1fdb262$_runScript_closure3$_closure4.doCall(Script_100a024ad1fdb262:73)
