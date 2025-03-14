@@ -5,7 +5,7 @@
  * 
  * Uploads the analysis results to Synapse.
  * The process:
- * 1. Authenticates with Synapse
+ * 1. Uses SYNAPSE_AUTH_TOKEN secret for authentication
  * 2. Creates a new folder for the results
  * 3. Uploads all output files
  */
@@ -13,6 +13,7 @@
 process UploadToSynapse {
     container 'ghcr.io/sage-bionetworks/synapsepythonclient:latest'
     errorStrategy 'ignore'
+    secret 'SYNAPSE_AUTH_TOKEN'
     
     input:
         tuple val(repo_url), val(repo_name), val(out_dir), path(status_file)
@@ -24,9 +25,6 @@ process UploadToSynapse {
     """
     #!/bin/bash
     set -euxo pipefail
-
-    # Authenticate with Synapse
-    synapse login -u ${params.synapse_username} -p ${params.synapse_password}
 
     # Create a new folder for the results
     synapse create -parentid ${params.synapse_folder_id} -name "${repo_name}_results"
