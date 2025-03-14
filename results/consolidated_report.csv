@@ -1,3 +1,2 @@
-Tool,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack
-TARGet,PASS,FAIL,FAIL,PASS
-POT,PASS,PASS,PASS,PASS
+Repository,URL,License Status,Documentation Status,Code Quality,Community Status,Almanack Score,Key Recommendations
+POT,https://github.com/PythonOT/POT.git,good,ok,bad,good,0.75,Review and improve documentation to cover all essential files; Improve code quality by adding tests and ensuring CI/CD workflows pass
