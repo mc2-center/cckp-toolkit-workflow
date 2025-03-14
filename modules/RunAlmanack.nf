@@ -23,6 +23,7 @@
  * - repo_name: Repository name
  * - out_dir: Output directory
  * - status_almanack_<repo_name>.txt: Updated status file with Almanack results
+ * - almanack_results.json: JSON file with Almanack analysis results
  */
 
 process RunAlmanack {
@@ -35,8 +36,8 @@ process RunAlmanack {
         tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path("status_repo.txt")
     
     output:
-        // Emits a tuple: (repo_url, repo_name, out_dir, file("status_almanack_${repo_name}.txt"))
-        tuple val(repo_url), val(repo_name), val(out_dir), file("status_almanack_${repo_name}.txt")
+        // Emits a tuple: (repo_url, repo_name, out_dir, file("status_almanack_${repo_name}.txt"), file("almanack_results.json"))
+        tuple val(repo_url), val(repo_name), val(out_dir), file("status_almanack_${repo_name}.txt"), file("almanack_results.json")
     
     script:
     """
@@ -80,5 +81,8 @@ process RunAlmanack {
     # Append Almanack status to the previous summary
     PREV_STATUS=\$(cat status_repo.txt)
     echo "\${PREV_STATUS},\${ALMANACK_STATUS}" > "status_almanack_${repo_name}.txt"
+
+    # Copy the Almanack results file to the process output
+    cp "\${OUTPUT_FILE}" almanack_results.json
     """
 }
