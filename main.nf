@@ -45,13 +45,16 @@ workflow {
     // Build a channel from either a sample sheet or a single repo URL
     def repoCh
     if (params.sample_sheet) {
-        def sampleSheet = Channel.fromPath(params.sample_sheet)
-        def header = sampleSheet.splitCsv(header:true).first()
-        def hasRepoUrl = header.keySet().contains('repo_url')
-        if (!hasRepoUrl) {
-            throw new IllegalArgumentException("ERROR: Sample sheet must contain a 'repo_url' column")
+        // First read and validate the sample sheet
+        def sampleSheetFile = file(params.sample_sheet)
+        def firstLine = sampleSheetFile.readLines()[0]
+        def headers = firstLine.split(',').collect { it.trim() }
+        if (!headers.contains('repo_url')) {
+            throw new IllegalArgumentException("Sample sheet must contain a 'repo_url' column")
         }
-        repoCh = sampleSheet
+        
+        // Now create the channel and process it
+        repoCh = Channel.fromPath(params.sample_sheet)
                         .splitCsv(header:true)
                         .map { row -> row.repo_url }
                         .filter { url -> 
@@ -65,11 +68,11 @@ workflow {
                         .set { repo_ch }
     } else if (params.repo_url) {
         if (!validateRepoUrl(params.repo_url)) {
-            throw new IllegalArgumentException("ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git")
+            throw new IllegalArgumentException("Invalid repository URL format. Expected: https://github.com/username/repo.git")
         }
         repoCh = Channel.value(params.repo_url)
     } else {
-        throw new IllegalArgumentException("ERROR: Provide either a sample_sheet or repo_url parameter")
+        throw new IllegalArgumentException("Provide either a sample_sheet or repo_url parameter")
     }
     
     // Map each repository URL to a tuple: (repo_url, repo_name, out_dir)

@@ -30,7 +30,34 @@ nextflow_pipeline {
 
         then {
             assert !workflow.success
-            assert workflow.stdout.contains("ERROR ~ ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git")
+            assert workflow.stdout.contains("ERROR ~ Invalid repository URL format. Expected: https://github.com/username/repo.git")
+        }
+    }
+
+    test("Should fail when sample sheet is missing repo_url column") {
+        when {
+            params {
+                sample_sheet = "${projectDir}/tests/fixtures/invalid-sample-sheet.csv"
+                output_dir = "error_test_results"
+            }
+        }
+
+        then {
+            assert !workflow.success
+            assert workflow.stdout.contains("ERROR ~ Sample sheet must contain a 'repo_url' column")
+        }
+    }
+
+    test("Should fail when neither sample_sheet nor repo_url is provided") {
+        when {
+            params {
+                output_dir = "error_test_results"
+            }
+        }
+
+        then {
+            assert !workflow.success
+            assert workflow.stdout.contains("ERROR ~ Provide either a sample_sheet or repo_url parameter")
         }
     }
 } 
