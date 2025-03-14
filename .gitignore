@@ -1,5 +1,8 @@
 # nextflow ignores
-.nextflow
-work
+.nextflow/
+work/
 .nextflow.log*
+results/
+.nf-test/
+tests/
 .DS_Store
