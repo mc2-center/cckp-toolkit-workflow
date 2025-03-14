@@ -7,19 +7,43 @@ nextflow.enable.dsl=2
  * This workflow processes GitHub repositories to:
  * 1. Clone and perform initial checks (ProcessRepo)
  * 2. Run Almanack analysis (RunAlmanack)
- * 3. Generate a consolidated report (GenerateReport)
- * 4. Optionally upload results to Synapse (UploadToSynapse)
+ * 3. Analyze JOSS criteria (AnalyzeJOSSCriteria)
+ * 4. Generate a consolidated report (GenerateReport)
+ * 5. Optionally upload results to Synapse (UploadToSynapse)
  */
+
+// Load environment variables from .env file if it exists
+def loadEnvFile = { envFile ->
+    if (file(envFile).exists()) {
+        file(envFile).readLines().each { line ->
+            if (line && !line.startsWith('#')) {
+                def parts = line.split('=')
+                if (parts.size() == 2) {
+                    System.setProperty(parts[0].trim(), parts[1].trim())
+                }
+            }
+        }
+    }
+}
+
+// Load .env file
+loadEnvFile('.env')
  
 // Global parameters
 params.upload_to_synapse = false              // default is false; override at runtime
 params.sample_sheet     = params.sample_sheet ?: null   // CSV file with header "repo_url"
 params.repo_url         = params.repo_url     ?: null   // fallback for a single repo URL
 params.output_dir       = params.output_dir   ?: 'results'  // base output directory
+params.use_gpt          = false               // whether to use GPT for interpretation
+params.openai_api_key   = params.openai_api_key ?: System.getProperty('OPENAI_API_KEY')  // OpenAI API key for GPT interpretation
 
 // Parameter validation
 if (params.upload_to_synapse && !params.synapse_folder_id) {
     throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
+}
+
+if (params.use_gpt && !params.openai_api_key) {
+    throw new IllegalArgumentException("ERROR: openai_api_key must be provided when --use_gpt is true.")
 }
 
 // Validate repository URL format
@@ -35,68 +59,75 @@ def getRepoName = { url ->
     urlStr.tokenize('/')[-1].replace('.git','')
 }
 
+// Extract Git username from URL
+def getGitUsername = { url ->
+    def matcher = url =~ 'github.com[:/](.+?)/.+'
+    return matcher ? matcher[0][1] : 'unknown_user'
+}
+
 // Include required modules
-include { ProcessRepo } from './modules/ProcessRepo.nf'
-include { RunAlmanack } from './modules/RunAlmanack.nf'
-include { GenerateReport } from './modules/GenerateReport.nf'
-include { UploadToSynapse } from './modules/UploadToSynapse.nf'
+include { ProcessRepo } from './modules/ProcessRepo'
+include { RunAlmanack } from './modules/RunAlmanack'
+include { AnalyzeJOSSCriteria } from './modules/AnalyzeJOSSCriteria'
+include { GenerateReport } from './modules/GenerateReport'
+include { UploadToSynapse } from './modules/UploadToSynapse'
 
 workflow {
-    // Build a channel from either a sample sheet or a single repo URL
-    def repoCh
+    // Define input channels
     if (params.sample_sheet) {
-        // First read and validate the sample sheet
-        def sampleSheetFile = file(params.sample_sheet)
-        def firstLine = sampleSheetFile.readLines()[0]
-        def headers = firstLine.split(',').collect { it.trim() }
-        if (!headers.contains('repo_url')) {
-            throw new IllegalArgumentException("Sample sheet must contain a 'repo_url' column")
-        }
-        
-        // Now create the channel and process it
-        repoCh = Channel.fromPath(params.sample_sheet)
-                        .splitCsv(header:true)
-                        .map { row -> row.repo_url }
-                        .filter { url -> 
-                            if (!validateRepoUrl(url)) {
-                                log.warn "Skipping invalid repository URL: ${url}"
-                                return false
-                            }
-                            return true
-                        }
+        // Read sample sheet and create channel
+        Channel.fromPath(params.sample_sheet)
+            .splitCsv(header: true)
+            .map { row -> 
+                if (!row.repo_url) {
+                    error "Sample sheet is missing the 'repo_url' column"
+                }
+                return row.repo_url 
+            }
+            .set { repo_urls }
     } else if (params.repo_url) {
-        if (!validateRepoUrl(params.repo_url)) {
-            throw new IllegalArgumentException("Invalid repository URL format. Expected: https://github.com/username/repo.git")
-        }
-        repoCh = Channel.value(params.repo_url)
+        // Create channel from single repo URL
+        Channel.of(params.repo_url).set { repo_urls }
     } else {
-        throw new IllegalArgumentException("Provide either a sample_sheet or repo_url parameter")
+        error "Must provide either --sample_sheet or --repo_url"
     }
-    
-    // Map each repository URL to a tuple: (repo_url, repo_name, out_dir)
-    def repoTuples = repoCh.map { repo_url ->
-         def repo_name = repo_url.tokenize('/')[-1].replace('.git','')
-         def out_dir = "${params.output_dir}/${repo_name}"
-         tuple(repo_url, repo_name, out_dir)
-    }
-    
-    // Process each repository with ProcessRepo (clones repo and performs initial checks)
-    def repoOutputs = repoTuples | ProcessRepo
-    
-    // Run the Almanack analysis on each repository
-    def almanackOutputs = repoOutputs | RunAlmanack
 
-    // Collect all unique status files into one list
-    almanackOutputs
-        .map { repo_url, repo_name, out_dir, status_file -> status_file }
-        .collect()
-        .set { allStatusFiles }
-    
-    // Generate the consolidated report from all status files
-    allStatusFiles | GenerateReport
+    // Set up output directory
+    out_dir = params.out_dir ?: 'results'
 
-    // Optionally upload results to Synapse if enabled
-    if (params.upload_to_synapse) {
-        almanackOutputs | UploadToSynapse
+    // First process the repository
+    ProcessRepo(
+        repo_urls.map { url ->
+            def repo_name = url.tokenize('/')[-1].replaceAll('\\.git$', '')
+            tuple(url, repo_name, file("${out_dir}/${repo_name}"))
+        }
+    )
+
+    // Run Almanack analysis
+    RunAlmanack(
+        ProcessRepo.out.map { url, repo_name, repo_dir, out_dir, status_file ->
+            tuple(url, repo_name, repo_dir, out_dir, status_file)
+        }
+    )
+
+    // Analyze JOSS criteria
+    AnalyzeJOSSCriteria(
+        RunAlmanack.out.map { url, repo_name, out_dir, status_file, almanack_results ->
+            tuple(url, repo_name, almanack_results, out_dir)
+        }
+    )
+
+    // Generate final report
+    GenerateReport(
+        AnalyzeJOSSCriteria.out
+    )
+
+    // Upload results to Synapse if configured
+    if (params.synapse_config) {
+        UploadToSynapse(
+            GenerateReport.out.map { url, repo_name, report ->
+                tuple(url, repo_name, report, params.synapse_config, params.synapse_project_id)
+            }
+        )
     }
 }
