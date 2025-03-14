@@ -50,6 +50,7 @@ python3 << 'EOF'
 import json
 import sys
 import os
+import csv
 
 def get_metric_value(metrics, metric_name):
     for metric in metrics:
@@ -57,23 +58,33 @@ def get_metric_value(metrics, metric_name):
             return metric["result"]
     return None
 
-def analyze_joss_criteria(almanack_data):
+def read_status_file(status_file):
+    with open(status_file, 'r') as f:
+        reader = csv.reader(f)
+        row = next(reader)  # Read the first row
+        return {
+            'clone_status': row[1],
+            'dep_status': row[2],
+            'tests_status': row[3]
+        }
+
+def analyze_joss_criteria(almanack_data, status_data):
     # Extract relevant metrics
     license_name = get_metric_value(almanack_data, "repo-primary-license")
     has_readme = get_metric_value(almanack_data, "repo-includes-readme")
     has_contributing = get_metric_value(almanack_data, "repo-includes-contributing")
     has_license = get_metric_value(almanack_data, "repo-includes-license")
-    has_tests = get_metric_value(almanack_data, "repo-includes-tests")
     has_ci = get_metric_value(almanack_data, "repo-has-ci")
     workflow_success_ratio = get_metric_value(almanack_data, "repo-gh-workflow-success-ratio") or 0
     contributors = get_metric_value(almanack_data, "repo-unique-contributors") or 0
     stargazers = get_metric_value(almanack_data, "repo-stargazers-count") or 0
     forks = get_metric_value(almanack_data, "repo-forks-count") or 0
-    has_setup_py = get_metric_value(almanack_data, "repo-includes-setup-py") or False
-    has_requirements = get_metric_value(almanack_data, "repo-includes-requirements") or False
-    has_package_json = get_metric_value(almanack_data, "repo-includes-package-json") or False
     has_api_docs = get_metric_value(almanack_data, "repo-includes-api-docs") or False
     has_examples = get_metric_value(almanack_data, "repo-includes-examples") or False
+
+    # Get dependency and test info from ProcessRepo
+    has_deps = status_data['dep_status'] == 'PASS'
+    has_tests = status_data['tests_status'] == 'PASS'
 
     # License: good if license found, bad otherwise
     license_status = "good" if license_name else "bad"
@@ -86,7 +97,7 @@ def analyze_joss_criteria(almanack_data):
         "license": has_license,  # License information
         "api_docs": has_api_docs,  # API documentation
         "examples": has_examples,  # Usage examples
-        "package_management": any([has_setup_py, has_requirements, has_package_json])  # Installation management
+        "package_management": has_deps  # Installation management
     }
     
     doc_score = sum(1 for v in doc_components.values() if v)
@@ -137,12 +148,13 @@ def analyze_joss_criteria(almanack_data):
                 "license": "Present" if has_license else "Missing",
                 "api_docs": "Present" if has_api_docs else "Missing",
                 "examples": "Present" if has_examples else "Missing",
-                "package_management": "Present" if doc_components["package_management"] else "Missing"
+                "package_management": "Present" if has_deps else "Missing"
             }
         },
         "tests": {
             "status": tests_status,
             "details": tests_details,
+            "has_tests": has_tests,
             "ci_enabled": bool(has_ci),
             "workflow_success_rate": workflow_success_ratio
         },
@@ -186,12 +198,12 @@ def generate_recommendations(criteria):
     if doc_components["examples"] == "Missing":
         recommendations.append("Add example code demonstrating real-world usage of the software")
     if doc_components["package_management"] == "Missing":
-        recommendations.append("Add appropriate package management files (e.g., setup.py, requirements.txt, or package.json) to automate dependency installation")
+        recommendations.append("Add appropriate package management files (e.g., setup.py, requirements.txt, package.json) to automate dependency installation")
     
     # Tests recommendations
     tests = criteria["tests"]
-    if tests["status"] == "bad":
-        recommendations.append("Add an automated test suite to verify core functionality")
+    if not tests["has_tests"]:
+        recommendations.append("Add an automated test suite to verify core functionality (e.g., in a tests/ directory)")
     if not tests["ci_enabled"]:
         recommendations.append("Set up continuous integration (e.g., GitHub Actions) to automatically run tests")
     elif tests["workflow_success_rate"] < 0.8:
@@ -210,8 +222,11 @@ def generate_recommendations(criteria):
 with open("${almanack_results}", 'r') as f:
     almanack_data = json.load(f)
 
+# Read status file from ProcessRepo
+status_data = read_status_file("${status_file}")
+
 # Analyze criteria
-joss_analysis = analyze_joss_criteria(almanack_data)
+joss_analysis = analyze_joss_criteria(almanack_data, status_data)
 
 # Write report
 with open("joss_report_${repo_name}.json", 'w') as f:
