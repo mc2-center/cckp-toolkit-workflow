@@ -1,3 +1,5 @@
+#!/usr/bin/env nextflow
+
 /**
  * Process: GenerateReport
  * 
@@ -15,19 +17,26 @@ process GenerateReport {
     publishDir path: "${params.output_dir}", mode: 'copy'
     
     input:
-        file status_files
+        path status_files
     
     output:
-        file "consolidated_report.csv"
+        path "consolidated_report.csv"
     
     script:
     """
+    #!/bin/bash
+    set -euo pipefail
+
     # Write header with column names
     echo "Tool,CloneRepository,CheckReadme,CheckDependencies,CheckTests,Almanack" > consolidated_report.csv
     
     # Append each status row from all files
-    for file in ${status_files}; do
-        cat \$file >> consolidated_report.csv
+    for f in ${status_files}; do
+        if [ -f "\$f" ]; then
+            cat "\$f" >> consolidated_report.csv
+        else
+            echo "Warning: File \$f not found" >&2
+        fi
     done
     """
 }

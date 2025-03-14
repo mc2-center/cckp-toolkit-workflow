@@ -1,0 +1,44 @@
+name: Test CCKP Toolkit Workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run nf-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Nextflow
+        run: |
+          curl -s https://get.nextflow.io | bash
+          mv nextflow /usr/local/bin/
+          nextflow -version
+      
+      - name: Install nf-test
+        run: |
+          curl -fsSL https://get.nf-test.com | bash
+          mv nf-test /usr/local/bin/
+          nf-test version
+      
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Run tests
+        run: |
+          nf-test test main.nf.test
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            work/
+            .nextflow/
+            .nextflow.log
+          retention-days: 7 

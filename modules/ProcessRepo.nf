@@ -1,3 +1,5 @@
+#!/usr/bin/env nextflow
+
 /**
  * Process: ProcessRepo
  * 

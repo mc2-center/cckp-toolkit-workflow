@@ -1,0 +1,79 @@
+#!/usr/bin/env nextflow
+
+nextflow_pipeline {
+    name "CCKP Toolkit"
+    script "main.nf"
+
+    test("Should process a single repository URL") {
+        when {
+            params {
+                repo_url = "https://github.com/PythonOT/POT.git"
+                output_dir = "test_results"
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().size() > 0
+            assert workflow.trace.succeeded().size() > 0
+            assert workflow.trace.failed().size() == 0
+        }
+    }
+
+    test("Should process multiple repositories from sample sheet") {
+        when {
+            params {
+                sample_sheet = "${projectDir}/tests/fixtures/example-input.csv"
+                output_dir = "test_results"
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.tasks().size() > 0
+            assert workflow.trace.succeeded().size() > 0
+            assert workflow.trace.failed().size() == 0
+        }
+    }
+
+    test("Should fail with invalid repository URL") {
+        when {
+            params {
+                repo_url = "invalid-url"
+                output_dir = "error_test_results"
+            }
+        }
+
+        then {
+            assert !workflow.success
+            assert workflow.stdout.contains("ERROR ~ Invalid repository URL format. Expected: https://github.com/username/repo.git")
+        }
+    }
+
+    test("Should fail when sample sheet is missing repo_url column") {
+        when {
+            params {
+                sample_sheet = "${projectDir}/tests/fixtures/invalid-sample-sheet.csv"
+                output_dir = "error_test_results"
+            }
+        }
+
+        then {
+            assert !workflow.success
+            assert workflow.stdout.contains("ERROR ~ Sample sheet must contain a 'repo_url' column")
+        }
+    }
+
+    test("Should fail when neither sample_sheet nor repo_url is provided") {
+        when {
+            params {
+                output_dir = "error_test_results"
+            }
+        }
+
+        then {
+            assert !workflow.success
+            assert workflow.stdout.contains("ERROR ~ Provide either a sample_sheet or repo_url parameter")
+        }
+    }
+} 

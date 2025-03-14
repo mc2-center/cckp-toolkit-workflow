@@ -10,35 +10,67 @@ nextflow.enable.dsl=2
  * 3. Generate a consolidated report (GenerateReport)
  * 4. Optionally upload results to Synapse (UploadToSynapse)
  */
-
+ 
 // Global parameters
 params.upload_to_synapse = false              // default is false; override at runtime
 params.sample_sheet     = params.sample_sheet ?: null   // CSV file with header "repo_url"
 params.repo_url         = params.repo_url     ?: null   // fallback for a single repo URL
 params.output_dir       = params.output_dir   ?: 'results'  // base output directory
 
-// Validate Synapse parameters
+// Parameter validation
 if (params.upload_to_synapse && !params.synapse_folder_id) {
-    error "synapse_folder_id must be provided when --upload_to_synapse is true."
+    throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
+}
+
+// Validate repository URL format
+def validateRepoUrl = { url ->
+    if (!url) return false
+    def validUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+\.git$/
+    return url ==~ validUrlPattern
+}
+
+// Extract repository name from URL
+def getRepoName = { url ->
+    def urlStr = url instanceof List ? url[0] : url
+    urlStr.tokenize('/')[-1].replace('.git','')
 }
 
 // Include required modules
-include { ProcessRepo }   from './modules/ProcessRepo.nf'
-include { RunAlmanack }   from './modules/RunAlmanack.nf'
-include { UploadToSynapse } from './modules/UploadToSynapse.nf'
+include { ProcessRepo } from './modules/ProcessRepo.nf'
+include { RunAlmanack } from './modules/RunAlmanack.nf'
 include { GenerateReport } from './modules/GenerateReport.nf'
+include { UploadToSynapse } from './modules/UploadToSynapse.nf'
 
 workflow {
     // Build a channel from either a sample sheet or a single repo URL
     def repoCh
     if (params.sample_sheet) {
+        // First read and validate the sample sheet
+        def sampleSheetFile = file(params.sample_sheet)
+        def firstLine = sampleSheetFile.readLines()[0]
+        def headers = firstLine.split(',').collect { it.trim() }
+        if (!headers.contains('repo_url')) {
+            throw new IllegalArgumentException("Sample sheet must contain a 'repo_url' column")
+        }
+        
+        // Now create the channel and process it
         repoCh = Channel.fromPath(params.sample_sheet)
                         .splitCsv(header:true)
                         .map { row -> row.repo_url }
+                        .filter { url -> 
+                            if (!validateRepoUrl(url)) {
+                                log.warn "Skipping invalid repository URL: ${url}"
+                                return false
+                            }
+                            return true
+                        }
     } else if (params.repo_url) {
+        if (!validateRepoUrl(params.repo_url)) {
+            throw new IllegalArgumentException("Invalid repository URL format. Expected: https://github.com/username/repo.git")
+        }
         repoCh = Channel.value(params.repo_url)
     } else {
-        error "Provide either a sample_sheet or repo_url."
+        throw new IllegalArgumentException("Provide either a sample_sheet or repo_url parameter")
     }
     
     // Map each repository URL to a tuple: (repo_url, repo_name, out_dir)

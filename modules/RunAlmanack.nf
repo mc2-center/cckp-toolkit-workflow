@@ -1,3 +1,5 @@
+#!/usr/bin/env nextflow
+
 /**
  * Process: RunAlmanack
  * 
@@ -24,7 +26,7 @@
  */
 
 process RunAlmanack {
-    container = 'python:3.11-slim'
+    container 'python:3.11'
     errorStrategy 'ignore'
     
     input:
@@ -44,9 +46,6 @@ process RunAlmanack {
     echo "Running Almanack on: ${repo_name}" >&2
     echo "Repository URL: ${repo_url}" >&2
     echo "Output directory: ${out_dir}" >&2
-
-    # Install git and pip
-    apt-get update && apt-get install -y git
 
     # Install Almanack and its dependencies
     pip install --upgrade pip
