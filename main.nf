@@ -1,17 +1,62 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-/**
- * Main workflow for CCKP Toolkit
- * 
- * This workflow processes GitHub repositories to:
- * 1. Clone and perform initial checks (ProcessRepo)
- * 2. Run Almanack analysis (RunAlmanack)
- * 3. Analyze JOSS criteria (AnalyzeJOSSCriteria)
- * 4. Interpret results with GPT (InterpretWithGPT)
- * 5. Generate a consolidated report (GenerateReport)
- * 6. Optionally upload results to Synapse (UploadToSynapse)
+/*
+ * Main Workflow Script
+ * --------------------
+ *
+ * This Nextflow script orchestrates the analysis of a software repository based on
+ * JOSS (Journal of Open Source Software) review criteria. It optionally uses
+ * GPT (OpenAI) to provide a detailed, AI-powered evaluation and can upload results
+ * to Synapse if configured.
+ *
+ * Features:
+ *  - Loads environment variables from a `.env` file if present
+ *  - Validates required parameters (repo URL or sample sheet)
+ *  - Ensures repository URL format follows GitHub HTTPS pattern
+ *  - Extracts repo name and GitHub username from provided URL
+ *  - Runs modular processing steps:
+ *      - `ProcessRepo`: Clones and prepares the repository
+ *      - `RunAlmanack`: Performs codebase analysis
+ *      - `AnalyzeJOSSCriteria`: Applies JOSS review heuristics
+ *      - `InterpretWithGPT`: Optional GPT-based AI interpretation of findings
+ *      - `GenerateReport`: Formats outputs into a structured report
+ *      - `UploadToSynapse`: Uploads results to Synapse, if enabled
+ *
+ * Parameters:
+ *  - `params.upload_to_synapse` (bool): Whether to upload results to Synapse [default: false]
+ *  - `params.synapse_folder_id` (string): Required if `upload_to_synapse` is true
+ *  - `params.sample_sheet` (path): CSV file with header `repo_url`; alternative to `repo_url`
+ *  - `params.repo_url` (string): HTTPS GitHub URL of the repository to analyze
+ *  - `params.output_dir` (string): Directory where results will be saved [default: 'results']
+ *  - `params.use_gpt` (bool): Whether to run GPT-based analysis [default: true]
+ *
+ * Environment Variables:
+ *  - Supports loading from `.env` file if present in the working directory
+ *  - GPT analysis requires `OPENAI_API_KEY` to be set in the environment
+ *
+ * Validation:
+ *  - Script throws an error if neither `repo_url` nor `sample_sheet` is provided
+ *  - Throws error if `upload_to_synapse` is true but `synapse_folder_id` is missing
+ *  - Validates that `repo_url` matches GitHub HTTPS format (e.g. https://github.com/user/repo.git)
+ *
+ * Dependencies:
+ *  - Requires the following module scripts:
+ *      - `ProcessRepo.nf`
+ *      - `RunAlmanack.nf`
+ *      - `AnalyzeJOSSCriteria.nf`
+ *      - `InterpretWithGPT.nf`
+ *      - `GenerateReport.nf`
+ *      - `UploadToSynapse.nf`
+ *
+ * Workflow Logic:
+ *  1. Load .env config and validate parameters
+ *  2. Clone and analyze the repo
+ *  3. Interpret results (optionally using GPT)
+ *  4. Generate report
+ *  5. Optionally upload to Synapse
  */
+
 
 // Load environment variables from .env file if it exists
 def loadEnvFile = { envFile ->
@@ -35,7 +80,7 @@ params.upload_to_synapse = false              // default is false; override at r
 params.sample_sheet = null                    // CSV file with header "repo_url"
 params.repo_url = null                        // fallback for a single repo URL
 params.output_dir = 'results'                 // base output directory
-params.use_gpt = false                        // whether to use GPT for interpretation
+params.use_gpt = true                        // whether to use GPT for interpretation
 
 // Parameter validation
 if (!params.repo_url && !params.sample_sheet) {
@@ -89,6 +134,9 @@ workflow {
 
     // Analyze JOSS criteria
     AnalyzeJOSSCriteria(RunAlmanack.out)
+
+    //Check params
+    log.info "GPT interpretation enabled? ${params.use_gpt}"
 
     // Interpret with GPT if enabled
     if (params.use_gpt) {
