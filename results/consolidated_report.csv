@@ -1,2 +1,2 @@
-Repository,URL,License Status,Documentation Status,Tests Status,Community Status,Almanack Score,Key Recommendations,Almanack Score Description
-POT,https://github.com/PythonOT/POT.git,good,ok,ok,good,0.75,"Add a CONTRIBUTING.md file with guidelines for potential contributors; Add API documentation describing all functions/methods with example inputs and outputs; Add example code demonstrating real-world usage of the software; Set up continuous integration (e.g., GitHub Actions) to automatically run tests","Score ranges from 0 to 1, where 0 means no tests passed and 1 means all tests passed. For example, 0.75 indicates 75% of the tests that were run passed successfully."
+Repository,URL,License Status,Documentation Status,Tests Status,Community Status,Almanack Score,Key Recommendations
+POT,https://github.com/PythonOT/POT.git,Unknown,Unknown,Unknown,Unknown,N/A,
