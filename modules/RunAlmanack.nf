@@ -30,6 +30,7 @@
 process RunAlmanack {
     container 'python:3.11'
     errorStrategy 'ignore'
+    publishDir "${params.output_dir}", mode: 'copy', pattern: '*.{json,txt}'
     
     input:
         tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path(status_file)
