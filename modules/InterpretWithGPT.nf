@@ -13,6 +13,7 @@
 process InterpretWithGPT {
     container 'python:3.11-slim'
     errorStrategy 'ignore'
+    publishDir "${params.output_dir}", mode: 'copy', pattern: '*.json'
 
     input:
         tuple val(repo_url), val(repo_name), path(joss_report)
