@@ -1,52 +1,30 @@
 #!/usr/bin/env nextflow
-
-/**
- * Process: AnalyzeJOSSCriteria
- * 
- * Analyzes Almanack results against JOSS review criteria and generates a report.
- * The process:
- * 1. Reads Almanack results JSON
- * 2. Evaluates against JOSS criteria
- * 3. Generates a detailed report.
- * 
- * Input: Tuple containing:
- * - repo_url: GitHub repository URL
- * - repo_name: Repository name
- * - repo_dir: Repository directory
- * - out_dir: Output directory
- * - status_file: Status file
- * - almanack_results: JSON file with Almanack analysis results
- * 
- * Output: Tuple containing:
- * - repo_url: GitHub repository URL
- * - repo_name: Repository name
- * - joss_report: JSON file with JOSS criteria analysis
- */
+nextflow.enable.dsl = 2
 
 process AnalyzeJOSSCriteria {
+    tag "${repo_name}"
+    label 'joss'
     container 'python:3.11'
     errorStrategy 'ignore'
-    
+    publishDir "${params.output_dir}", mode: 'copy', pattern: '*.json'
+
     input:
-        tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path(status_file), path(almanack_results)
+    tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path(status_file), path(almanack_results), path(test_results)
     
     output:
-        tuple val(repo_url), val(repo_name), path("joss_report_${repo_name}.json")
+    tuple val(repo_url), val(repo_name), path("joss_report_${repo_name}.json")
     
     script:
     """
-#!/bin/bash
-set -euxo pipefail
-
-echo "Analyzing JOSS criteria for: ${repo_name}" >&2
-echo "Repository URL: ${repo_url}" >&2
-echo "Almanack results file: ${almanack_results}" >&2
-
-# Create output directory if it doesn't exist
-mkdir -p "${out_dir}"
-
-# Python script to analyze JOSS criteria
-python3 << 'EOF'
+    #!/bin/bash
+    set -euxo pipefail
+    echo "Analyzing JOSS criteria for: ${repo_name}" >&2
+    echo "Repository URL: ${repo_url}" >&2
+    echo "Almanack results file: ${almanack_results}" >&2
+    # Create output directory if it doesn't exist
+    mkdir -p "${out_dir}"
+    # Python script to analyze JOSS criteria
+    python3 << 'EOF'
 import json
 import sys
 import os
@@ -59,178 +37,342 @@ def get_metric_value(metrics, metric_name):
     return None
 
 def read_status_file(status_file):
-    with open(status_file, 'r') as f:
-        reader = csv.reader(f)
-        row = next(reader)  # Read the first row
+    try:
+        with open(status_file, 'r') as f:
+            reader = csv.reader(f)
+            row = next(reader)  # Read the first row
+            return {
+                'clone_status': row[1] if len(row) > 1 else 'UNKNOWN',
+                'dep_status': row[2] if len(row) > 2 else 'UNKNOWN',
+                'tests_status': row[3] if len(row) > 3 else 'UNKNOWN'
+            }
+    except (FileNotFoundError, IndexError):
         return {
-            'clone_status': row[1],
-            'dep_status': row[2],
-            'tests_status': row[3]
+            'clone_status': 'UNKNOWN',
+            'dep_status': 'UNKNOWN',
+            'tests_status': 'UNKNOWN'
         }
 
-def analyze_joss_criteria(almanack_data, status_data):
-    # Extract relevant metrics
-    license_name = get_metric_value(almanack_data, "repo-primary-license")
-    has_readme = get_metric_value(almanack_data, "repo-includes-readme")
-    has_contributing = get_metric_value(almanack_data, "repo-includes-contributing")
-    has_license = get_metric_value(almanack_data, "repo-includes-license")
-    has_ci = get_metric_value(almanack_data, "repo-has-ci")
-    workflow_success_ratio = get_metric_value(almanack_data, "repo-gh-workflow-success-ratio") or 0
-    contributors = get_metric_value(almanack_data, "repo-unique-contributors") or 0
-    stargazers = get_metric_value(almanack_data, "repo-stargazers-count") or 0
-    forks = get_metric_value(almanack_data, "repo-forks-count") or 0
-    has_api_docs = get_metric_value(almanack_data, "repo-includes-api-docs") or False
-    has_examples = get_metric_value(almanack_data, "repo-includes-examples") or False
+def analyze_readme_content(repo_dir):
+    readme_path = os.path.join(repo_dir, "README.md")
+    if not os.path.exists(readme_path):
+        return {
+            "statement_of_need": False,
+            "installation": False,
+            "example_usage": False
+        }
+    
+    with open(readme_path, 'r', encoding='utf-8') as f:
+        content = f.read().lower()
+    
+    # Check for statement of need components
+    has_problem_statement = any(phrase in content for phrase in [
+        "problem", "solve", "purpose", "aim", "goal", "objective"
+    ])
+    has_target_audience = any(phrase in content for phrase in [
+        "audience", "users", "intended for", "designed for"
+    ])
+    has_related_work = any(phrase in content for phrase in [
+        "related", "similar", "compared to", "alternative"
+    ])
+    
+    # Check for installation instructions
+    has_installation = any(phrase in content for phrase in [
+        "install", "setup", "dependencies", "requirements", "pip install"
+    ])
+    
+    # Check for example usage
+    has_examples = any(phrase in content for phrase in [
+        "example", "usage", "how to use", "quick start", "getting started"
+    ])
+    
+    return {
+        "statement_of_need": all([has_problem_statement, has_target_audience, has_related_work]),
+        "installation": has_installation,
+        "example_usage": has_examples
+    }
 
-    # Get dependency and test info from ProcessRepo
-    has_deps = status_data['dep_status'] == 'PASS'
-    has_tests = status_data['tests_status'] == 'PASS'
+def analyze_dependencies(repo_dir):
+    # Analyze dependency files for quality and completeness
+    dependency_files = {
+        'python': [
+            'requirements.txt',
+            'setup.py',
+            'Pipfile',
+            'pyproject.toml'
+        ],
+        'node': [
+            'package.json',
+            'package-lock.json',
+            'yarn.lock'
+        ],
+        'java': [
+            'pom.xml',
+            'build.gradle',
+            'settings.gradle'
+        ],
+        'r': [
+            'DESCRIPTION',
+            'renv.lock',
+            'packrat/packrat.lock'
+        ],
+        'rust': [
+            'Cargo.toml',
+            'Cargo.lock'
+        ],
+        'ruby': [
+            'Gemfile',
+            'Gemfile.lock'
+        ],
+        'go': [
+            'go.mod',
+            'go.sum'
+        ]
+    }
 
-    # License: good if license found, bad otherwise
-    license_status = "good" if license_name else "bad"
-    license_details = f"License: {license_name if license_name else 'Not found'}"
+    def check_python_requirements(file_path):
+        try:
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+            
+            deps = []
+            issues = []
+            
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                
+                # Check for basic formatting
+                if '==' in line:
+                    deps.append(line)
+                elif '>=' in line or '<=' in line:
+                    deps.append(line)
+                    issues.append(f"Loose version constraint: {line}")
+                else:
+                    issues.append(f"No version constraint: {line}")
+            
+            return {
+                "has_dependencies": len(deps) > 0,
+                "total_dependencies": len(deps),
+                "issues": issues,
+                "status": "good" if len(issues) == 0 else "ok" if len(issues) < len(deps) else "needs improvement"
+            }
+        except Exception as e:
+            return {
+                "has_dependencies": False,
+                "total_dependencies": 0,
+                "issues": [f"Error reading file: {str(e)}"],
+                "status": "needs improvement"
+            }
 
-    # Documentation: check for comprehensive documentation
-    doc_components = {
-        "readme": has_readme,  # Basic overview and getting started
-        "contributing": has_contributing,  # Community guidelines
-        "license": has_license,  # License information
-        "api_docs": has_api_docs,  # API documentation
-        "examples": has_examples,  # Usage examples
-        "package_management": has_deps  # Installation management
+    def check_package_json(file_path):
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+            
+            deps = []
+            issues = []
+            
+            # Check dependencies
+            for dep_type in ['dependencies', 'devDependencies']:
+                if dep_type in data:
+                    for dep, version in data[dep_type].items():
+                        deps.append(f"{dep}:{version}")
+                        if version.startswith('^') or version.startswith('~'):
+                            issues.append(f"Loose version constraint: {dep} {version}")
+                        elif version == '*':
+                            issues.append(f"No version constraint: {dep}")
+            
+            return {
+                "has_dependencies": len(deps) > 0,
+                "total_dependencies": len(deps),
+                "issues": issues,
+                "status": "good" if len(issues) == 0 else "ok" if len(issues) < len(deps) else "needs improvement"
+            }
+        except Exception as e:
+            return {
+                "has_dependencies": False,
+                "total_dependencies": 0,
+                "issues": [f"Error reading file: {str(e)}"],
+                "status": "needs improvement"
+            }
+
+    results = {
+        "found_files": [],
+        "analysis": {},
+        "overall_status": "needs improvement"
+    }
+
+    # Check for dependency files
+    for lang, files in dependency_files.items():
+        for file in files:
+            file_path = os.path.join(repo_dir, file)
+            if os.path.exists(file_path):
+                results["found_files"].append(file)
+                
+                # Analyze based on file type
+                if file.endswith('.txt'):
+                    results["analysis"][file] = check_python_requirements(file_path)
+                elif file == 'package.json':
+                    results["analysis"][file] = check_package_json(file_path)
+                # Add more file type checks as needed
+
+    # Determine overall status
+    if not results["found_files"]:
+        results["overall_status"] = "needs improvement"
+    else:
+        statuses = [analysis["status"] for analysis in results["analysis"].values()]
+        if "good" in statuses:
+            results["overall_status"] = "good"
+        elif "ok" in statuses:
+            results["overall_status"] = "ok"
+        else:
+            results["overall_status"] = "needs improvement"
+
+    return results
+
+def analyze_joss_criteria(almanack_results, test_results):
+    criteria = {
+        "Statement of Need": {
+            "status": "UNKNOWN",
+            "score": 0,
+            "details": "Not analyzed"
+        },
+        "Installation Instructions": {
+            "status": "UNKNOWN",
+            "score": 0,
+            "details": "Not analyzed"
+        },
+        "Example Usage": {
+            "status": "UNKNOWN",
+            "score": 0,
+            "details": "Not analyzed"
+        },
+        "Community Guidelines": {
+            "status": "UNKNOWN",
+            "score": 0,
+            "details": "Not analyzed"
+        },
+        "Tests": {
+            "status": "UNKNOWN",
+            "score": 0,
+            "details": "Not analyzed"
+        }
     }
     
-    doc_score = sum(1 for v in doc_components.values() if v)
-    if doc_score >= 5:  # Has most documentation components
-        documentation_status = "good"
-        documentation_details = "Comprehensive documentation available"
-    elif doc_score >= 3:  # Has essential documentation
-        documentation_status = "ok"
-        documentation_details = "Basic documentation present but some components missing"
-    else:
-        documentation_status = "bad"
-        documentation_details = "Documentation is insufficient"
-
-    # Tests: check for test directory and CI
-    if has_tests and has_ci and workflow_success_ratio > 0:
-        tests_status = "good"
-        tests_details = "Automated test suite with CI integration"
-    elif has_tests:
-        tests_status = "ok"
-        tests_details = "Tests present but no CI integration"
-    else:
-        tests_status = "bad"
-        tests_details = "No tests found"
-
-    # Community: use number of contributors as proxy
-    # More than 5 contributors suggests an active community
-    if contributors >= 5:
-        community_status = "good"
-        community_details = f"Active community with {contributors} contributors"
-    elif contributors >= 2:
-        community_status = "ok"
-        community_details = f"Small but present community with {contributors} contributors"
-    else:
-        community_status = "bad"
-        community_details = "Limited community engagement"
-
-    criteria = {
-        "license": {
-            "status": license_status,
-            "details": license_details
-        },
-        "documentation": {
-            "status": documentation_status,
-            "details": documentation_details,
-            "components": {
-                "readme": "Present" if has_readme else "Missing",
-                "contributing": "Present" if has_contributing else "Missing",
-                "license": "Present" if has_license else "Missing",
-                "api_docs": "Present" if has_api_docs else "Missing",
-                "examples": "Present" if has_examples else "Missing",
-                "package_management": "Present" if has_deps else "Missing"
-            }
-        },
-        "tests": {
-            "status": tests_status,
-            "details": tests_details,
-            "has_tests": has_tests,
-            "ci_enabled": bool(has_ci),
-            "workflow_success_rate": workflow_success_ratio
-        },
-        "community": {
-            "status": community_status,
-            "details": community_details,
-            "metrics": {
-                "contributors": contributors,
-                "stargazers": stargazers,
-                "forks": forks
-            }
-        }
-    }
+    # Analyze test execution results
+    if test_results and os.path.exists(test_results):
+        try:
+            with open(test_results, 'r') as f:
+                test_data = json.load(f)
+            # Handle both list and dictionary formats
+            if isinstance(test_data, list):
+                test_data = test_data[0] if test_data else {}
+            criteria["Tests"]["status"] = test_data.get("status", "UNKNOWN")
+            criteria["Tests"]["score"] = 1 if test_data.get("status") == "PASS" else 0
+            criteria["Tests"]["details"] = "\\n".join([
+                f"Framework: {test_data.get('framework', 'Unknown')}",
+                f"Total Tests: {test_data.get('total_tests', 0)}",
+                f"Passed: {test_data.get('passed', 0)}",
+                f"Failed: {test_data.get('failed', 0)}",
+                f"Error: {test_data.get('error', '')}"
+            ]).strip()
+        except (FileNotFoundError, json.JSONDecodeError, KeyError, IndexError) as e:
+            print(f"Error reading test results: {e}", file=sys.stderr)
+            criteria["Tests"]["status"] = "UNKNOWN"
+            criteria["Tests"]["details"] = "Could not read test results"
+    
+    # Analyze Almanack results
+    if almanack_results and os.path.exists(almanack_results):
+        try:
+            with open(almanack_results, 'r') as f:
+                almanack_data = json.load(f)
+            
+            # Extract relevant metrics
+            has_readme = get_metric_value(almanack_data, "repo-includes-readme")
+            has_contributing = get_metric_value(almanack_data, "repo-includes-contributing")
+            has_code_of_conduct = get_metric_value(almanack_data, "repo-includes-code-of-conduct")
+            has_license = get_metric_value(almanack_data, "repo-includes-license")
+            has_citation = get_metric_value(almanack_data, "repo-is-citable")
+            has_docs = get_metric_value(almanack_data, "repo-includes-common-docs")
+            
+            # Check for statement of need
+            if has_readme:
+                criteria["Statement of Need"]["status"] = "PASS"
+                criteria["Statement of Need"]["score"] = 1
+                criteria["Statement of Need"]["details"] = "Found statement of need in README"
+            else:
+                criteria["Statement of Need"]["status"] = "needs improvement"
+                criteria["Statement of Need"]["details"] = "Missing statement of need in README"
+            
+            # Check for installation instructions
+            if has_readme and has_docs:
+                criteria["Installation Instructions"]["status"] = "PASS"
+                criteria["Installation Instructions"]["score"] = 1
+                criteria["Installation Instructions"]["details"] = "Found installation instructions in documentation"
+            else:
+                criteria["Installation Instructions"]["status"] = "needs improvement"
+                criteria["Installation Instructions"]["details"] = "Missing installation instructions"
+            
+            # Check for example usage
+            if has_readme and has_docs:
+                criteria["Example Usage"]["status"] = "PASS"
+                criteria["Example Usage"]["score"] = 1
+                criteria["Example Usage"]["details"] = "Found example usage in documentation"
+            else:
+                criteria["Example Usage"]["status"] = "needs improvement"
+                criteria["Example Usage"]["details"] = "Missing example usage"
+            
+            # Check for community guidelines
+            if has_contributing or has_code_of_conduct:
+                criteria["Community Guidelines"]["status"] = "PASS"
+                criteria["Community Guidelines"]["score"] = 1
+                criteria["Community Guidelines"]["details"] = "Found community guidelines"
+            else:
+                criteria["Community Guidelines"]["status"] = "needs improvement"
+                criteria["Community Guidelines"]["details"] = "Missing community guidelines"
+        except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+            print(f"Error reading Almanack results: {e}", file=sys.stderr)
+    
+    # Calculate overall score
+    total_score = sum(criterion["score"] for criterion in criteria.values())
+    max_score = len(criteria)
+    overall_score = total_score / max_score if max_score > 0 else 0
 
     return {
         "criteria": criteria,
-        "recommendations": generate_recommendations(criteria),
-        "almanack_score": {
-            "value": workflow_success_ratio,
-            "description": "Score ranges from 0 to 1, where 0 means no tests passed and 1 means all tests passed. For example, 0.75 indicates 75% of the tests that were run passed successfully."
-        }
+        "overall_score": overall_score,
+        "total_score": total_score,
+        "max_score": max_score
     }
 
-def generate_recommendations(criteria):
-    recommendations = []
-    
-    # License recommendation
-    if criteria["license"]["status"] == "bad":
-        recommendations.append("Add an OSI-approved license file (e.g., MIT, Apache, GPL) to the repository")
-    
-    # Documentation recommendations
-    doc_components = criteria["documentation"]["components"]
-    if doc_components["readme"] == "Missing":
-        recommendations.append("Add a README.md file with: statement of need, installation instructions, usage examples, and project overview")
-    if doc_components["contributing"] == "Missing":
-        recommendations.append("Add a CONTRIBUTING.md file with guidelines for potential contributors")
-    if doc_components["license"] == "Missing":
-        recommendations.append("Add a LICENSE file to clarify terms of use")
-    if doc_components["api_docs"] == "Missing":
-        recommendations.append("Add API documentation describing all functions/methods with example inputs and outputs")
-    if doc_components["examples"] == "Missing":
-        recommendations.append("Add example code demonstrating real-world usage of the software")
-    if doc_components["package_management"] == "Missing":
-        recommendations.append("Add appropriate package management files (e.g., setup.py, requirements.txt, package.json) to automate dependency installation")
-    
-    # Tests recommendations
-    tests = criteria["tests"]
-    if not tests["has_tests"]:
-        recommendations.append("Add an automated test suite to verify core functionality (e.g., in a tests/ directory)")
-    if not tests["ci_enabled"]:
-        recommendations.append("Set up continuous integration (e.g., GitHub Actions) to automatically run tests")
-    elif tests["workflow_success_rate"] < 0.8:
-        recommendations.append(f"Fix failing tests - current success rate is {tests['workflow_success_rate']*100:.1f}%")
-    
-    # Community recommendations
-    community = criteria["community"]
-    if community["status"] == "bad":
-        recommendations.append("Consider ways to grow the contributor base, such as improving documentation, adding good-first-issue labels, and being responsive to pull requests")
-    elif community["status"] == "ok":
-        recommendations.append("Continue growing the community by highlighting contribution opportunities and mentoring new contributors")
-    
-    return recommendations
-
 # Read Almanack results
-with open("${almanack_results}", 'r') as f:
-    almanack_data = json.load(f)
-
-# Read status file from ProcessRepo
-status_data = read_status_file("${status_file}")
-
-# Analyze criteria
-joss_analysis = analyze_joss_criteria(almanack_data, status_data)
+joss_analysis = analyze_joss_criteria("${almanack_results}", "${test_results}")
 
 # Write report
 with open("joss_report_${repo_name}.json", 'w') as f:
     json.dump(joss_analysis, f, indent=2)
 EOF
     """
+}
+
+workflow {
+    // Define channels for input
+    repo_data_ch = Channel.fromPath(params.repo_data)
+        .map { it -> 
+            def data = it.text.split(',')
+            tuple(
+                data[0],           // repo_url
+                data[1],           // repo_name
+                file(data[2]),     // repo_dir
+                data[3],           // out_dir
+                file(data[4]),     // status_file
+                file(data[5]),     // almanack_results
+                file(data[6])      // test_results
+            )
+        }
+
+    // Run the analysis process
+    AnalyzeJOSSCriteria(repo_data_ch)
 }
