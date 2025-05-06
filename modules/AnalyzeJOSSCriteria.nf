@@ -235,27 +235,27 @@ def analyze_dependencies(repo_dir):
 def analyze_joss_criteria(almanack_results, test_results):
     criteria = {
         "Statement of Need": {
-            "status": "UNKNOWN",
+            "status": "needs improvement",
             "score": 0,
             "details": "Not analyzed"
         },
         "Installation Instructions": {
-            "status": "UNKNOWN",
+            "status": "needs improvement",
             "score": 0,
             "details": "Not analyzed"
         },
         "Example Usage": {
-            "status": "UNKNOWN",
+            "status": "needs improvement",
             "score": 0,
             "details": "Not analyzed"
         },
         "Community Guidelines": {
-            "status": "UNKNOWN",
+            "status": "needs improvement",
             "score": 0,
             "details": "Not analyzed"
         },
         "Tests": {
-            "status": "UNKNOWN",
+            "status": "needs improvement",
             "score": 0,
             "details": "Not analyzed"
         }
@@ -269,18 +269,36 @@ def analyze_joss_criteria(almanack_results, test_results):
             # Handle both list and dictionary formats
             if isinstance(test_data, list):
                 test_data = test_data[0] if test_data else {}
-            criteria["Tests"]["status"] = test_data.get("status", "UNKNOWN")
-            criteria["Tests"]["score"] = 1 if test_data.get("status") == "PASS" else 0
+            
+            total_tests = test_data.get('total_tests', 0)
+            passed_tests = test_data.get('passed', 0)
+            
+            if total_tests > 0:
+                pass_rate = passed_tests / total_tests
+                if pass_rate >= 0.9:
+                    criteria["Tests"]["status"] = "good"
+                    criteria["Tests"]["score"] = 1
+                elif pass_rate >= 0.7:
+                    criteria["Tests"]["status"] = "ok"
+                    criteria["Tests"]["score"] = 0.7
+                else:
+                    criteria["Tests"]["status"] = "needs improvement"
+                    criteria["Tests"]["score"] = 0.3
+            else:
+                criteria["Tests"]["status"] = "needs improvement"
+                criteria["Tests"]["score"] = 0
+                
             criteria["Tests"]["details"] = "\\n".join([
                 f"Framework: {test_data.get('framework', 'Unknown')}",
-                f"Total Tests: {test_data.get('total_tests', 0)}",
-                f"Passed: {test_data.get('passed', 0)}",
+                f"Total Tests: {total_tests}",
+                f"Passed: {passed_tests}",
                 f"Failed: {test_data.get('failed', 0)}",
                 f"Error: {test_data.get('error', '')}"
             ]).strip()
         except (FileNotFoundError, json.JSONDecodeError, KeyError, IndexError) as e:
             print(f"Error reading test results: {e}", file=sys.stderr)
-            criteria["Tests"]["status"] = "UNKNOWN"
+            criteria["Tests"]["status"] = "needs improvement"
+            criteria["Tests"]["score"] = 0
             criteria["Tests"]["details"] = "Could not read test results"
     
     # Analyze Almanack results
@@ -299,41 +317,68 @@ def analyze_joss_criteria(almanack_results, test_results):
             
             # Check for statement of need
             if has_readme:
-                criteria["Statement of Need"]["status"] = "PASS"
-                criteria["Statement of Need"]["score"] = 1
-                criteria["Statement of Need"]["details"] = "Found statement of need in README"
+                readme_content = analyze_readme_content("${repo_dir}")
+                if readme_content["statement_of_need"]:
+                    criteria["Statement of Need"]["status"] = "good"
+                    criteria["Statement of Need"]["score"] = 1
+                    criteria["Statement of Need"]["details"] = "Found comprehensive statement of need in README"
+                else:
+                    criteria["Statement of Need"]["status"] = "ok"
+                    criteria["Statement of Need"]["score"] = 0.7
+                    criteria["Statement of Need"]["details"] = "Found README but statement of need needs improvement"
             else:
                 criteria["Statement of Need"]["status"] = "needs improvement"
-                criteria["Statement of Need"]["details"] = "Missing statement of need in README"
+                criteria["Statement of Need"]["score"] = 0.3
+                criteria["Statement of Need"]["details"] = "Missing README with statement of need"
             
             # Check for installation instructions
             if has_readme and has_docs:
-                criteria["Installation Instructions"]["status"] = "PASS"
-                criteria["Installation Instructions"]["score"] = 1
-                criteria["Installation Instructions"]["details"] = "Found installation instructions in documentation"
+                readme_content = analyze_readme_content("${repo_dir}")
+                if readme_content["installation"]:
+                    criteria["Installation Instructions"]["status"] = "good"
+                    criteria["Installation Instructions"]["score"] = 1
+                    criteria["Installation Instructions"]["details"] = "Found comprehensive installation instructions"
+                else:
+                    criteria["Installation Instructions"]["status"] = "ok"
+                    criteria["Installation Instructions"]["score"] = 0.7
+                    criteria["Installation Instructions"]["details"] = "Found documentation but installation instructions need improvement"
             else:
                 criteria["Installation Instructions"]["status"] = "needs improvement"
+                criteria["Installation Instructions"]["score"] = 0.3
                 criteria["Installation Instructions"]["details"] = "Missing installation instructions"
             
             # Check for example usage
             if has_readme and has_docs:
-                criteria["Example Usage"]["status"] = "PASS"
-                criteria["Example Usage"]["score"] = 1
-                criteria["Example Usage"]["details"] = "Found example usage in documentation"
+                readme_content = analyze_readme_content("${repo_dir}")
+                if readme_content["example_usage"]:
+                    criteria["Example Usage"]["status"] = "good"
+                    criteria["Example Usage"]["score"] = 1
+                    criteria["Example Usage"]["details"] = "Found comprehensive example usage"
+                else:
+                    criteria["Example Usage"]["status"] = "ok"
+                    criteria["Example Usage"]["score"] = 0.7
+                    criteria["Example Usage"]["details"] = "Found documentation but example usage needs improvement"
             else:
                 criteria["Example Usage"]["status"] = "needs improvement"
+                criteria["Example Usage"]["score"] = 0.3
                 criteria["Example Usage"]["details"] = "Missing example usage"
             
             # Check for community guidelines
-            if has_contributing or has_code_of_conduct:
-                criteria["Community Guidelines"]["status"] = "PASS"
+            if has_contributing and has_code_of_conduct:
+                criteria["Community Guidelines"]["status"] = "good"
                 criteria["Community Guidelines"]["score"] = 1
-                criteria["Community Guidelines"]["details"] = "Found community guidelines"
+                criteria["Community Guidelines"]["details"] = "Found both contributing guidelines and code of conduct"
+            elif has_contributing or has_code_of_conduct:
+                criteria["Community Guidelines"]["status"] = "ok"
+                criteria["Community Guidelines"]["score"] = 0.7
+                criteria["Community Guidelines"]["details"] = "Found partial community guidelines"
             else:
                 criteria["Community Guidelines"]["status"] = "needs improvement"
+                criteria["Community Guidelines"]["score"] = 0.3
                 criteria["Community Guidelines"]["details"] = "Missing community guidelines"
         except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
             print(f"Error reading Almanack results: {e}", file=sys.stderr)
+            # Keep the default "needs improvement" status and score of 0
     
     # Calculate overall score
     total_score = sum(criterion["score"] for criterion in criteria.values())
