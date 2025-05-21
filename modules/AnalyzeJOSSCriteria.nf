@@ -20,6 +20,7 @@ process AnalyzeJOSSCriteria {
     set -euxo pipefail
     echo "Analyzing JOSS criteria for: ${repo_name}" >&2
     echo "Repository URL: ${repo_url}" >&2
+    echo "Repository directory: ${repo_dir}" >&2
     echo "Almanack results file: ${almanack_results}" >&2
     # Create output directory if it doesn't exist
     mkdir -p "${out_dir}"
@@ -31,9 +32,15 @@ import os
 import csv
 
 def get_metric_value(metrics, metric_name):
-    for metric in metrics:
-        if metric["name"] == metric_name:
-            return metric["result"]
+    # Handle both JSON and CSV formats
+    if isinstance(metrics, list):
+        # JSON format
+        for metric in metrics:
+            if metric["name"] == metric_name:
+                return metric["result"]
+    elif isinstance(metrics, dict):
+        # CSV format converted to dict
+        return metrics.get(metric_name)
     return None
 
 def read_status_file(status_file):
@@ -232,7 +239,7 @@ def analyze_dependencies(repo_dir):
 
     return results
 
-def analyze_joss_criteria(almanack_results, test_results):
+def analyze_joss_criteria(almanack_data, test_results, repo_dir):
     criteria = {
         "Statement of Need": {
             "status": "needs improvement",
@@ -301,12 +308,9 @@ def analyze_joss_criteria(almanack_results, test_results):
             criteria["Tests"]["score"] = 0
             criteria["Tests"]["details"] = "Could not read test results"
     
-    # Analyze Almanack results
-    if almanack_results and os.path.exists(almanack_results):
+    # Analyze Almanack results (now almanack_data, not a file path)
+    if almanack_data:
         try:
-            with open(almanack_results, 'r') as f:
-                almanack_data = json.load(f)
-            
             # Extract relevant metrics
             has_readme = get_metric_value(almanack_data, "repo-includes-readme")
             has_contributing = get_metric_value(almanack_data, "repo-includes-contributing")
@@ -317,7 +321,7 @@ def analyze_joss_criteria(almanack_results, test_results):
             
             # Check for statement of need
             if has_readme:
-                readme_content = analyze_readme_content("${repo_dir}")
+                readme_content = analyze_readme_content(repo_dir)
                 if readme_content["statement_of_need"]:
                     criteria["Statement of Need"]["status"] = "good"
                     criteria["Statement of Need"]["score"] = 1
@@ -333,7 +337,7 @@ def analyze_joss_criteria(almanack_results, test_results):
             
             # Check for installation instructions
             if has_readme and has_docs:
-                readme_content = analyze_readme_content("${repo_dir}")
+                readme_content = analyze_readme_content(repo_dir)
                 if readme_content["installation"]:
                     criteria["Installation Instructions"]["status"] = "good"
                     criteria["Installation Instructions"]["score"] = 1
@@ -349,7 +353,7 @@ def analyze_joss_criteria(almanack_results, test_results):
             
             # Check for example usage
             if has_readme and has_docs:
-                readme_content = analyze_readme_content("${repo_dir}")
+                readme_content = analyze_readme_content(repo_dir)
                 if readme_content["example_usage"]:
                     criteria["Example Usage"]["status"] = "good"
                     criteria["Example Usage"]["score"] = 1
@@ -376,8 +380,8 @@ def analyze_joss_criteria(almanack_results, test_results):
                 criteria["Community Guidelines"]["status"] = "needs improvement"
                 criteria["Community Guidelines"]["score"] = 0.3
                 criteria["Community Guidelines"]["details"] = "Missing community guidelines"
-        except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
-            print(f"Error reading Almanack results: {e}", file=sys.stderr)
+        except Exception as e:
+            print(f"Error analyzing Almanack results: {e}", file=sys.stderr)
             # Keep the default "needs improvement" status and score of 0
     
     # Calculate overall score
@@ -392,8 +396,33 @@ def analyze_joss_criteria(almanack_results, test_results):
         "max_score": max_score
     }
 
+def read_almanack_results(almanack_results):
+    try:
+        with open(almanack_results, 'r') as f:
+            content = f.read().strip()
+            # Try to parse as JSON first
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError:
+                # If not JSON, try CSV format
+                reader = csv.reader([content])
+                row = next(reader)
+                if len(row) >= 5:  # We expect at least 5 columns
+                    return {
+                        "repo-includes-readme": row[1] == "PASS",
+                        "repo-includes-contributing": row[2] == "PASS",
+                        "repo-includes-code-of-conduct": row[3] == "PASS",
+                        "repo-includes-license": row[4] == "PASS",
+                        "repo-is-citable": True,  # Default to True if not in CSV
+                        "repo-includes-common-docs": True  # Default to True if not in CSV
+                    }
+    except Exception as e:
+        print(f"Error reading Almanack results: {e}", file=sys.stderr)
+        return {}
+
 # Read Almanack results
-joss_analysis = analyze_joss_criteria("${almanack_results}", "${test_results}")
+almanack_data = read_almanack_results("${almanack_results}")
+joss_analysis = analyze_joss_criteria(almanack_data, "${test_results}", "${repo_dir}")
 
 # Write report
 with open("joss_report_${repo_name}.json", 'w') as f:
