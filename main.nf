@@ -8,24 +8,23 @@ nextflow.enable.dsl=2
  * 1. Clone and perform initial checks (ProcessRepo)
  * 2. Run Almanack analysis (RunAlmanack)
  * 3. Analyze JOSS criteria (AnalyzeJOSSCriteria)
- * 4. Interpret results with GPT (InterpretWithGPT)
- * 5. Generate a consolidated report (GenerateReport)
+ * 4. Generate a consolidated report (GenerateReport)
+ * 5. Analyze with AI agent (AIAnalysis)
  * 6. Optionally upload results to Synapse (UploadToSynapse)
  */
 
 // Global parameters with defaults
-params.upload_to_synapse = false              // default is false; override at runtime
-params.sample_sheet = null                    // CSV file with header "repo_url"
-params.repo_url = null                        // fallback for a single repo URL
-params.output_dir = 'results'                 // base output directory
-params.use_gpt = false                        // whether to use GPT for interpretation
+params.upload_to_synapse = false
+params.sample_sheet = null
+params.repo_url = null
+params.output_dir = 'results'
+params.synapse_agent_id = null
 
 // Include required modules
 include { ProcessRepo } from './modules/ProcessRepo'
 include { RunAlmanack } from './modules/RunAlmanack'
 include { AnalyzeJOSSCriteria } from './modules/AnalyzeJOSSCriteria'
-include { InterpretWithGPT } from './modules/InterpretWithGPT'
-include { GenerateReport } from './modules/GenerateReport'
+include { AIAnalysis } from './modules/AIAnalysis'
 include { UploadToSynapse } from './modules/UploadToSynapse'
 include { TestExecutor } from './modules/TestExecutor'
 
@@ -56,6 +55,10 @@ workflow {
         throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
     }
 
+    if (!params.synapse_agent_id) {
+        throw new IllegalArgumentException("ERROR: synapse_agent_id must be provided.")
+    }
+
     // Validate repository URL format
     def validateRepoUrl = { url ->
         if (!url) return false
@@ -69,21 +72,24 @@ workflow {
         return urlStr.tokenize('/')[-1].replace('.git','')
     }
 
-    // Extract Git username from URL
-    def getGitUsername = { url ->
-        def matcher = url =~ 'github.com[:/](.+?)/.+'
-        return matcher ? matcher[0][1] : 'unknown_user'
-    }
+    // Create a channel of repo URLs
+    Channel.from(
+        params.sample_sheet ?
+            file(params.sample_sheet).readLines().drop(1).collect { it.trim() }.findAll { it } :
+            [params.repo_url]
+    ).set { repo_urls }
 
-    // Get repository URL and name
-    repo_url = params.repo_url
-    if (!validateRepoUrl(repo_url)) {
-        throw new IllegalArgumentException("ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git")
-    }
-    repo_name = getRepoName(repo_url)
+    // Validate and process each repo
+    repo_urls.map { repo_url ->
+        if (!validateRepoUrl(repo_url)) {
+            throw new IllegalArgumentException("ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git")
+        }
+        def repo_name = getRepoName(repo_url)
+        tuple(repo_url, repo_name, params.output_dir)
+    }.set { repo_tuples }
 
     // Process repository
-    ProcessRepo(tuple(repo_url, repo_name, params.output_dir))
+    ProcessRepo(repo_tuples)
 
     // Run Almanack
     RunAlmanack(ProcessRepo.out)
@@ -93,8 +99,8 @@ workflow {
 
     // Combine outputs for JOSS analysis
     ProcessRepo.out
-        .combine(RunAlmanack.out, by: [0,1])  // Join by repo_url and repo_name
-        .combine(TestExecutor.out, by: [0,1])  // Join by repo_url and repo_name
+        .combine(RunAlmanack.out, by: [0,1])
+        .combine(TestExecutor.out, by: [0,1])
         .map { it ->
             tuple(
                 it[0],   // repo_url
@@ -111,13 +117,21 @@ workflow {
     // Analyze JOSS criteria
     AnalyzeJOSSCriteria(joss_input)
 
-    // Interpret with GPT if enabled
-    if (params.use_gpt) {
-        InterpretWithGPT(AnalyzeJOSSCriteria.out)
-        GenerateReport(InterpretWithGPT.out)
-    } else {
-        GenerateReport(AnalyzeJOSSCriteria.out)
-    }
+    // Analyze with AI agent
+    RunAlmanack.out
+        .combine(AnalyzeJOSSCriteria.out, by: [0,1])
+        .map { it ->
+            println "[DEBUG] ai_input tuple: ${it}" // Debug print
+            tuple(
+                it[0], // repo_url
+                it[1], // repo_name
+                it[5], // almanack_results.json from RunAlmanack (index 5)
+                it[6]  // joss_report_<repo_name>.json from AnalyzeJOSSCriteria (index 6)
+            )
+        }
+        .set { ai_input }
+
+    AIAnalysis(ai_input)
 
     // Optionally upload results to Synapse if enabled
     if (params.upload_to_synapse) {
