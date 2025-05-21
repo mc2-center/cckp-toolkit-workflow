@@ -1,77 +1,183 @@
-# CCKP Toolkit Workflow
+# Cancer Complexity Toolkit Workflow
 
 ## Description
 
-This Nextflow workflow (`main.nf`) performs quality and metadata checks on software tools by running a series of checks:
+The Cancer Complexity Toolkit Workflow is a scalable infrastructure framework to promote sustainable tool development. It performs multiple levels of analysis:
 
-- **CloneRepository**: Clones the repository.
-- **CheckReadme**: Verifies the existence of a README file.
-- **CheckDependencies**: Looks for dependency files (e.g., `requirements.txt`, `Pipfile`, `setup.py`, etc.).
-- **CheckTests**: Checks for the presence of test directories or test files.
-- **CheckAlmanack**: Runs the [Software Gardening Almanack](https://github.com/software-gardening/almanack) analysis.
+1. **Basic Repository Checks**
+   - Repository cloning and validation
+   - README file verification
+   - Dependency file detection
+   - Test suite presence
 
-The final output is a **consolidated CSV report** where each row represents a tool (i.e., a repository) with the following columns:
+2. **Advanced Analysis**
+   - [Software Gardening Almanack](https://github.com/software-gardening/almanack) analysis
+   - JOSS (Journal of Open Source Software) criteria evaluation
+   - AI-powered repository analysis (optional, requires Synapse agent ID)
+   - Test execution and coverage
 
-```Tool, CloneRepository, CheckReadme, CheckDependencies, CheckTests, Almanack```
+3. **Optional Synapse Integration**
+   - Results upload to Synapse platform
+   - Metadata management
 
-Each column shows the status (`PASS`/`FAIL`) for the respective check.
+## Requirements
 
-## Running the Workflow
-You can execute the workflow in one of two ways:
-- Analyze a single tool by specifying its repository URL.
-- Analyze multiple tools using a sample sheet (CSV file) that includes a repo_url header.
+### Core Dependencies
+- Nextflow (version 24.04.3 or later)
+- Docker (required for containerized execution)
+- Python 3.8+
+- Git
 
-### Install Nextflow 
-Follow the official installation guide [here](https://www.nextflow.io/docs/latest/install.html) or use the command below:
+> [!IMPORTANT]
+> Docker is required to run this workflow. The toolkit uses containerized processes to ensure consistent execution environments across different systems.
 
+### Optional Dependencies
+For Synapse integration:
+- Synapse Python client
+- Synapse authentication token
+- Synapse configuration file
+
+## Installation
+
+1. **Install Nextflow**
 ```bash
 curl -s https://get.nextflow.io | bash
 ```
 
-### Run with a Single Repository URL
+2. **Install Python Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+3. **Configure Synapse** (Optional)
+```bash
+# Create Synapse config file
+mkdir -p ~/.synapse
+touch ~/.synapseConfig
+```
+
+> [!NOTE]
+> To use Synapse features, you'll need to:
+> 1. Create a personal access token from your [Synapse Account Settings](https://help.synapse.org/docs/Managing-Your-Account.2055405596.html#ManagingYourAccount-PersonalAccessTokens)
+> 2. Add the token to your `~/.synapseConfig` file:
+>    ```
+>    [authentication]
+>    username = your_username
+>    apiKey = your_personal_access_token
+>    ```
+> 3. Set the token as a Nextflow secret:
+>    ```groovy
+>    // nextflow.config
+>    secrets {
+>        synapse_token = 'your_personal_access_token'
+>    }
+>    ```
+
+## Usage
+
+### Input Format
+
+The workflow accepts input in two formats:
+
+1. **Single Repository URL**
 ```bash
 nextflow run main.nf --repo_url https://github.com/example/repo.git
 ```
 
-### Run with a Sample Sheet
-Prepare a CSV file (e.g., example-input.csv) with a header repo_url and one URL per row, then run:
+2. **Sample Sheet (CSV)**
 
-```bash
-nextflow run main.nf --sample_sheet <samplesheet>
+Example `input.csv`:
+```csv
+repo_url,description
+https://github.com/PythonOT/POT.git,Python Optimal Transport Library
+https://github.com/RabadanLab/TARGet.git,TARGet Analysis Tool
 ```
 
-## Output
-After the workflow completes, you'll find a consolidated CSV report (consolidated_report.csv) in your output directory (by default, under the results folder). Each row in this report represents a tool and its corresponding check statuses.
+### Running the Workflow
 
-## Optional: Uploading Results to Synapse
-To upload results to Synapse, run the workflow with the following parameters:
+#### Basic Analysis
+```bash
+nextflow run main.nf --repo_url https://github.com/example/repo.git
+```
 
+#### With AI Analysis
 ```bash
 nextflow run main.nf \
     --repo_url https://github.com/example/repo.git \
-    --upload_to_synapse true\
-    --synapse_folder_id syn64626421
+    --synapse_agent_id LOWYSX3QSQ
 ```
-Ensure your Synapse credentials are properly set up (e.g., by mounting your .synapseConfig file).
 
-## Tools You Can Test With
+#### With Sample Sheet
+```bash
+nextflow run main.nf --sample_sheet input.csv
+```
 
-1. **Python Optimal Transport Library**  
-   - Synapse: [POT](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=POT)  
-   - GitHub: [PythonOT/POT](https://github.com/PythonOT/POT)  
-   - Note: Should pass all tests
+> [!NOTE]
+> When using AI Analysis or Synapse integration, ensure you have:
+> - Valid Synapse authentication token
+> - Proper Synapse configuration
+> - Synapse agent ID for AI analysis (e.g., LOWYSX3QSQ)
+> - Correct folder ID with write permissions (for upload)
 
-2. **TARGet**  
-   - Synapse: [TARGet](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=TARGet)  
-   - GitHub: [RabadanLab/TARGet](https://github.com/RabadanLab/TARGet/tree/master)  
-   - Note: Fails CheckDependencies, CheckTests
+## Output
 
-3. **memSeqASEanalysis**  
-   - Synapse: [memSeqASEanalysis](https://cancercomplexity.synapse.org/Explore/Tools/DetailsPage?toolName=memSeqASEanalysis)  
-   - GitHub: [arjunrajlaboratory/memSeqASEanalysis](https://github.com/arjunrajlaboratory/memSeqASEanalysis)  
-   - Note: Fails CheckDependencies, CheckTests
+The workflow generates several output files in the `results` directory:
 
-**Subset of tools to test**: Any from [this list](https://cancercomplexity.synapse.org/Explore/Tools) with a GitHub repository.
+- `<repo_name>_ai_analysis.json`: AI-powered qualitative summary and recommendations (final report)
+- `almanack_results.json`: Detailed metrics from Almanack analysis
+- `joss_report_<repo_name>.json`: JOSS criteria evaluation metrics
+- `test_results_<repo_name>.json`: Test execution results and coverage metrics
 
-## Notes
-- Ensure Nextflow and Docker are installed 
+> [!NOTE]
+> The AI analysis report provides a high-level qualitative summary and actionable recommendations. For detailed metrics and specific measurements, refer to the other output files.
+
+## Development Status
+
+> [!WARNING]
+> The AI Analysis component is currently in beta. Results may vary and the interface is subject to change.
+
+> [!IMPORTANT]
+> Synapse integration requires proper authentication and permissions setup.
+
+## Example Repositories
+
+| Repository | Description | Expected Status |
+|------------|-------------|----------------|
+| [PythonOT/POT](https://github.com/PythonOT/POT) | Python Optimal Transport Library | All checks pass |
+| [RabadanLab/TARGet](https://github.com/RabadanLab/TARGet) | TARGet Analysis Tool | Fails dependency and test checks |
+| [arjunrajlaboratory/memSeqASEanalysis](https://github.com/arjunrajlaboratory/memSeqASEanalysis) | memSeq ASE Analysis | Fails dependency and test checks |
+
+## Configuration
+
+### Synapse Configuration
+
+1. **Authentication Token**
+   - Set as Nextflow secret:
+   ```groovy
+   // nextflow.config
+   secrets {
+       synapse_token = 'your_token_here'
+   }
+   ```
+   - Or via command line:
+   ```bash
+   nextflow run main.nf --synapse_token 'your_token_here'
+   ```
+
+2. **Configuration File**
+   - Location: `~/.synapseConfig`
+   - Required fields:
+     ```
+     [authentication]
+     username = your_username
+     apiKey = your_api_key
+     ```
+
+## Contributing
+
+> [!NOTE]
+> We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
