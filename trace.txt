@@ -1,0 +1,6 @@
+task_id	hash	native_id	name	status	exit	submit	duration	realtime	%cpu	peak_rss	peak_vmem	rchar	wchar
+1	af/6a3262	11716	ProcessRepo (1)	CACHED	0	2025-05-21 15:50:10.890	3.7s	2.9s	73.7%	29.4 MB	196.2 MB	104.2 MB	142.6 MB
+2	ec/61a751	12530	TestExecutor (1)	CACHED	0	2025-05-21 15:52:04.092	1m 14s	1m 14s	344.9%	348.1 MB	1.3 GB	381.7 MB	493.3 MB
+3	8c/fb5b47	12529	RunAlmanack (1)	CACHED	0	2025-05-21 15:52:04.085	9s	8.2s	48.4%	84.8 MB	203.3 MB	88.1 MB	93.6 MB
+4	89/c763a2	12990	AnalyzeJOSSCriteria (POT)	CACHED	0	2025-05-21 15:53:18.554	556ms	92ms	74.7%	9.8 MB	15.5 MB	595.2 KB	483 KB
+5	6d/cec4df	14650	AIAnalysis (1)	COMPLETED	0	2025-05-21 15:57:42.608	8.3s	7.3s	113.1%	174.6 MB	728.1 MB	13.9 MB	174.7 KB
