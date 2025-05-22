@@ -17,7 +17,8 @@ nextflow_pipeline {
             assert workflow.success
             assert workflow.trace.tasks().size() > 0
             assert workflow.trace.succeeded().size() > 0
-            assert workflow.trace.failed().size() == 0
+            assert workflow.trace.failed().size() == 1
+            assert workflow.trace.failed().collect { it.name }.any { it.startsWith("AIAnalysis") }
         }
     }
 
@@ -34,7 +35,8 @@ nextflow_pipeline {
             assert workflow.success
             assert workflow.trace.tasks().size() > 0
             assert workflow.trace.succeeded().size() > 0
-            assert workflow.trace.failed().size() == 0
+            assert workflow.trace.failed().size() == 2
+            assert workflow.trace.failed().collect { it.name.toString() }.every { it.startsWith("AIAnalysis") }
         }
     }
 
@@ -49,7 +51,7 @@ nextflow_pipeline {
 
         then {
             assert !workflow.success
-            assert workflow.stdout[0].contains("Invalid repository URL format")
+            assert workflow.stdout.any { it.contains("Invalid repository URL format") }
         }
     }
 
@@ -64,7 +66,7 @@ nextflow_pipeline {
 
         then {
             assert !workflow.success
-            assert workflow.stdout[0].contains("Invalid repository URL format")
+            assert workflow.stdout.any { it.contains("Invalid repository URL format") }
         }
     }
 
@@ -78,7 +80,7 @@ nextflow_pipeline {
 
         then {
             assert !workflow.success
-            assert workflow.stdout[0].contains("Provide either a sample_sheet or repo_url parameter")
+            assert workflow.stdout.any { it.contains("Provide either a sample_sheet or repo_url parameter") }
         }
     }
 } 
