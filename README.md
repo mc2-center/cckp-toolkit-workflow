@@ -1,5 +1,7 @@
 # Cancer Complexity Toolkit Workflow
 
+![CCT Logo](cct-logo.png)
+
 ## Description
 
 The Cancer Complexity Toolkit Workflow is a scalable infrastructure framework to promote sustainable tool development. It performs multiple levels of analysis:
