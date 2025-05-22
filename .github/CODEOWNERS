@@ -1,0 +1,20 @@
+# Define maintainers for key parts of the repository
+
+# Core Workflow Files
+/main.nf @aditigopalan
+/modules/ @aditigopalan
+
+# Documentation
+/README.md @aditigopalan
+
+# Tests
+/tests/ @aditigopalan
+
+# Configuration
+/nextflow.config @aditigopalan
+
+# Scripts
+/scripts/ @aditigopalan
+
+# Other
+* @aditigopalan 
