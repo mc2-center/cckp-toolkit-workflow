@@ -8,9 +8,8 @@ nextflow.enable.dsl=2
  * 1. Clone and perform initial checks (ProcessRepo)
  * 2. Run Almanack analysis (RunAlmanack)
  * 3. Analyze JOSS criteria (AnalyzeJOSSCriteria)
- * 4. Generate a consolidated report (GenerateReport)
- * 5. Analyze with AI agent (AIAnalysis)
- * 6. Optionally upload results to Synapse (UploadToSynapse)
+ * 4. Analyze with AI agent (AIAnalysis)
+ * 5. Optionally upload results to Synapse (UploadToSynapse)
  */
 
 // Global parameters with defaults
@@ -131,7 +130,7 @@ workflow {
         }
         .set { ai_input }
 
-    AIAnalysis(ai_input)
+    AIAnalysis(ai_input, file('modules/analyze.py'))
 
     // Optionally upload results to Synapse if enabled
     if (params.upload_to_synapse) {
