@@ -18,15 +18,13 @@ process AIAnalysis {
 
     input:
         tuple val(repo_url), val(repo_name), path(almanack_results), path(joss_report)
-        path 'modules/analyze.py'
 
     output:
         tuple val(repo_url), val(repo_name), path("${repo_name}_ai_analysis.html"), emit: ai_analysis
 
     script:
     """
-    cp modules/analyze.py .
     export SYNAPSE_DISABLE_ASYNC=true
-    python3 analyze.py "${repo_name}" "${repo_url}" "${almanack_results}" "${joss_report}" "${params.synapse_agent_id}"
+    ${projectDir}/bin/analyze.py "${repo_name}" "${repo_url}" "${almanack_results}" "${joss_report}" "${params.synapse_agent_id}"
     """
 } 

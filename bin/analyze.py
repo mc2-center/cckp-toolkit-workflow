@@ -1,13 +1,29 @@
+#!/usr/bin/env python3
+
 import json
 import os
 import sys
+from typing import Dict, Any
 from synapseclient import Synapse
 from synapseclient.models import Agent, AgentSession
 
 print("[DEBUG] Starting analyze.py")
 print(f"[DEBUG] SYNAPSE_AUTH_TOKEN set: {'SYNAPSE_AUTH_TOKEN' in os.environ}")
 
-def call_synapse_agent(agent_id, prompt):
+def call_synapse_agent(agent_id: str, prompt: str) -> str:
+    """
+    Call the Synapse agent with the given prompt and return its response.
+
+    Args:
+        agent_id (str): The ID of the Synapse agent to use
+        prompt (str): The prompt to send to the agent
+
+    Returns:
+        str: The agent's response
+
+    Raises:
+        Exception: If there's an error during agent communication
+    """
     syn = Synapse()
     syn.login(authToken=os.environ['SYNAPSE_AUTH_TOKEN'])
     agent = Agent(cloud_agent_id=agent_id)
@@ -32,12 +48,12 @@ if __name__ == "__main__":
     try:
         # Read input files
         with open(almanack_results_file, 'r') as f:
-            almanack_results = json.load(f)
+            almanack_results: Dict[str, Any] = json.load(f)
         with open(joss_report_file, 'r') as f:
-            joss_report = json.load(f)
+            joss_report: Dict[str, Any] = json.load(f)
 
         # Prepare input for agent
-        agent_input = {
+        agent_input: Dict[str, Any] = {
             "repository_url": repo_url,
             "almanack_results": almanack_results,
             "joss_report": joss_report
@@ -45,7 +61,7 @@ if __name__ == "__main__":
 
         # Call Synapse agent and treat response as HTML
         print("[DEBUG] Calling Synapse agent...")
-        response_html = call_synapse_agent(agent_id, json.dumps(agent_input))
+        response_html: str = call_synapse_agent(agent_id, json.dumps(agent_input))
         print(f"[DEBUG] Raw agent response (HTML):\n{response_html}")
 
         # Write the HTML response directly to file
