@@ -3,7 +3,37 @@
 import json
 import os
 import sys
-from typing import Dict, Any
+import csv
+from typing import Dict, Any, List, Union, Optional
+
+def get_metric_value(metrics: Union[List[Dict[str, Any]], Dict[str, Any]], metric_name: str) -> Optional[Any]:
+    """
+    Extract a metric value from either JSON or CSV formatted metrics data.
+    
+    Args:
+        metrics: Either a list of metric dictionaries (JSON format) or a dictionary of metrics (CSV format)
+        metric_name: Name of the metric to extract
+        
+    Returns:
+        The value of the metric if found, None otherwise
+        
+    Examples:
+        >>> metrics_json = [{"name": "test", "result": "pass"}]
+        >>> get_metric_value(metrics_json, "test")
+        'pass'
+        >>> metrics_csv = {"test": "pass"}
+        >>> get_metric_value(metrics_csv, "test")
+        'pass'
+    """
+    if isinstance(metrics, list):
+        # JSON format
+        for metric in metrics:
+            if metric.get("name") == metric_name:
+                return metric.get("result")
+    elif isinstance(metrics, dict):
+        # CSV format converted to dict
+        return metrics.get(metric_name)
+    return None
 
 def analyze_joss_criteria(almanack_results: Dict[str, Any], test_results: Dict[str, Any], repo_dir: str) -> Dict[str, Any]:
     """

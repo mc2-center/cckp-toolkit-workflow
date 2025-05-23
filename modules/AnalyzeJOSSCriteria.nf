@@ -58,5 +58,5 @@ workflow {
         }
 
     // Run the analysis process
-    AnalyzeJOSSCriteria(repo_data_ch)
+    AnalyzeJOSSCriteria(repo_data_ch, file('bin/analyze_joss.py'))
 }
