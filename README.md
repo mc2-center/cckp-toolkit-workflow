@@ -25,10 +25,10 @@ The Cancer Complexity Toolkit Workflow is a scalable infrastructure framework to
 ## Requirements
 
 ### Core Dependencies
-- Nextflow (version 24.04.3 or later)
-- Docker (required for containerized execution)
-- Python 3.8+
-- Git
+- **Nextflow** (version 24.04.3 or later): Install from [Nextflow's official website]. Install instructions below (https://www.nextflow.io/).
+- **Docker** (required for containerized execution): Install from [Docker's official website](https://www.docker.com/get-started).
+- **Python 3.8+**: Install from [Python's official website](https://www.python.org/downloads/).
+- **Git**
 
 > [!IMPORTANT]
 > Docker is required to run this workflow. The toolkit uses containerized processes to ensure consistent execution environments across different systems.
