@@ -100,15 +100,15 @@ workflow {
     ProcessRepo.out
         .combine(RunAlmanack.out, by: [0,1])
         .combine(TestExecutor.out, by: [0,1])
-        .map { it ->
+        .map { repo_url, repo_name, repo_dir, out_dir, status_file, _almanack_meta, _almanack_dir, almanack_results, test_results ->
             tuple(
-                it[0],   // repo_url
-                it[1],   // repo_name
-                it[2],   // repo_dir
-                it[3],   // out_dir
-                it[4],   // status_file
-                it[7],   // almanack_results
-                it[8]    // test_results
+                repo_url,           // repo_url
+                repo_name,          // repo_name
+                repo_dir,           // repo_dir
+                out_dir,            // out_dir
+                status_file,        // status_file
+                almanack_results,   // almanack_results
+                test_results        // test_results
             )
         }
         .set { joss_input }
