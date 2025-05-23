@@ -11,7 +11,7 @@
  */
 
 process AIAnalysis {
-    container 'ghcr.io/sage-bionetworks/synapsepythonclient:latest'
+    container 'ghcr.io/sage-bionetworks/synapsepythonclient:4.8.0'
     errorStrategy 'ignore'
     publishDir "${params.output_dir}", mode: 'copy', pattern: '*.html'
     secret 'SYNAPSE_AUTH_TOKEN'
