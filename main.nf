@@ -119,13 +119,13 @@ workflow {
     // Analyze with AI agent
     RunAlmanack.out
         .combine(AnalyzeJOSSCriteria.out, by: [0,1])
-        .map { it ->
+        .map { repo_url, repo_name, _almanack_meta, _almanack_dir, _almanack_status, almanack_results, joss_report ->
             println "[DEBUG] ai_input tuple: ${it}" // Debug print
             tuple(
-                it[0], // repo_url
-                it[1], // repo_name
-                it[5], // almanack_results.json from RunAlmanack (index 5)
-                it[6]  // joss_report_<repo_name>.json from AnalyzeJOSSCriteria (index 6)
+                repo_url,        // repo_url
+                repo_name,       // repo_name
+                almanack_results, // almanack_results.json from RunAlmanack
+                joss_report      // joss_report_<repo_name>.json from AnalyzeJOSSCriteria
             )
         }
         .set { ai_input }
