@@ -150,20 +150,11 @@ The workflow generates several output files in the `results` directory:
 
 ### Synapse Configuration
 
-1. **Authentication Token**
+**Authentication Token**
    - Set as Nextflow secret:
    ```bash
    nextflow secrets set SYNAPSE_AUTH_TOKEN your_personal_access_token
    ```
-
-2. **Configuration File**
-   - Location: `~/.synapseConfig`
-   - Required fields:
-     ```
-     [authentication]
-     username = your_username
-     apiKey = your_api_key
-     ```
 
 ## Contributing
 
