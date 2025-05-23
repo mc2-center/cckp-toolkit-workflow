@@ -81,7 +81,7 @@ workflow {
     // Validate and process each repo
     repo_urls.map { repo_url ->
         if (!validateRepoUrl(repo_url)) {
-            throw new IllegalArgumentException("ERROR: Invalid repository URL format. Expected: https://github.com/username/repo.git")
+            throw new IllegalArgumentException("ERROR: Invalid repository URL format: '${repo_url}'. Expected format: https://github.com/username/repo.git")
         }
         def repo_name = getRepoName(repo_url)
         tuple(repo_url, repo_name, params.output_dir)
