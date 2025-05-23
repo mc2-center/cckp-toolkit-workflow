@@ -68,11 +68,8 @@ touch ~/.synapseConfig
 >    apiKey = your_personal_access_token
 >    ```
 > 3. Set the token as a Nextflow secret:
->    ```groovy
->    // nextflow.config
->    secrets {
->        synapse_token = 'your_personal_access_token'
->    }
+>    ```bash
+>    nextflow secrets set SYNAPSE_AUTH_TOKEN your_personal_access_token
 >    ```
 
 ## Usage
@@ -155,15 +152,8 @@ The workflow generates several output files in the `results` directory:
 
 1. **Authentication Token**
    - Set as Nextflow secret:
-   ```groovy
-   // nextflow.config
-   secrets {
-       synapse_token = 'your_token_here'
-   }
-   ```
-   - Or via command line:
    ```bash
-   nextflow run main.nf --synapse_token 'your_token_here'
+   nextflow secrets set SYNAPSE_AUTH_TOKEN your_personal_access_token
    ```
 
 2. **Configuration File**
