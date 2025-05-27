@@ -31,7 +31,6 @@ process TestExecutor {
     
     input:
         tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path(status_file)
-        path 'bin/run_tests.py'
     
     output:
         tuple val(repo_url), val(repo_name), path("test_results_${repo_name}.json")
