@@ -129,11 +129,6 @@ def run_python_tests(repo_dir: str) -> Dict[str, Any]:
 
         # Parse test results for pytest
         collected_re = re.compile(r'collected (\d+) items')
-        passed_re = re.compile(r'PASSED')
-        failed_re = re.compile(r'FAILED')
-        skipped_re = re.compile(r'SKIPPED')
-        xfailed_re = re.compile(r'XFAIL')
-        xpassed_re = re.compile(r'XPASS')
 
         for line in process.stdout.split('\n'):
             # Get total tests from 'collected N items'
