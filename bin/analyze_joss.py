@@ -6,7 +6,7 @@ import os
 import csv
 from typing import Dict, Any, List, Union, Optional
 
-def get_metric_value(metrics: Union[List[Dict[str, Any]], Dict[str, Any]], metric_name: str) -> Optional[Any]:
+def get_metric_value(metrics: Union[List[Dict[str, Any]], Dict[str, Any]], metric_name: str) -> Union[None, str, int, float, bool]:
     """
     Extract a metric value from either JSON or CSV formatted metrics data.
     
