@@ -130,22 +130,31 @@ def run_python_tests(repo_dir: str) -> Dict[str, Any]:
         # Parse test results for pytest
         collected_re = re.compile(r'collected (\d+) items')
 
+        # Define test result patterns and their corresponding counters
+        test_patterns = {
+            ('PASSED', 'XPASS'): 'passed',  # PASSED but not XPASS
+            ('FAILED', 'XFAIL'): 'failed',  # FAILED but not XFAIL
+            ('SKIPPED',): 'skipped',
+            ('XFAIL',): 'xfailed',
+            ('XPASS',): 'xpassed'
+        }
+
         for line in process.stdout.split('\n'):
             # Get total tests from 'collected N items'
             m = collected_re.search(line)
             if m:
                 results["total_tests"] = int(m.group(1))
-            # Count test result lines
-            if 'PASSED' in line and 'XPASS' not in line:
-                results["passed"] += 1
-            elif 'FAILED' in line and 'XFAIL' not in line:
-                results["failed"] += 1
-            elif 'SKIPPED' in line:
-                results["skipped"] += 1
-            elif 'XFAIL' in line:
-                results["xfailed"] += 1
-            elif 'XPASS' in line:
-                results["xpassed"] += 1
+            
+            # Count test result lines using pattern mapping
+            for patterns, counter in test_patterns.items():
+                if len(patterns) == 1:
+                    if patterns[0] in line:
+                        results[counter] += 1
+                else:
+                    # Handle cases where we need to check for inclusion and exclusion
+                    include, exclude = patterns
+                    if include in line and exclude not in line:
+                        results[counter] += 1
 
         # If total_tests is still 0, try to infer from sum of all counted
         counted = results["passed"] + results["failed"] + results["skipped"] + results["xfailed"] + results["xpassed"]
