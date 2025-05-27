@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from synapseclient import Synapse
-from synapseclient.models import Agent, AgentSession
+from synapseclient.models import Agent
 
 def call_synapse_agent(agent_id, prompt):
     """
