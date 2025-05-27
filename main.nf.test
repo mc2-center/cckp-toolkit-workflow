@@ -17,8 +17,9 @@ nextflow_pipeline {
             assert workflow.success
             assert workflow.trace.tasks().size() > 0
             assert workflow.trace.succeeded().size() > 0
-            assert workflow.trace.failed().size() == 1
-            assert workflow.trace.failed().collect { it.name }.any { it.startsWith("AIAnalysis") }
+            assert workflow.trace.tasks().collect { it.name }.any { it.startsWith("ProcessRepo") }
+            assert workflow.trace.tasks().collect { it.name }.any { it.startsWith("RunAlmanack") }
+            assert workflow.trace.tasks().collect { it.name }.any { it.startsWith("TestExecutor") }
         }
     }
 
@@ -35,8 +36,10 @@ nextflow_pipeline {
             assert workflow.success
             assert workflow.trace.tasks().size() > 0
             assert workflow.trace.succeeded().size() > 0
-            assert workflow.trace.failed().size() == 2
-            assert workflow.trace.failed().collect { it.name.toString() }.every { it.startsWith("AIAnalysis") }
+            def processCounts = workflow.trace.tasks().collect { it.name.split(" ")[0] }.countBy { it }
+            assert processCounts["ProcessRepo"] == 2
+            assert processCounts["RunAlmanack"] == 2
+            assert processCounts["TestExecutor"] == 2
         }
     }
 
