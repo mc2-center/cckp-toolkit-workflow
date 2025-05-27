@@ -4,11 +4,22 @@ import json
 import os
 import subprocess
 import sys
-from pathlib import Path
 import re
+from typing import Dict, Any
 
-def install_dependencies(repo_dir):
-    # Install project dependencies before running tests
+def install_dependencies(repo_dir: str) -> bool:
+    """
+    Install project dependencies before running tests.
+    
+    Args:
+        repo_dir (str): Path to the repository directory
+        
+    Returns:
+        bool: True if dependencies were installed successfully, False otherwise
+        
+    Note:
+        Attempts to install dependencies from requirements.txt and setup.py if they exist
+    """
     try:
         # Try to install requirements.txt if it exists
         req_file = os.path.join(repo_dir, 'requirements.txt')
@@ -27,8 +38,19 @@ def install_dependencies(repo_dir):
         print(f"Error installing dependencies: {e.stderr.decode()}", file=sys.stderr)
         return False
 
-def detect_project_type(repo_dir):
-    """Detect project type based on characteristic files."""
+def detect_project_type(repo_dir: str) -> str:
+    """
+    Detect project type based on characteristic files.
+    
+    Args:
+        repo_dir (str): Path to the repository directory
+        
+    Returns:
+        str: Project type identifier ('python', 'node', 'java-maven', 'java-gradle', 'r', 'rust', 'go', or 'unknown')
+        
+    Note:
+        Checks for characteristic files like requirements.txt, package.json, pom.xml, etc.
+    """
     project_files = {
         'python': ['requirements.txt', 'setup.py', 'pyproject.toml'],
         'node': ['package.json'],
@@ -39,7 +61,7 @@ def detect_project_type(repo_dir):
         'go': ['go.mod']
     }
     
-    def file_exists(filename):
+    def file_exists(filename: str) -> bool:
         return os.path.exists(os.path.join(repo_dir, filename))
     
     for project_type, files in project_files.items():
@@ -47,27 +69,24 @@ def detect_project_type(repo_dir):
             return project_type
     
     return 'unknown'
-    # Detect the project type and test framework
-    if os.path.exists(os.path.join(repo_dir, 'requirements.txt')) or \
-       os.path.exists(os.path.join(repo_dir, 'setup.py')) or \
-       os.path.exists(os.path.join(repo_dir, 'pyproject.toml')):
-        return 'python'
-    elif os.path.exists(os.path.join(repo_dir, 'package.json')):
-        return 'node'
-    elif os.path.exists(os.path.join(repo_dir, 'pom.xml')):
-        return 'java-maven'
-    elif os.path.exists(os.path.join(repo_dir, 'build.gradle')):
-        return 'java-gradle'
-    elif os.path.exists(os.path.join(repo_dir, 'DESCRIPTION')):
-        return 'r'
-    elif os.path.exists(os.path.join(repo_dir, 'Cargo.toml')):
-        return 'rust'
-    elif os.path.exists(os.path.join(repo_dir, 'go.mod')):
-        return 'go'
-    return 'unknown'
 
-def run_python_tests(repo_dir):
-    # Run Python tests using pytest or unittest
+def run_python_tests(repo_dir: str) -> Dict[str, Any]:
+    """
+    Run Python tests using pytest or unittest.
+    
+    Args:
+        repo_dir (str): Path to the repository directory
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing test results with keys:
+            - framework: Test framework used ('pytest' or 'unittest')
+            - status: Overall test status ('PASS' or 'FAIL')
+            - total_tests: Total number of tests run
+            - passed: Number of passed tests
+            - failed: Number of failed tests
+            - output: Test output
+            - error: Error message if any
+    """
     results = {
         "framework": "unknown",
         "status": "FAIL",
@@ -157,8 +176,23 @@ def run_python_tests(repo_dir):
     results.pop("xpassed", None)
     return results
 
-def run_node_tests(repo_dir):
-    # Run Node.js tests using npm or yarn
+def run_node_tests(repo_dir: str) -> Dict[str, Any]:
+    """
+    Run Node.js tests using npm or yarn.
+    
+    Args:
+        repo_dir (str): Path to the repository directory
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing test results with keys:
+            - framework: Test framework used ('npm' or 'yarn')
+            - status: Overall test status ('PASS' or 'FAIL')
+            - total_tests: Total number of tests run
+            - passed: Number of passed tests
+            - failed: Number of failed tests
+            - output: Test output
+            - error: Error message if any
+    """
     results = {
         "framework": "unknown",
         "status": "FAIL",
@@ -206,8 +240,26 @@ def run_node_tests(repo_dir):
     
     return results
 
-def execute_tests(repo_dir):
-    # Execute tests based on project type
+def execute_tests(repo_dir: str) -> Dict[str, Any]:
+    """
+    Execute tests based on project type.
+    
+    Args:
+        repo_dir (str): Path to the repository directory
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing test results with keys:
+            - framework: Test framework used
+            - status: Overall test status ('PASS' or 'FAIL')
+            - total_tests: Total number of tests run
+            - passed: Number of passed tests
+            - failed: Number of failed tests
+            - output: Test output
+            - error: Error message if any
+            
+    Note:
+        Automatically detects project type and runs appropriate test framework
+    """
     project_type = detect_project_type(repo_dir)
     
     if project_type == 'python':
