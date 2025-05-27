@@ -37,7 +37,14 @@ def get_metric_value(metrics: Union[List[Dict[str, Any]], Dict[str, Any]], metri
 
 def read_status_file(status_file: str) -> Dict[str, str]:
     """
-    Read and parse the status file.
+    Read and parse the status file containing repository processing status information (CloneRepo, HasRepo, HasDependencies, HasTests).
+    
+    Returns:
+        Dict[str, str]: Dictionary containing status information with keys:
+            - clone_status: Status of repository cloning
+            - dep_status: Status of dependency installation
+            - tests_status: Status of test execution
+            If the file cannot be read or is malformed, all statuses default to 'UNKNOWN'
     """
     try:
         with open(status_file, 'r') as f:
