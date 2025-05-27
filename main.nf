@@ -94,7 +94,7 @@ workflow {
     RunAlmanack(ProcessRepo.out)
 
     // Execute tests
-    TestExecutor(ProcessRepo.out, file('bin/run_tests.py'))
+    TestExecutor(ProcessRepo.out)
 
     // Combine outputs for JOSS analysis
     ProcessRepo.out
@@ -114,7 +114,7 @@ workflow {
         .set { joss_input }
 
     // Analyze JOSS criteria
-    AnalyzeJOSSCriteria(joss_input, file('bin/analyze_joss.py'))
+    AnalyzeJOSSCriteria(joss_input)
 
     // Analyze with AI agent
     RunAlmanack.out
