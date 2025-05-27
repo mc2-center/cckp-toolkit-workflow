@@ -18,7 +18,6 @@ process AIAnalysis {
 
     input:
         tuple val(repo_url), val(repo_name), path(almanack_results), path(joss_report)
-        path 'bin/analyze.py'
 
     output:
         tuple val(repo_url), val(repo_name), path("${repo_name}_ai_analysis.html"), emit: ai_analysis

@@ -129,7 +129,7 @@ workflow {
         }
         .set { ai_input }
 
-    AIAnalysis(ai_input, file('bin/analyze.py'))
+    AIAnalysis(ai_input)
 
     // Optionally upload results to Synapse if enabled
     if (params.upload_to_synapse) {
