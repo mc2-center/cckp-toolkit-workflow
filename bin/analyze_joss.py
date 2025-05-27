@@ -64,7 +64,17 @@ def read_status_file(status_file: str) -> Dict[str, str]:
 
 def analyze_readme_content(repo_dir: str) -> Dict[str, bool]:
     """
-    Analyze README content for key components.
+    Analyze README content for key components required for JOSS submission.
+    
+    Args:
+        repo_dir (str): Path to the repository directory containing the README.md file.
+    
+    Returns:
+        Dict[str, bool]: Dictionary containing boolean flags for key README components:
+            - statement_of_need: True if README contains problem statement, target audience, and related work
+            - installation: True if README contains installation instructions
+            - example_usage: True if README contains example usage or quick start guide
+            Returns all False if README.md is not found
     """
     readme_path = os.path.join(repo_dir, "README.md")
     if not os.path.exists(readme_path):
