@@ -257,17 +257,65 @@ def analyze_dependencies(repo_dir: str) -> Dict[str, Any]:
 
     return results
 
-def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: Dict[str, Any], repo_dir: str) -> Dict[str, Any]:
+def analyze_test_results(test_results: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Analyze repository against JOSS criteria based on Almanack and test results.
+    Analyze test execution results and return criteria evaluation.
     
     Args:
-        almanack_results: Results from Almanack analysis (list of metric dictionaries)
-        test_results: Results from test execution
-        repo_dir: Path to the repository directory
+        test_results (Dict[str, Any]): Results from test execution
         
     Returns:
-        Dict containing JOSS criteria evaluation
+        Dict[str, Any]: Dictionary containing test criteria evaluation with status, score, and details
+    """
+    criteria = {
+        "status": "needs improvement",
+        "score": 0,
+        "details": "Not analyzed"
+    }
+    
+    if test_results:
+        total_tests = test_results.get('total_tests', 0)
+        passed_tests = test_results.get('passed', 0)
+        
+        if total_tests > 0:
+            pass_rate = passed_tests / total_tests
+            if pass_rate >= 0.9:
+                criteria["status"] = "good"
+                criteria["score"] = 1
+            elif pass_rate >= 0.7:
+                criteria["status"] = "ok"
+                criteria["score"] = 0.7
+            else:
+                criteria["status"] = "needs improvement"
+                criteria["score"] = 0.3
+        else:
+            criteria["status"] = "needs improvement"
+            criteria["score"] = 0
+            
+        criteria["details"] = "\n".join([
+            f"Framework: {test_results.get('framework', 'Unknown')}",
+            f"Total Tests: {total_tests}",
+            f"Passed: {passed_tests}",
+            f"Failed: {test_results.get('failed', 0)}",
+            f"Error: {test_results.get('error', '')}"
+        ]).strip()
+    
+    return criteria
+
+def analyze_almanack_results(almanack_results: List[Dict[str, Any]], repo_dir: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Analyze Almanack results and return criteria evaluations.
+    
+    Args:
+        almanack_results (List[Dict[str, Any]]): Results from Almanack analysis
+        repo_dir (str): Path to the repository directory
+        
+    Returns:
+        Dict[str, Dict[str, Any]]: Dictionary containing criteria evaluations for:
+            - Statement of Need
+            - Installation Instructions
+            - Example Usage
+            - Community Guidelines
     """
     criteria = {
         "Statement of Need": {
@@ -289,43 +337,9 @@ def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: 
             "status": "needs improvement",
             "score": 0,
             "details": "Not analyzed"
-        },
-        "Tests": {
-            "status": "needs improvement",
-            "score": 0,
-            "details": "Not analyzed"
         }
     }
     
-    # Analyze test execution results
-    if test_results:
-        total_tests = test_results.get('total_tests', 0)
-        passed_tests = test_results.get('passed', 0)
-        
-        if total_tests > 0:
-            pass_rate = passed_tests / total_tests
-            if pass_rate >= 0.9:
-                criteria["Tests"]["status"] = "good"
-                criteria["Tests"]["score"] = 1
-            elif pass_rate >= 0.7:
-                criteria["Tests"]["status"] = "ok"
-                criteria["Tests"]["score"] = 0.7
-            else:
-                criteria["Tests"]["status"] = "needs improvement"
-                criteria["Tests"]["score"] = 0.3
-        else:
-            criteria["Tests"]["status"] = "needs improvement"
-            criteria["Tests"]["score"] = 0
-            
-        criteria["Tests"]["details"] = "\n".join([
-            f"Framework: {test_results.get('framework', 'Unknown')}",
-            f"Total Tests: {total_tests}",
-            f"Passed: {passed_tests}",
-            f"Failed: {test_results.get('failed', 0)}",
-            f"Error: {test_results.get('error', '')}"
-        ]).strip()
-    
-    # Analyze Almanack results
     if almanack_results:
         # Extract relevant metrics
         has_readme = get_metric_value(almanack_results, "repo-includes-readme")
@@ -394,6 +408,57 @@ def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: 
             criteria["Community Guidelines"]["status"] = "needs improvement"
             criteria["Community Guidelines"]["score"] = 0.3
             criteria["Community Guidelines"]["details"] = "Missing community guidelines"
+    
+    return criteria
+
+def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: Dict[str, Any], repo_dir: str) -> Dict[str, Any]:
+    """
+    Analyze repository against JOSS criteria based on Almanack and test results.
+    
+    Args:
+        almanack_results (List[Dict[str, Any]]): Results from Almanack analysis
+        test_results (Dict[str, Any]): Results from test execution
+        repo_dir (str): Path to the repository directory
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing JOSS criteria evaluation with overall scores
+    """
+    # Initialize criteria dictionary
+    criteria = {
+        "Statement of Need": {
+            "status": "needs improvement",
+            "score": 0,
+            "details": "Not analyzed"
+        },
+        "Installation Instructions": {
+            "status": "needs improvement",
+            "score": 0,
+            "details": "Not analyzed"
+        },
+        "Example Usage": {
+            "status": "needs improvement",
+            "score": 0,
+            "details": "Not analyzed"
+        },
+        "Community Guidelines": {
+            "status": "needs improvement",
+            "score": 0,
+            "details": "Not analyzed"
+        },
+        "Tests": {
+            "status": "needs improvement",
+            "score": 0,
+            "details": "Not analyzed"
+        }
+    }
+    
+    # Analyze test results
+    test_criteria = analyze_test_results(test_results)
+    criteria["Tests"] = test_criteria
+    
+    # Analyze Almanack results
+    almanack_criteria = analyze_almanack_results(almanack_results, repo_dir)
+    criteria.update(almanack_criteria)
     
     # Calculate overall score
     total_score = sum(criterion["score"] for criterion in criteria.values())
