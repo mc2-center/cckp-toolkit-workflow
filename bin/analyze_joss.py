@@ -182,14 +182,15 @@ def analyze_dependencies(repo_dir: str) -> Dict[str, Any]:
             issues = []
             
             # Check dependencies
-            for dep_type in ['dependencies', 'devDependencies']:
-                if dep_type in data:
-                    for dep, version in data[dep_type].items():
-                        deps.append(f"{dep}:{version}")
-                        if version.startswith('^') or version.startswith('~'):
-                            issues.append(f"Loose version constraint: {dep} {version}")
-                        elif version == '*':
-                            issues.append(f"No version constraint: {dep}")
+for dep_type in ['dependencies', 'devDependencies']:
+    if dep_type not in data:
+        continue
+    for dep, version in data[dep_type].items():
+        deps.append(f"{dep}:{version}")
+        if version.startswith('^') or version.startswith('~'):
+            issues.append(f"Loose version constraint: {dep} {version}")
+        elif version == '*':
+            issues.append(f"No version constraint: {dep}")
             
             return {
                 "has_dependencies": len(deps) > 0,
