@@ -5,8 +5,9 @@ import os
 import sys
 from synapseclient import Synapse
 from synapseclient.models import Agent
+from typing import Dict, Any
 
-def call_synapse_agent(agent_id, prompt):
+def call_synapse_agent(agent_id: str, prompt: str) -> str:
     """
     Call the Synapse agent with the given prompt and return its response.
 
