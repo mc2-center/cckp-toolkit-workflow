@@ -47,6 +47,6 @@ process TestExecutor {
     python3 -m pip install pytest pytest-cov coverage
 
     # Run the Python script
-    ./bin/run_tests.py "${repo_name}" "${repo_dir}"
+    run_tests.py "${repo_name}" "${repo_dir}"
     """
 } 
