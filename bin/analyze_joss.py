@@ -331,8 +331,6 @@ def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: 
         has_readme = get_metric_value(almanack_results, "repo-includes-readme")
         has_contributing = get_metric_value(almanack_results, "repo-includes-contributing")
         has_code_of_conduct = get_metric_value(almanack_results, "repo-includes-code-of-conduct")
-        has_license = get_metric_value(almanack_results, "repo-includes-license")
-        has_citation = get_metric_value(almanack_results, "repo-is-citable")
         has_docs = get_metric_value(almanack_results, "repo-includes-common-docs")
         
         # Check for statement of need
