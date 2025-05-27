@@ -11,7 +11,7 @@
  */
 
 process AIAnalysis {
-    container 'ghcr.io/sage-bionetworks/synapsepythonclient:4.8.0'
+    container 'ghcr.io/sage-bionetworks/synapsepythonclient:v4.8.0'
     errorStrategy 'ignore'
     publishDir "${params.output_dir}", mode: 'copy', pattern: '*.html'
     secret 'SYNAPSE_AUTH_TOKEN'
@@ -25,7 +25,6 @@ process AIAnalysis {
 
     script:
     """
-    export SYNAPSE_DISABLE_ASYNC=true
     ./bin/analyze.py "${repo_name}" "${repo_url}" "${almanack_results}" "${joss_report}" "${params.synapse_agent_id}"
     """
 } 
