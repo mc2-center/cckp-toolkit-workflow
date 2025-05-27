@@ -25,6 +25,6 @@ process AIAnalysis {
 
     script:
     """
-    ./bin/analyze.py "${repo_name}" "${repo_url}" "${almanack_results}" "${joss_report}" "${params.synapse_agent_id}"
+    analyze.py "${repo_name}" "${repo_url}" "${almanack_results}" "${joss_report}" "${params.synapse_agent_id}"
     """
 } 
