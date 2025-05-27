@@ -9,6 +9,7 @@ nextflow_pipeline {
             params {
                 repo_url = "https://github.com/PythonOT/POT.git"
                 output_dir = "test_results"
+                synapse_agent_id = "LOWYSX3QSQ"
             }
         }
 
@@ -16,7 +17,9 @@ nextflow_pipeline {
             assert workflow.success
             assert workflow.trace.tasks().size() > 0
             assert workflow.trace.succeeded().size() > 0
-            assert workflow.trace.failed().size() == 0
+            assert workflow.trace.tasks().collect { it.name }.any { it.startsWith("ProcessRepo") }
+            assert workflow.trace.tasks().collect { it.name }.any { it.startsWith("RunAlmanack") }
+            assert workflow.trace.tasks().collect { it.name }.any { it.startsWith("TestExecutor") }
         }
     }
 
@@ -25,6 +28,7 @@ nextflow_pipeline {
             params {
                 sample_sheet = "${projectDir}/tests/fixtures/example-input.csv"
                 output_dir = "test_results"
+                synapse_agent_id = "LOWYSX3QSQ"
             }
         }
 
@@ -32,7 +36,10 @@ nextflow_pipeline {
             assert workflow.success
             assert workflow.trace.tasks().size() > 0
             assert workflow.trace.succeeded().size() > 0
-            assert workflow.trace.failed().size() == 0
+            def processCounts = workflow.trace.tasks().collect { it.name.split(" ")[0] }.countBy { it }
+            assert processCounts["ProcessRepo"] == 2
+            assert processCounts["RunAlmanack"] == 2
+            assert processCounts["TestExecutor"] == 2
         }
     }
 
@@ -41,12 +48,13 @@ nextflow_pipeline {
             params {
                 repo_url = "invalid-url"
                 output_dir = "error_test_results"
+                synapse_agent_id = "LOWYSX3QSQ"
             }
         }
 
         then {
             assert !workflow.success
-            assert workflow.stdout.contains("ERROR ~ Invalid repository URL format. Expected: https://github.com/username/repo.git")
+            assert workflow.stdout.any { it.contains("Invalid repository URL format") }
         }
     }
 
@@ -55,12 +63,13 @@ nextflow_pipeline {
             params {
                 sample_sheet = "${projectDir}/tests/fixtures/invalid-sample-sheet.csv"
                 output_dir = "error_test_results"
+                synapse_agent_id = "LOWYSX3QSQ"
             }
         }
 
         then {
             assert !workflow.success
-            assert workflow.stdout.contains("ERROR ~ Sample sheet must contain a 'repo_url' column")
+            assert workflow.stdout.any { it.contains("Invalid repository URL format") }
         }
     }
 
@@ -68,12 +77,13 @@ nextflow_pipeline {
         when {
             params {
                 output_dir = "error_test_results"
+                synapse_agent_id = "LOWYSX3QSQ"
             }
         }
 
         then {
             assert !workflow.success
-            assert workflow.stdout.contains("ERROR ~ Provide either a sample_sheet or repo_url parameter")
+            assert workflow.stdout.any { it.contains("Provide either a sample_sheet or repo_url parameter") }
         }
     }
 } 

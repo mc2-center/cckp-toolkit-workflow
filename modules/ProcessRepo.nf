@@ -46,15 +46,28 @@ process ProcessRepo {
     ###############################
     # Check Dependencies Step
     ###############################
-    if find repo -maxdepth 1 -type f -iname '*requirements*' | grep -q .; then
+    # Python dependencies
+    if find repo -maxdepth 1 -type f -iname '*requirements*' | grep -q . || \
+       [ -f repo/setup.py ] || [ -f repo/Pipfile ] || [ -f repo/pyproject.toml ]; then
         DEP_STATUS="PASS"
-    elif [ -f repo/Pipfile ] || [ -f repo/Pipfile.lock ] || \
-         [ -f repo/setup.py ] || [ -f repo/pyproject.toml ] || \
-         [ -f repo/package.json ] || [ -f repo/package-lock.json ] || \
-         [ -f repo/yarn.lock ] || [ -f repo/pom.xml ] || \
-         [ -f repo/build.gradle ] || [ -f repo/settings.gradle ] || \
-         [ -f repo/DESCRIPTION ] || [ -f repo/renv.lock ] || \
+    # Node.js dependencies
+    elif [ -f repo/package.json ] || [ -f repo/package-lock.json ] || [ -f repo/yarn.lock ]; then
+        DEP_STATUS="PASS"
+    # Java dependencies
+    elif [ -f repo/pom.xml ] || [ -f repo/build.gradle ] || [ -f repo/settings.gradle ]; then
+        DEP_STATUS="PASS"
+    # R dependencies
+    elif [ -f repo/DESCRIPTION ] || [ -f repo/renv.lock ] || \
          ( [ -d repo/packrat ] && [ -f repo/packrat/packrat.lock ] ); then
+        DEP_STATUS="PASS"
+    # Rust dependencies
+    elif [ -f repo/Cargo.toml ] || [ -f repo/Cargo.lock ]; then
+        DEP_STATUS="PASS"
+    # Ruby dependencies
+    elif [ -f repo/Gemfile ] || [ -f repo/Gemfile.lock ]; then
+        DEP_STATUS="PASS"
+    # Go dependencies
+    elif [ -f repo/go.mod ] || [ -f repo/go.sum ]; then
         DEP_STATUS="PASS"
     fi
 
