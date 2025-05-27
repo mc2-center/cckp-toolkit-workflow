@@ -20,7 +20,6 @@ process AnalyzeJOSSCriteria {
     
     input:
         tuple val(repo_url), val(repo_name), val(repo_dir), val(out_dir), val(status_file), path(almanack_results), path(test_results)
-        path 'bin/analyze_joss.py'
 
     output:
         tuple val(repo_url), val(repo_name), path("joss_report_${repo_name}.json"), emit: joss_report
@@ -58,5 +57,5 @@ workflow {
         }
 
     // Run the analysis process
-    AnalyzeJOSSCriteria(repo_data_ch, file('bin/analyze_joss.py'))
+    AnalyzeJOSSCriteria(repo_data_ch)
 }
