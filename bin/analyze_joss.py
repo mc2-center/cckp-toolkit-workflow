@@ -12,6 +12,7 @@ class Status(Enum):
     NEEDS_IMPROVEMENT = "needs improvement"
     OK = "ok"
     GOOD = "good"
+    UNKNOWN = "UNKNOWN"
 
 class Details(Enum):
     """Enum for detail messages used in criteria evaluation."""
@@ -28,6 +29,14 @@ class Details(Enum):
     FOUND_USAGE_IMPROVEMENT = "Found documentation but example usage needs improvement"
     FOUND_BOTH_GUIDELINES = "Found both contributing guidelines and code of conduct"
     FOUND_PARTIAL_GUIDELINES = "Found partial community guidelines"
+
+class Criteria(Enum):
+    """Enum for JOSS criteria names."""
+    STATEMENT_OF_NEED = "Statement of Need"
+    INSTALLATION_INSTRUCTIONS = "Installation Instructions"
+    EXAMPLE_USAGE = "Example Usage"
+    COMMUNITY_GUIDELINES = "Community Guidelines"
+    TESTS = "Tests"
 
 # Constants for scoring
 SCORE_GOOD = 1.0
@@ -84,15 +93,15 @@ def read_status_file(status_file: str) -> Dict[str, str]:
             reader = csv.reader(f)
             row = next(reader)  # Read the first row
             return {
-                'clone_status': row[1] if len(row) > 1 else 'UNKNOWN',
-                'dep_status': row[2] if len(row) > 2 else 'UNKNOWN',
-                'tests_status': row[3] if len(row) > 3 else 'UNKNOWN'
+                'clone_status': row[1] if len(row) > 1 else Status.UNKNOWN.value,
+                'dep_status': row[2] if len(row) > 2 else Status.UNKNOWN.value,
+                'tests_status': row[3] if len(row) > 3 else Status.UNKNOWN.value
             }
     except (FileNotFoundError, IndexError):
         return {
-            'clone_status': 'UNKNOWN',
-            'dep_status': 'UNKNOWN',
-            'tests_status': 'UNKNOWN'
+            'clone_status': Status.UNKNOWN.value,
+            'dep_status': Status.UNKNOWN.value,
+            'tests_status': Status.UNKNOWN.value
         }
 
 def analyze_readme_content(repo_dir: str) -> Dict[str, bool]:
@@ -351,22 +360,22 @@ def analyze_almanack_results(almanack_results: List[Dict[str, Any]], repo_dir: s
             - Community Guidelines
     """
     criteria = {
-        "Statement of Need": {
+        Criteria.STATEMENT_OF_NEED.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
             "details": Details.NOT_ANALYZED.value
         },
-        "Installation Instructions": {
+        Criteria.INSTALLATION_INSTRUCTIONS.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
             "details": Details.NOT_ANALYZED.value
         },
-        "Example Usage": {
+        Criteria.EXAMPLE_USAGE.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
             "details": Details.NOT_ANALYZED.value
         },
-        "Community Guidelines": {
+        Criteria.COMMUNITY_GUIDELINES.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
             "details": Details.NOT_ANALYZED.value
@@ -384,63 +393,63 @@ def analyze_almanack_results(almanack_results: List[Dict[str, Any]], repo_dir: s
         if has_readme:
             readme_content = analyze_readme_content(repo_dir)
             if readme_content["statement_of_need"]:
-                criteria["Statement of Need"]["status"] = Status.GOOD.value
-                criteria["Statement of Need"]["score"] = SCORE_GOOD
-                criteria["Statement of Need"]["details"] = Details.FOUND_COMPREHENSIVE_NEED.value
+                criteria[Criteria.STATEMENT_OF_NEED.value]["status"] = Status.GOOD.value
+                criteria[Criteria.STATEMENT_OF_NEED.value]["score"] = SCORE_GOOD
+                criteria[Criteria.STATEMENT_OF_NEED.value]["details"] = Details.FOUND_COMPREHENSIVE_NEED.value
             else:
-                criteria["Statement of Need"]["status"] = Status.OK.value
-                criteria["Statement of Need"]["score"] = SCORE_OK
-                criteria["Statement of Need"]["details"] = Details.FOUND_NEED_IMPROVEMENT.value
+                criteria[Criteria.STATEMENT_OF_NEED.value]["status"] = Status.OK.value
+                criteria[Criteria.STATEMENT_OF_NEED.value]["score"] = SCORE_OK
+                criteria[Criteria.STATEMENT_OF_NEED.value]["details"] = Details.FOUND_NEED_IMPROVEMENT.value
         else:
-            criteria["Statement of Need"]["status"] = Status.NEEDS_IMPROVEMENT.value
-            criteria["Statement of Need"]["score"] = SCORE_NEEDS_IMPROVEMENT
-            criteria["Statement of Need"]["details"] = Details.MISSING_README.value
+            criteria[Criteria.STATEMENT_OF_NEED.value]["status"] = Status.NEEDS_IMPROVEMENT.value
+            criteria[Criteria.STATEMENT_OF_NEED.value]["score"] = SCORE_NEEDS_IMPROVEMENT
+            criteria[Criteria.STATEMENT_OF_NEED.value]["details"] = Details.MISSING_README.value
         
         # Check for installation instructions
         if has_readme and has_docs:
             readme_content = analyze_readme_content(repo_dir)
             if readme_content["installation"]:
-                criteria["Installation Instructions"]["status"] = Status.GOOD.value
-                criteria["Installation Instructions"]["score"] = SCORE_GOOD
-                criteria["Installation Instructions"]["details"] = Details.FOUND_COMPREHENSIVE_INSTALL.value
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["status"] = Status.GOOD.value
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["score"] = SCORE_GOOD
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["details"] = Details.FOUND_COMPREHENSIVE_INSTALL.value
             else:
-                criteria["Installation Instructions"]["status"] = Status.OK.value
-                criteria["Installation Instructions"]["score"] = SCORE_OK
-                criteria["Installation Instructions"]["details"] = Details.FOUND_INSTALL_IMPROVEMENT.value
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["status"] = Status.OK.value
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["score"] = SCORE_OK
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["details"] = Details.FOUND_INSTALL_IMPROVEMENT.value
         else:
-            criteria["Installation Instructions"]["status"] = Status.NEEDS_IMPROVEMENT.value
-            criteria["Installation Instructions"]["score"] = SCORE_NEEDS_IMPROVEMENT
-            criteria["Installation Instructions"]["details"] = Details.MISSING_INSTALL.value
+            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["status"] = Status.NEEDS_IMPROVEMENT.value
+            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["score"] = SCORE_NEEDS_IMPROVEMENT
+            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["details"] = Details.MISSING_INSTALL.value
         
         # Check for example usage
         if has_readme and has_docs:
             readme_content = analyze_readme_content(repo_dir)
             if readme_content["example_usage"]:
-                criteria["Example Usage"]["status"] = Status.GOOD.value
-                criteria["Example Usage"]["score"] = SCORE_GOOD
-                criteria["Example Usage"]["details"] = Details.FOUND_COMPREHENSIVE_USAGE.value
+                criteria[Criteria.EXAMPLE_USAGE.value]["status"] = Status.GOOD.value
+                criteria[Criteria.EXAMPLE_USAGE.value]["score"] = SCORE_GOOD
+                criteria[Criteria.EXAMPLE_USAGE.value]["details"] = Details.FOUND_COMPREHENSIVE_USAGE.value
             else:
-                criteria["Example Usage"]["status"] = Status.OK.value
-                criteria["Example Usage"]["score"] = SCORE_OK
-                criteria["Example Usage"]["details"] = Details.FOUND_USAGE_IMPROVEMENT.value
+                criteria[Criteria.EXAMPLE_USAGE.value]["status"] = Status.OK.value
+                criteria[Criteria.EXAMPLE_USAGE.value]["score"] = SCORE_OK
+                criteria[Criteria.EXAMPLE_USAGE.value]["details"] = Details.FOUND_USAGE_IMPROVEMENT.value
         else:
-            criteria["Example Usage"]["status"] = Status.NEEDS_IMPROVEMENT.value
-            criteria["Example Usage"]["score"] = SCORE_NEEDS_IMPROVEMENT
-            criteria["Example Usage"]["details"] = Details.MISSING_USAGE.value
+            criteria[Criteria.EXAMPLE_USAGE.value]["status"] = Status.NEEDS_IMPROVEMENT.value
+            criteria[Criteria.EXAMPLE_USAGE.value]["score"] = SCORE_NEEDS_IMPROVEMENT
+            criteria[Criteria.EXAMPLE_USAGE.value]["details"] = Details.MISSING_USAGE.value
         
         # Check for community guidelines
         if has_contributing and has_code_of_conduct:
-            criteria["Community Guidelines"]["status"] = Status.GOOD.value
-            criteria["Community Guidelines"]["score"] = SCORE_GOOD
-            criteria["Community Guidelines"]["details"] = Details.FOUND_BOTH_GUIDELINES.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["status"] = Status.GOOD.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["score"] = SCORE_GOOD
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["details"] = Details.FOUND_BOTH_GUIDELINES.value
         elif has_contributing or has_code_of_conduct:
-            criteria["Community Guidelines"]["status"] = Status.OK.value
-            criteria["Community Guidelines"]["score"] = SCORE_OK
-            criteria["Community Guidelines"]["details"] = Details.FOUND_PARTIAL_GUIDELINES.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["status"] = Status.OK.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["score"] = SCORE_OK
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["details"] = Details.FOUND_PARTIAL_GUIDELINES.value
         else:
-            criteria["Community Guidelines"]["status"] = Status.NEEDS_IMPROVEMENT.value
-            criteria["Community Guidelines"]["score"] = SCORE_NEEDS_IMPROVEMENT
-            criteria["Community Guidelines"]["details"] = Details.MISSING_GUIDELINES.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["status"] = Status.NEEDS_IMPROVEMENT.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["score"] = SCORE_NEEDS_IMPROVEMENT
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["details"] = Details.MISSING_GUIDELINES.value
     
     return criteria
 
@@ -458,27 +467,27 @@ def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: 
     """
     # Initialize criteria dictionary
     criteria = {
-        "Statement of Need": {
+        Criteria.STATEMENT_OF_NEED.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
             "details": Details.NOT_ANALYZED.value
         },
-        "Installation Instructions": {
+        Criteria.INSTALLATION_INSTRUCTIONS.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
             "details": Details.NOT_ANALYZED.value
         },
-        "Example Usage": {
+        Criteria.EXAMPLE_USAGE.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
             "details": Details.NOT_ANALYZED.value
         },
-        "Community Guidelines": {
+        Criteria.COMMUNITY_GUIDELINES.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
             "details": Details.NOT_ANALYZED.value
         },
-        "Tests": {
+        Criteria.TESTS.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
             "details": Details.NOT_ANALYZED.value
@@ -487,7 +496,7 @@ def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: 
     
     # Analyze test results
     test_criteria = analyze_test_results(test_results)
-    criteria["Tests"] = test_criteria
+    criteria[Criteria.TESTS.value] = test_criteria
     
     # Analyze Almanack results
     almanack_criteria = analyze_almanack_results(almanack_results, repo_dir)
