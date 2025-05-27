@@ -94,33 +94,32 @@ workflow {
     RunAlmanack(ProcessRepo.out)
 
     // Execute tests
-    TestExecutor(ProcessRepo.out)
+    TestExecutor(ProcessRepo.out, file('bin/run_tests.py'))
 
     // Combine outputs for JOSS analysis
     ProcessRepo.out
         .combine(RunAlmanack.out, by: [0,1])
         .combine(TestExecutor.out, by: [0,1])
-        .map { repo_url, repo_name, repo_dir, out_dir, status_file, _almanack_meta, _almanack_dir, almanack_results, test_results ->
+        .map { it ->
             tuple(
-                repo_url,           // repo_url
-                repo_name,          // repo_name
-                repo_dir,           // repo_dir
-                out_dir,            // out_dir
-                status_file,        // status_file
-                almanack_results,   // almanack_results
-                test_results        // test_results
+                it[0],   // repo_url
+                it[1],   // repo_name
+                it[2],   // repo_dir from ProcessRepo
+                it[3],   // out_dir
+                it[4],   // status_file
+                it[8],   // almanack_results
+                it[9]    // test_results
             )
         }
         .set { joss_input }
 
     // Analyze JOSS criteria
-    AnalyzeJOSSCriteria(joss_input)
+    AnalyzeJOSSCriteria(joss_input, file('bin/analyze_joss.py'))
 
     // Analyze with AI agent
     RunAlmanack.out
         .combine(AnalyzeJOSSCriteria.out, by: [0,1])
         .map { repo_url, repo_name, _almanack_meta, _almanack_dir, _almanack_status, almanack_results, joss_report ->
-            println "[DEBUG] ai_input tuple: ${it}" // Debug print
             tuple(
                 repo_url,        // repo_url
                 repo_name,       // repo_name
