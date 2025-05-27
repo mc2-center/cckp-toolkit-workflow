@@ -28,6 +28,25 @@ def install_dependencies(repo_dir):
         return False
 
 def detect_project_type(repo_dir):
+    """Detect project type based on characteristic files."""
+    project_files = {
+        'python': ['requirements.txt', 'setup.py', 'pyproject.toml'],
+        'node': ['package.json'],
+        'java-maven': ['pom.xml'],
+        'java-gradle': ['build.gradle'],
+        'r': ['DESCRIPTION'],
+        'rust': ['Cargo.toml'],
+        'go': ['go.mod']
+    }
+    
+    def file_exists(filename):
+        return os.path.exists(os.path.join(repo_dir, filename))
+    
+    for project_type, files in project_files.items():
+        if any(file_exists(f) for f in files):
+            return project_type
+    
+    return 'unknown'
     # Detect the project type and test framework
     if os.path.exists(os.path.join(repo_dir, 'requirements.txt')) or \
        os.path.exists(os.path.join(repo_dir, 'setup.py')) or \
