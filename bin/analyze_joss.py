@@ -212,7 +212,7 @@ def analyze_dependencies(repo_dir: str) -> Dict[str, Any]:
     }
 
     # Check for dependency files
-    for lang, files in dependency_files.items():
+    for _, files in dependency_files.items():
         for file in files:
             file_path = os.path.join(repo_dir, file)
             if os.path.exists(file_path):
