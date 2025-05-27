@@ -229,7 +229,7 @@ def analyze_dependencies(repo_dir: str) -> Dict[str, Any]:
                 "has_dependencies": False,
                 "total_dependencies": 0,
                 "issues": [f"Error reading file: {str(e)}"],
-                "status": "needs improvement"
+                "status": Status.NEEDS_IMPROVEMENT.value
             }
 
     def check_package_json(file_path: str) -> Dict[str, Any]:
@@ -262,13 +262,13 @@ def analyze_dependencies(repo_dir: str) -> Dict[str, Any]:
                 "has_dependencies": False,
                 "total_dependencies": 0,
                 "issues": [f"Error reading file: {str(e)}"],
-                "status": "needs improvement"
+                "status": Status.NEEDS_IMPROVEMENT.value
             }
 
     results = {
         "found_files": [],
         "analysis": {},
-        "overall_status": "needs improvement"
+        "overall_status": Status.NEEDS_IMPROVEMENT.value
     }
 
     # Check for dependency files
@@ -287,15 +287,15 @@ def analyze_dependencies(repo_dir: str) -> Dict[str, Any]:
 
     # Determine overall status
     if not results["found_files"]:
-        results["overall_status"] = "needs improvement"
+        results["overall_status"] = Status.NEEDS_IMPROVEMENT.value
     else:
         statuses = [analysis["status"] for analysis in results["analysis"].values()]
         if "good" in statuses:
-            results["overall_status"] = "good"
+            results["overall_status"] = Status.GOOD.value
         elif "ok" in statuses:
-            results["overall_status"] = "ok"
+            results["overall_status"] = Status.OK.value
         else:
-            results["overall_status"] = "needs improvement"
+            results["overall_status"] = Status.NEEDS_IMPROVEMENT.value
 
     return results
 
