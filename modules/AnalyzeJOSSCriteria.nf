@@ -37,7 +37,7 @@ process AnalyzeJOSSCriteria {
     mkdir -p "${out_dir}"
     
     # Run JOSS analysis script
-    ./bin/analyze_joss.py "${repo_name}" "${almanack_results}" "${test_results}" "${repo_dir}"
+    analyze_joss.py "${repo_name}" "${almanack_results}" "${test_results}" "${repo_dir}"
     """
 }
 
