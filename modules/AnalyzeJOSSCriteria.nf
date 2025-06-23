@@ -14,7 +14,7 @@ nextflow.enable.dsl = 2
 process AnalyzeJOSSCriteria {
     tag "${repo_name}"
     label 'joss'
-    container 'python:3.8-slim'
+    container 'python:3.8'
     errorStrategy 'ignore'
     publishDir "${params.output_dir}", mode: 'copy', pattern: '*.json'
     
