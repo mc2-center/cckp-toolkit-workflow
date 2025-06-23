@@ -18,6 +18,7 @@ params.sample_sheet = null
 params.repo_url = null
 params.output_dir = 'results'
 params.synapse_agent_id = null
+params.run_ai_analysis = false
 
 // Include required modules
 include { ProcessRepo } from './modules/ProcessRepo'
@@ -117,19 +118,21 @@ workflow {
     AnalyzeJOSSCriteria(joss_input)
 
     // Analyze with AI agent
-    RunAlmanack.out
-        .combine(AnalyzeJOSSCriteria.out, by: [0,1])
-        .map { repo_url, repo_name, _almanack_meta, _almanack_dir, _almanack_status, almanack_results, joss_report ->
-            tuple(
-                repo_url,        // repo_url
-                repo_name,       // repo_name
-                almanack_results, // almanack_results.json from RunAlmanack
-                joss_report      // joss_report_<repo_name>.json from AnalyzeJOSSCriteria
-            )
-        }
-        .set { ai_input }
+    if (params.run_ai_analysis) {
+        RunAlmanack.out
+            .combine(AnalyzeJOSSCriteria.out, by: [0,1])
+            .map { repo_url, repo_name, _almanack_meta, _almanack_dir, _almanack_status, almanack_results, joss_report ->
+                tuple(
+                    repo_url,        // repo_url
+                    repo_name,       // repo_name
+                    almanack_results, // almanack_results.json from RunAlmanack
+                    joss_report      // joss_report_<repo_name>.json from AnalyzeJOSSCriteria
+                )
+            }
+            .set { ai_input }
 
-    AIAnalysis(ai_input)
+        AIAnalysis(ai_input)
+    }
 
     // Optionally upload results to Synapse if enabled
     if (params.upload_to_synapse) {
