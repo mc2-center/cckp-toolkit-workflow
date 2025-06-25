@@ -59,19 +59,6 @@ workflow {
         throw new IllegalArgumentException("ERROR: synapse_agent_id must be provided.")
     }
 
-    // Validate repository URL format
-    def validateRepoUrl = { url ->
-        if (!url) return false
-        def validUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+\.git$/
-        return url ==~ validUrlPattern
-    }
-
-    // Extract repository name from URL
-    def getRepoName = { url ->
-        def urlStr = url instanceof List ? url[0] : url
-        return urlStr.tokenize('/')[-1].replace('.git','')
-    }
-
     // Create a channel of repo URLs
     Channel.from(
         params.sample_sheet ?
@@ -79,14 +66,21 @@ workflow {
             [params.repo_url]
     ).set { repo_urls }
 
-    // Validate and process each repo
+    // Validate and process each repo - filter out invalid URLs instead of throwing exceptions
     repo_urls.map { repo_url ->
-        if (!validateRepoUrl(repo_url)) {
-            throw new IllegalArgumentException("ERROR: Invalid repository URL format: '${repo_url}'. Expected format: https://github.com/username/repo.git")
+        // More flexible validation - accept any GitHub URL that can be cloned
+        def githubUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\.git)?$/
+        if (repo_url && repo_url ==~ githubUrlPattern) {
+            def repo_name = repo_url.tokenize('/')[-1].replace('.git','')
+            log.info "Processing valid repository: ${repo_url}"
+            tuple(repo_url, repo_name, params.output_dir)
+        } else {
+            log.warn "Skipping invalid repository URL: '${repo_url}'. Expected format: https://github.com/username/repo or https://github.com/username/repo.git"
+            null
         }
-        def repo_name = getRepoName(repo_url)
-        tuple(repo_url, repo_name, params.output_dir)
-    }.set { repo_tuples }
+    }
+    .filter { it != null }
+    .set { repo_tuples }
 
     // Process repository
     ProcessRepo(repo_tuples)
