@@ -27,6 +27,7 @@ include { AnalyzeJOSSCriteria } from './modules/AnalyzeJOSSCriteria'
 include { AIAnalysis } from './modules/AIAnalysis'
 include { UploadToSynapse } from './modules/UploadToSynapse'
 include { TestExecutor } from './modules/TestExecutor'
+include { GenerateReport } from './modules/GenerateReport'
 
 workflow {
     // Load environment variables from .env file if it exists
@@ -127,6 +128,30 @@ workflow {
 
         AIAnalysis(ai_input)
     }
+
+    // Collect all outputs for consolidated report generation
+    ProcessRepo.out
+        .map { repo_url, repo_name, repo_dir, out_dir, status_file -> status_file }
+        .collect()
+        .set { allStatusFiles }
+    
+    RunAlmanack.out
+        .map { repo_url, repo_name, almanack_meta, almanack_dir, almanack_status, almanack_results -> almanack_results }
+        .collect()
+        .set { allAlmanackResults }
+    
+    AnalyzeJOSSCriteria.out
+        .map { repo_url, repo_name, joss_report -> joss_report }
+        .collect()
+        .set { allJossReports }
+    
+    TestExecutor.out
+        .map { repo_url, repo_name, test_results -> test_results }
+        .collect()
+        .set { allTestResults }
+    
+    // Generate consolidated report
+    GenerateReport(allStatusFiles, allAlmanackResults, allJossReports, allTestResults)
 
     // Optionally upload results to Synapse if enabled
     if (params.upload_to_synapse) {
