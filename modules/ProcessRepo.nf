@@ -81,7 +81,7 @@ process ProcessRepo {
     fi
 
     # Write out a summary status file in CSV format
-    mkdir -p ${out_dir}/${repo_name}
-    echo "${repo_name},${CLONE_STATUS},${DEP_STATUS},${TESTS_STATUS}" > ${out_dir}/${repo_name}/status_repo.txt
+    mkdir -p \${out_dir}/\${repo_name}
+    echo "\${repo_name},\${CLONE_STATUS},\${DEP_STATUS},\${TESTS_STATUS}" > \${out_dir}/\${repo_name}/status_repo.txt
     """
 }
