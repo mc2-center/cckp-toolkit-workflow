@@ -4,15 +4,13 @@ nextflow.enable.dsl = 2
 /**
  * Process: GenerateReport
  * 
- * Aggregates all status files and results into a single consolidated CSV report.
+ * Aggregates all per-repo outputs into a single consolidated CSV report.
  * The report includes the following columns:
  * - Tool: Repository name
  * - CloneRepository: Status of repository cloning
  * - CheckDependencies: Status of dependencies check
  * - CheckTests: Status of tests check
- * - Almanack: Status of Almanack analysis
- * - JOSS: Status of JOSS analysis
- * - TestExecution: Status of test execution
+ * - JOSS_Score: Score from joss_report_${repo_name}.json
  */
 
 process GenerateReport {
@@ -20,10 +18,7 @@ process GenerateReport {
     publishDir "${params.output_dir}", mode: 'copy'
     
     input:
-        path status_files
-        path almanack_results
-        path joss_reports
-        path test_results
+        path repo_dirs
     
     output:
         path "consolidated_report.csv"
@@ -33,46 +28,31 @@ process GenerateReport {
     #!/bin/bash
     set -euo pipefail
 
-    echo "Generating consolidated report..." >&2
+    echo "Tool,CloneRepository,CheckDependencies,CheckTests,JOSS_Score,Almanack_Score" > consolidated_report.csv
     
-    # Write header with column names
-    echo "Tool,CloneRepository,CheckDependencies,CheckTests,Almanack,JOSS,TestExecution" > consolidated_report.csv
-    
-    # Process each status file and combine with other results
-    for status_file in ${status_files}; do
-        if [ -f "\$status_file" ]; then
-            # Extract repo name from status file path
-            repo_name=\$(basename "\$status_file" | sed 's/status_repo_//' | sed 's/\.txt//')
-            
-            # Read the status values from the file
-            IFS=',' read -r tool clone_status dep_status test_status < "\$status_file"
-            
-            # Check if we have corresponding results files
-            almanack_status="FAIL"
-            joss_status="FAIL"
-            test_exec_status="FAIL"
-            
-            # Check for Almanack results
-            if find ${almanack_results} -name "*\${repo_name}*" -type f | grep -q .; then
-                almanack_status="PASS"
-            fi
-            
-            # Check for JOSS results
-            if find ${joss_reports} -name "*\${repo_name}*" -type f | grep -q .; then
-                joss_status="PASS"
-            fi
-            
-            # Check for test execution results
-            if find ${test_results} -name "*\${repo_name}*" -type f | grep -q .; then
-                test_exec_status="PASS"
-            fi
-            
-            # Write the consolidated row
-            echo "\${tool},\${clone_status},\${dep_status},\${test_status},\${almanack_status},\${joss_status},\${test_exec_status}" >> consolidated_report.csv
-            
+    for repo_dir in ${repo_dirs}; do
+        repo_name=$(basename "$repo_dir")
+        status_file="$repo_dir/status_repo.txt"
+        joss_file="$repo_dir/joss_report_${repo_name}.json"
+        almanack_file="$repo_dir/almanack_results.json"
+        
+        if [ -f "$status_file" ]; then
+            IFS=',' read -r tool clone_status dep_status test_status < "$status_file"
         else
-            echo "Warning: Status file \$status_file not found" >&2
+            tool="$repo_name"; clone_status="NA"; dep_status="NA"; test_status="NA"
         fi
+        
+        joss_score="NA"
+        if [ -f "$joss_file" ]; then
+            joss_score=$(jq -r '.score // .joss_score // .JOSS_Score // .criteria_score // empty' "$joss_file" || echo "NA")
+        fi
+        
+        almanack_score="NA"
+        if [ -f "$almanack_file" ]; then
+            almanack_score=$(jq -r '.["repo-almanack-score"] // .almanack_score // .Almanack_Score // empty' "$almanack_file" || echo "NA")
+        fi
+        
+        echo "$tool,$clone_status,$dep_status,$test_status,$joss_score,$almanack_score" >> consolidated_report.csv
     done
     
     echo "Consolidated report generated successfully" >&2

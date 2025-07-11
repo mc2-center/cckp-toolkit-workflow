@@ -70,7 +70,7 @@ workflow {
     // Validate and process each repo - filter out invalid URLs instead of throwing exceptions
     repo_urls.map { repo_url ->
         // More flexible validation - accept any GitHub URL that can be cloned
-        def githubUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\.git)?$/
+        def githubUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+\/?(?:\.git)?$/
         if (repo_url && repo_url ==~ githubUrlPattern) {
             def repo_name = repo_url.tokenize('/')[-1].replace('.git','')
             log.info "Processing valid repository: ${repo_url}"
@@ -129,29 +129,14 @@ workflow {
         AIAnalysis(ai_input)
     }
 
-    // Collect all outputs for consolidated report generation
+    // Collect all per-repo output directories for the report
     ProcessRepo.out
-        .map { repo_url, repo_name, repo_dir, out_dir, status_file -> status_file }
+        .map { repo_url, repo_name, repo_dir, out_dir, status_file -> file("${out_dir}/${repo_name}") }
         .collect()
-        .set { allStatusFiles }
-    
-    RunAlmanack.out
-        .map { repo_url, repo_name, almanack_meta, almanack_dir, almanack_status, almanack_results -> almanack_results }
-        .collect()
-        .set { allAlmanackResults }
-    
-    AnalyzeJOSSCriteria.out
-        .map { repo_url, repo_name, joss_report -> joss_report }
-        .collect()
-        .set { allJossReports }
-    
-    TestExecutor.out
-        .map { repo_url, repo_name, test_results -> test_results }
-        .collect()
-        .set { allTestResults }
-    
-    // Generate consolidated report
-    GenerateReport(allStatusFiles, allAlmanackResults, allJossReports, allTestResults)
+        .set { allRepoDirs }
+
+    // Generate consolidated report with JOSS score
+    GenerateReport(allRepoDirs)
 
     // Optionally upload results to Synapse if enabled
     if (params.upload_to_synapse) {

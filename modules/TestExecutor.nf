@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
@@ -50,3 +51,6 @@ process TestExecutor {
     run_tests.py "${repo_name}" "${repo_dir}"
     """
 } 
+=======
+ 
+>>>>>>> Stashed changes

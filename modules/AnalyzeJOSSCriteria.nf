@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
@@ -59,3 +60,6 @@ workflow {
     // Run the analysis process
     AnalyzeJOSSCriteria(repo_data_ch)
 }
+=======
+ 
+>>>>>>> Stashed changes
