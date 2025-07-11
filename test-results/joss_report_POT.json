@@ -1,0 +1,32 @@
+{
+  "criteria": {
+    "Statement of Need": {
+      "status": "ok",
+      "score": 0.7,
+      "details": "Found README but statement of need needs improvement"
+    },
+    "Installation Instructions": {
+      "status": "good",
+      "score": 1.0,
+      "details": "Found comprehensive installation instructions"
+    },
+    "Example Usage": {
+      "status": "good",
+      "score": 1.0,
+      "details": "Found comprehensive example usage"
+    },
+    "Community Guidelines": {
+      "status": "needs improvement",
+      "score": 0.3,
+      "details": "Missing community guidelines"
+    },
+    "Tests": {
+      "status": "good",
+      "score": 1.0,
+      "details": "Framework: pytest\nTotal Tests: 1044\nPassed: 982\nFailed: 0\nError:"
+    }
+  },
+  "overall_score": 0.8,
+  "total_score": 4.0,
+  "max_score": 5
+}

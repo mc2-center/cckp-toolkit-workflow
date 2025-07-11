@@ -27,6 +27,7 @@ include { AnalyzeJOSSCriteria } from './modules/AnalyzeJOSSCriteria'
 include { AIAnalysis } from './modules/AIAnalysis'
 include { UploadToSynapse } from './modules/UploadToSynapse'
 include { TestExecutor } from './modules/TestExecutor'
+include { GenerateReport } from './modules/GenerateReport'
 
 workflow {
     // Load environment variables from .env file if it exists
@@ -127,6 +128,16 @@ workflow {
 
         AIAnalysis(ai_input)
     }
+
+    // Collect all per-repo output directories for the report
+    ProcessRepo.out
+        .map { repo_url, repo_name, repo_dir, out_dir, status_file -> file("${out_dir}") }
+        .unique()
+        .collect()
+        .set { allRepoDirs }
+
+    // Generate consolidated report
+    GenerateReport(allRepoDirs)
 
     // Optionally upload results to Synapse if enabled
     if (params.upload_to_synapse) {
