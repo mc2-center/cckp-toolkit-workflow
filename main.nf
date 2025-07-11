@@ -70,7 +70,7 @@ workflow {
     // Validate and process each repo - filter out invalid URLs instead of throwing exceptions
     repo_urls.map { repo_url ->
         // More flexible validation - accept any GitHub URL that can be cloned
-        def githubUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\.git)?$/
+        def githubUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+\/?(?:\.git)?$/
         if (repo_url && repo_url ==~ githubUrlPattern) {
             def repo_name = repo_url.tokenize('/')[-1].replace('.git','')
             log.info "Processing valid repository: ${repo_url}"
