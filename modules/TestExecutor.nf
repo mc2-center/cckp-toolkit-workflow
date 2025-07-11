@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
@@ -34,7 +33,7 @@ process TestExecutor {
         tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path(status_file)
     
     output:
-        tuple val(repo_url), val(repo_name), path("test_results_${repo_name}.json")
+        tuple val(repo_url), val(repo_name), path("${repo_name}/test_results_${repo_name}.json")
     
     script:
     """
@@ -47,10 +46,10 @@ process TestExecutor {
     # Installing test dependencies
     python3 -m pip install pytest pytest-cov coverage
 
+    # Create output directory
+    mkdir -p "${out_dir}/${repo_name}"
+
     # Run the Python script
-    run_tests.py "${repo_name}" "${repo_dir}"
+    run_tests.py "${repo_name}" "${repo_dir}" > "${out_dir}/${repo_name}/test_results_${repo_name}.json"
     """
-} 
-=======
- 
->>>>>>> Stashed changes
+}

@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
@@ -23,7 +22,7 @@ process AnalyzeJOSSCriteria {
         tuple val(repo_url), val(repo_name), val(repo_dir), val(out_dir), val(status_file), path(almanack_results), path(test_results)
 
     output:
-        tuple val(repo_url), val(repo_name), path("joss_report_${repo_name}.json"), emit: joss_report
+        tuple val(repo_url), val(repo_name), path("${repo_name}/joss_report_${repo_name}.json"), emit: joss_report
 
     script:
     """
@@ -34,32 +33,9 @@ process AnalyzeJOSSCriteria {
     echo "Repository directory: ${repo_dir}" >&2
     echo "Almanack results file: ${almanack_results}" >&2
     # Create output directory if it doesn't exist
-    mkdir -p "${out_dir}"
+    mkdir -p "${out_dir}/${repo_name}"
     
     # Run JOSS analysis script
-    analyze_joss.py "${repo_name}" "${almanack_results}" "${test_results}" "${repo_dir}"
+    analyze_joss.py "${repo_name}" "${almanack_results}" "${test_results}" "${repo_dir}" > "${out_dir}/${repo_name}/joss_report_${repo_name}.json"
     """
 }
-
-workflow {
-    // Define channels for input
-    repo_data_ch = Channel.fromPath(params.repo_data)
-        .map { it -> 
-            def data = it.text.split(',')
-            tuple(
-                data[0],           // repo_url
-                data[1],           // repo_name
-                file(data[2]),     // repo_dir
-                data[3],           // out_dir
-                file(data[4]),     // status_file
-                file(data[5]),     // almanack_results
-                file(data[6])      // test_results
-            )
-        }
-
-    // Run the analysis process
-    AnalyzeJOSSCriteria(repo_data_ch)
-}
-=======
- 
->>>>>>> Stashed changes
