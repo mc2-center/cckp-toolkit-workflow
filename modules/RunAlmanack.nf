@@ -37,11 +37,12 @@ process RunAlmanack {
     
     output:
         tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path("status_almanack_${repo_name}.txt"), path("${repo_name}_almanack_Results.json")
+
     
     script:
     """
     #!/bin/bash
-    set -euxo pipefail
+    set -euo pipefail
 
     echo "Running Almanack on: ${repo_name}" >&2
     echo "Repository URL: ${repo_url}" >&2
@@ -52,7 +53,7 @@ process RunAlmanack {
     pip install almanack
 
     # Set up working directory
-    mkdir -p "${out_dir}"
+    mkdir -p "${out_dir}/${repo_name}"
     cp -r "${repo_dir}" /tmp/repo
 
     # Extract Git username from repo URL
@@ -66,15 +67,18 @@ process RunAlmanack {
     # Run Almanack analysis
     echo "Running Almanack analysis..." >&2
     if python3 -c "import json, almanack; result = almanack.table(repo_path='/tmp/repo'); print(json.dumps(result, indent=2))" > "${repo_name}_almanack_Results.json"; then
+
         ALMANACK_STATUS="PASS"
-        echo "Almanack analysis completed successfully" >&2
+        # Extract score from almanack results
+        if [ -f almanack_results.json ]; then
+            ALMANACK_SCORE=\$(python3 -c "import json; data=json.load(open('almanack_results.json')); print(data.get('repo-almanack-score', 0))" 2>/dev/null || echo "0")
+        fi
+        echo "Almanack analysis completed successfully with score: \${ALMANACK_SCORE}" >&2
     else
-        ALMANACK_STATUS="FAIL"
         echo "Almanack analysis failed" >&2
     fi
 
-    # Append Almanack status to the previous summary
-    PREV_STATUS=\$(cat ${status_file})
-    echo "\${PREV_STATUS},\${ALMANACK_STATUS}" > "status_almanack_${repo_name}.txt"
+    # Write results with score
+    echo "{\"status\": \"\${ALMANACK_STATUS}\", \"repo-almanack-score\": \${ALMANACK_SCORE}}" > "${out_dir}/${repo_name}/almanack_results.json"
     """
 }

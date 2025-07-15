@@ -14,7 +14,6 @@ process AIAnalysis {
     container 'ghcr.io/sage-bionetworks/synapsepythonclient:v4.8.0'
     errorStrategy 'ignore'
     publishDir "${params.output_dir}", mode: 'copy', pattern: '*.html'
-    secret 'SYNAPSE_AUTH_TOKEN'
 
     input:
         tuple val(repo_url), val(repo_name), path(almanack_results), path(joss_report)

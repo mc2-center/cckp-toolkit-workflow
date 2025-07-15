@@ -1,0 +1,32 @@
+{
+  "criteria": {
+    "Statement of Need": {
+      "status": "ok",
+      "score": 0.7,
+      "details": "Found README but statement of need needs improvement"
+    },
+    "Installation Instructions": {
+      "status": "needs improvement",
+      "score": 0.3,
+      "details": "Missing installation instructions"
+    },
+    "Example Usage": {
+      "status": "needs improvement",
+      "score": 0.3,
+      "details": "Missing example usage"
+    },
+    "Community Guidelines": {
+      "status": "needs improvement",
+      "score": 0.3,
+      "details": "Missing community guidelines"
+    },
+    "Tests": {
+      "status": "needs improvement",
+      "score": 0.0,
+      "details": "Framework: unknown\nTotal Tests: 0\nPassed: 0\nFailed: 0\nError: Unsupported project type: unknown"
+    }
+  },
+  "overall_score": 0.32,
+  "total_score": 1.6,
+  "max_score": 5
+}

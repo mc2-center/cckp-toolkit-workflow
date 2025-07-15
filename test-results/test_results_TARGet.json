@@ -1,0 +1,9 @@
+{
+  "framework": "unknown",
+  "status": "FAIL",
+  "total_tests": 0,
+  "passed": 0,
+  "failed": 0,
+  "output": "",
+  "error": "Unsupported project type: unknown"
+}

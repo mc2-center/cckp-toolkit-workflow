@@ -41,6 +41,17 @@ if __name__ == "__main__":
     joss_report_file = sys.argv[4]
     agent_id = sys.argv[5]
 
+    # Debug: Print all environment variables to diagnose Tower secret issue
+    print("[DEBUG] All environment variables:")
+    for key, value in os.environ.items():
+        if 'SYNAPSE' in key.upper() or 'TOKEN' in key.upper() or 'SECRET' in key.upper():
+            print(f"  {key}: {value[:10]}..." if len(value) > 10 else f"  {key}: {value}")
+    
+    print(f"[DEBUG] SYNAPSE_AUTH_TOKEN available: {'SYNAPSE_AUTH_TOKEN' in os.environ}")
+    if 'SYNAPSE_AUTH_TOKEN' not in os.environ:
+        print("[ERROR] SYNAPSE_AUTH_TOKEN environment variable not found!")
+        print("[ERROR] Please check Tower workspace secrets configuration")
+
     try:
         # Read input files
         with open(almanack_results_file, 'r') as f:
