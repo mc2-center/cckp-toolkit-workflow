@@ -36,7 +36,7 @@ process RunAlmanack {
         tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path(status_file)
     
     output:
-        tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path("status_almanack_${repo_name}.txt"), path("almanack_results.json")
+        tuple val(repo_url), val(repo_name), path(repo_dir), val(out_dir), path("status_almanack_${repo_name}.txt"), path("${repo_name}_almanack_Results.json")
     
     script:
     """
@@ -65,7 +65,7 @@ process RunAlmanack {
 
     # Run Almanack analysis
     echo "Running Almanack analysis..." >&2
-    if python3 -c "import json, almanack; result = almanack.table(repo_path='/tmp/repo'); print(json.dumps(result, indent=2))" > almanack_results.json; then
+    if python3 -c "import json, almanack; result = almanack.table(repo_path='/tmp/repo'); print(json.dumps(result, indent=2))" > "${repo_name}_almanack_Results.json"; then
         ALMANACK_STATUS="PASS"
         echo "Almanack analysis completed successfully" >&2
     else
