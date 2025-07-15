@@ -18,7 +18,6 @@ params.sample_sheet = null
 params.repo_url = null
 params.output_dir = 'results'
 params.synapse_agent_id = null
-params.run_ai_analysis = false
 
 // Include required modules
 include { ProcessRepo } from './modules/ProcessRepo'
@@ -59,6 +58,19 @@ workflow {
         throw new IllegalArgumentException("ERROR: synapse_agent_id must be provided.")
     }
 
+    // Validate repository URL format
+    def validateRepoUrl = { url ->
+        if (!url) return false
+        def validUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+\.git$/
+        return url ==~ validUrlPattern
+    }
+
+    // Extract repository name from URL
+    def getRepoName = { url ->
+        def urlStr = url instanceof List ? url[0] : url
+        return urlStr.tokenize('/')[-1].replace('.git','')
+    }
+
     // Create a channel of repo URLs
     Channel.from(
         params.sample_sheet ?
@@ -66,21 +78,14 @@ workflow {
             [params.repo_url]
     ).set { repo_urls }
 
-    // Validate and process each repo - filter out invalid URLs instead of throwing exceptions
+    // Validate and process each repo
     repo_urls.map { repo_url ->
-        // More flexible validation - accept any GitHub URL that can be cloned
-        def githubUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+\/?(?:\.git)?$/
-        if (repo_url && repo_url ==~ githubUrlPattern) {
-            def repo_name = repo_url.tokenize('/')[-1].replace('.git','')
-            log.info "Processing valid repository: ${repo_url}"
-            tuple(repo_url, repo_name, params.output_dir)
-        } else {
-            log.warn "Skipping invalid repository URL: '${repo_url}'. Expected format: https://github.com/username/repo or https://github.com/username/repo.git"
-            null
+        if (!validateRepoUrl(repo_url)) {
+            throw new IllegalArgumentException("ERROR: Invalid repository URL format: '${repo_url}'. Expected format: https://github.com/username/repo.git")
         }
-    }
-    .filter { it != null }
-    .set { repo_tuples }
+        def repo_name = getRepoName(repo_url)
+        tuple(repo_url, repo_name, params.output_dir)
+    }.set { repo_tuples }
 
     // Process repository
     ProcessRepo(repo_tuples)
@@ -112,21 +117,19 @@ workflow {
     AnalyzeJOSSCriteria(joss_input)
 
     // Analyze with AI agent
-    if (params.run_ai_analysis) {
-        RunAlmanack.out
-            .combine(AnalyzeJOSSCriteria.out, by: [0,1])
-            .map { repo_url, repo_name, _almanack_meta, _almanack_dir, _almanack_status, almanack_results, joss_report ->
-                tuple(
-                    repo_url,        // repo_url
-                    repo_name,       // repo_name
-                    almanack_results, // almanack_results.json from RunAlmanack
-                    joss_report      // joss_report_<repo_name>.json from AnalyzeJOSSCriteria
-                )
-            }
-            .set { ai_input }
+    RunAlmanack.out
+        .combine(AnalyzeJOSSCriteria.out, by: [0,1])
+        .map { repo_url, repo_name, _almanack_meta, _almanack_dir, _almanack_status, almanack_results, joss_report ->
+            tuple(
+                repo_url,        // repo_url
+                repo_name,       // repo_name
+                almanack_results, // almanack_results.json from RunAlmanack
+                joss_report      // joss_report_<repo_name>.json from AnalyzeJOSSCriteria
+            )
+        }
+        .set { ai_input }
 
-        AIAnalysis(ai_input)
-    }
+    AIAnalysis(ai_input)
 
     // Optionally upload results to Synapse if enabled
     if (params.upload_to_synapse) {
