@@ -23,8 +23,8 @@ process ProcessRepo {
         tuple val(repo_url), val(repo_name), val(out_dir)
     
     output:
-        // Emit a tuple: (repo_url, repo_name, path(repo directory), out_dir, path to status_repo.txt)
-        tuple val(repo_url), val(repo_name), path("repo"), val(out_dir), path("${repo_name}/status_repo.txt")
+        // Emit a tuple: (repo_url, repo_name, path(repo directory), out_dir, path to status file)
+        tuple val(repo_url), val(repo_name), path("repo"), val(out_dir), path("${repo_name}_status_repo.txt")
     
     script:
     """
@@ -81,7 +81,6 @@ process ProcessRepo {
     fi
 
     # Write out a summary status file in CSV format
-    mkdir -p ${repo_name}
-    echo "${repo_name},\${CLONE_STATUS},\${DEP_STATUS},\${TESTS_STATUS}" > ${repo_name}/status_repo.txt
+    echo "${repo_name},\${CLONE_STATUS},\${DEP_STATUS},\${TESTS_STATUS}" > ${repo_name}_status_repo.txt
     """
 }
