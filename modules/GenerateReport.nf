@@ -30,10 +30,10 @@ process GenerateReport {
     echo "Tool,CloneRepository,CheckDependencies,CheckTests" > consolidated_report.csv
     
     for repo_dir in ${repo_dirs}; do
-        # Find all status_almanack files in the directory
-        for status_file in \$repo_dir/status_almanack_*.txt; do
+        # Find all status_repo files in the directory
+        for status_file in \$repo_dir/*/status_repo.txt; do
             if [ -f "\$status_file" ]; then
-                IFS=',' read -r tool clone_status dep_status test_status almanack_status < "\$status_file"
+                IFS=',' read -r tool clone_status dep_status test_status < "\$status_file"
                 echo "\$tool,\$clone_status,\$dep_status,\$test_status" >> consolidated_report.csv
             fi
         done
