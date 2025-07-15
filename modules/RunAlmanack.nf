@@ -52,7 +52,6 @@ process RunAlmanack {
     pip install almanack
 
     # Set up working directory
-    mkdir -p "${out_dir}"
     cp -r "${repo_dir}" /tmp/repo
 
     # Extract Git username from repo URL
