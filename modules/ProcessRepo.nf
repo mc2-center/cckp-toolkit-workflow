@@ -24,23 +24,27 @@ process ProcessRepo {
     
     output:
         // Emit a tuple: (repo_url, repo_name, path(repo directory), out_dir, path(status_repo.txt))
-        tuple val(repo_url), val(repo_name), path("repo"), val(out_dir), path("status_repo.txt")
+        tuple val(repo_url), val(repo_name), path("repo"), val(out_dir), path("${repo_name}_status_repo.txt")
     
     script:
     """
+    #!/bin/bash
     set -euo pipefail
-
+    
+    # Install git and procps (required by Nextflow for task metrics)
+    apt-get update -qq && apt-get install -y -qq git procps > /dev/null 2>&1
+    
+    echo "repo_url=${repo_url} repo_name=${repo_name} out_dir=${out_dir}"
     # Initialize statuses as FAIL (default)
-    CLONE_STATUS="FAIL"
-    DEP_STATUS="FAIL"
-    TESTS_STATUS="FAIL"
-
+    CLONE_STATUS=\"FAIL\"
+    DEP_STATUS=\"FAIL\"
+    TESTS_STATUS=\"FAIL\"
     ###############################
     # Clone Repository Step
     ###############################
     rm -rf repo
     if git clone ${repo_url} repo >> /dev/null 2>&1; then
-        CLONE_STATUS="PASS"
+        CLONE_STATUS=\"PASS\"
     fi
 
     ###############################
@@ -81,7 +85,6 @@ process ProcessRepo {
     fi
 
     # Write out a summary status file in CSV format
-    mkdir -p ${out_dir}
-    echo "${repo_name},\${CLONE_STATUS},\${DEP_STATUS},\${TESTS_STATUS}" > status_repo.txt
+    echo "${repo_name},\${CLONE_STATUS},\${DEP_STATUS},\${TESTS_STATUS}" > "${repo_name}_status_repo.txt"
     """
 }
