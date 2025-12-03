@@ -58,17 +58,36 @@ if __name__ == "__main__":
         # Call Synapse agent and treat response as HTML
         response_html = call_synapse_agent(agent_id, json.dumps(agent_input))
 
-        # Write the HTML response directly to file
-        os.makedirs("results", exist_ok=True)
+        # Write the HTML response directly to file (in current directory, not results/)
         output_file = f"{repo_name}_ai_analysis.html"
         with open(output_file, 'w') as f:
             f.write(response_html)
-    except Exception as e:
-        print(f"[ERROR] Analysis failed: {str(e)}")
-        print(f"[ERROR] Exception type: {type(e)}")
+        print(f"[SUCCESS] AI analysis written to {output_file}")
+    except KeyError as e:
+        error_msg = f"Missing environment variable or configuration: {str(e)}"
+        print(f"[ERROR] {error_msg}")
         import traceback
         print(f"[ERROR] Traceback:\n{traceback.format_exc()}")
-        os.makedirs("results", exist_ok=True)
-        output_file = f"results/{sys.argv[1]}_ai_analysis.html"
+        output_file = f"{repo_name}_ai_analysis.html"
         with open(output_file, 'w') as f:
-            f.write(f"<html><body><h1>Error in AI Analysis</h1><pre>{str(e)}</pre></body></html>") 
+            f.write(f"<html><body><h1>Error in AI Analysis</h1><p>{error_msg}</p><p>Please ensure SYNAPSE_AUTH_TOKEN is properly configured.</p></body></html>")
+        sys.exit(1)
+    except FileNotFoundError as e:
+        error_msg = f"Required file not found: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        import traceback
+        print(f"[ERROR] Traceback:\n{traceback.format_exc()}")
+        output_file = f"{repo_name}_ai_analysis.html"
+        with open(output_file, 'w') as f:
+            f.write(f"<html><body><h1>Error in AI Analysis</h1><p>{error_msg}</p></body></html>")
+        sys.exit(1)
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[ERROR] Analysis failed: {error_msg}")
+        print(f"[ERROR] Exception type: {type(e).__name__}")
+        import traceback
+        print(f"[ERROR] Traceback:\n{traceback.format_exc()}")
+        output_file = f"{repo_name}_ai_analysis.html"
+        with open(output_file, 'w') as f:
+            f.write(f"<html><body><h1>Error in AI Analysis</h1><p>{error_msg}</p><pre>{traceback.format_exc()}</pre></body></html>")
+        sys.exit(1) 
