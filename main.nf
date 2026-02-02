@@ -32,8 +32,8 @@ workflow {
     def loadEnvFile = { envFile ->
         if (file(envFile).exists()) {
             file(envFile).readLines().each { line ->
-                if (line && !line.startsWith('#')) {
-                    def parts = line.split('=')
+                if (line != null && line.toString().trim() != '' && !line.toString().startsWith('#')) {
+                    def parts = line.toString().split('=')
                     if (parts.size() == 2) {
                         System.setProperty(parts[0].trim(), parts[1].trim())
                     }
@@ -46,41 +46,50 @@ workflow {
     loadEnvFile('.env')
 
     // Parameter validation
-    if (!params.repo_url && !params.sample_sheet) {
+    if ((params.repo_url == null || params.repo_url.toString().trim() == '') && 
+        (params.sample_sheet == null || params.sample_sheet.toString().trim() == '')) {
         throw new IllegalArgumentException("ERROR: Provide either a sample_sheet or repo_url parameter")
     }
 
-    if (params.upload_to_synapse && !params.synapse_folder_id) {
+    if (params.upload_to_synapse && (params.synapse_folder_id == null || params.synapse_folder_id.toString().trim() == '')) {
         throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
     }
 
-    if (!params.synapse_agent_id) {
+    if (params.synapse_agent_id == null || params.synapse_agent_id.toString().trim() == '') {
         throw new IllegalArgumentException("ERROR: synapse_agent_id must be provided.")
     }
 
     // Validate repository URL format
     def validateRepoUrl = { url ->
-        if (!url) return false
+        if (url == null || url.toString().trim() == '') return false
         def validUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+\.git$/
-        return url ==~ validUrlPattern
+        return url.toString() ==~ validUrlPattern
     }
 
     // Extract repository name from URL
     def getRepoName = { url ->
-        def urlStr = url instanceof List ? url[0] : url
-        return urlStr.tokenize('/')[-1].replace('.git','')
+        def urlStr
+        if (url instanceof List) {
+            urlStr = url[0]
+        } else {
+            urlStr = url
+        }
+        return urlStr.toString().tokenize('/')[-1].replace('.git','')
     }
 
     // Create a channel of repo URLs
-    Channel.from(
-        params.sample_sheet ?
-            file(params.sample_sheet).readLines().drop(1).collect { it.trim() }.findAll { it } :
-            [params.repo_url]
-    ).set { repo_urls }
+    def repoList
+    if (params.sample_sheet != null && params.sample_sheet.toString().trim() != '') {
+        repoList = file(params.sample_sheet).readLines().drop(1).collect { it.trim() }.findAll { it != null && it.toString().trim() != '' }
+    } else {
+        repoList = [params.repo_url]
+    }
+    Channel.from(repoList).set { repo_urls }
 
     // Validate and process each repo
     repo_urls.map { repo_url ->
-        if (!validateRepoUrl(repo_url)) {
+        def isValid = validateRepoUrl(repo_url)
+        if (isValid == false) {
             throw new IllegalArgumentException("ERROR: Invalid repository URL format: '${repo_url}'. Expected format: https://github.com/username/repo.git")
         }
         def repo_name = getRepoName(repo_url)
