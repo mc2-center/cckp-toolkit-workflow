@@ -45,13 +45,20 @@ workflow {
     // Load .env file
     loadEnvFile('.env')
 
+    // Helper function to safely check boolean parameters (handles both boolean and string types)
+    def isTrue = { param ->
+        if (param == null) return false
+        def str = param.toString().trim().toLowerCase()
+        return str == 'true' || str == '1' || (param instanceof Boolean && param == true)
+    }
+
     // Parameter validation
     if ((params.repo_url == null || params.repo_url.toString().trim() == '') && 
         (params.sample_sheet == null || params.sample_sheet.toString().trim() == '')) {
         throw new IllegalArgumentException("ERROR: Provide either a sample_sheet or repo_url parameter")
     }
 
-    if (params.upload_to_synapse && (params.synapse_folder_id == null || params.synapse_folder_id.toString().trim() == '')) {
+    if (isTrue(params.upload_to_synapse) && (params.synapse_folder_id == null || params.synapse_folder_id.toString().trim() == '')) {
         throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
     }
 
@@ -141,7 +148,7 @@ workflow {
     AIAnalysis(ai_input)
 
     // Optionally upload results to Synapse if enabled
-    if (params.upload_to_synapse) {
+    if (isTrue(params.upload_to_synapse)) {
         UploadToSynapse(RunAlmanack.out)
     }
 }
