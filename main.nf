@@ -8,23 +8,20 @@ nextflow.enable.dsl=2
  * 1. Clone and perform initial checks (ProcessRepo)
  * 2. Run Almanack analysis (RunAlmanack)
  * 3. Analyze JOSS criteria (AnalyzeJOSSCriteria)
- * 4. Analyze with AI agent (AIAnalysis)
- * 5. Optionally upload results to Synapse (UploadToSynapse)
+ * 4. Optionally analyze with AI agent (AIAnalysis)
  */
 
 // Global parameters with defaults
-params.upload_to_synapse = false
+params.run_ai_analysis = false
 params.sample_sheet = null
 params.repo_url = null
 params.output_dir = 'results'
-params.synapse_agent_id = null
 
 // Include required modules
 include { ProcessRepo } from './modules/ProcessRepo'
 include { RunAlmanack } from './modules/RunAlmanack'
 include { AnalyzeJOSSCriteria } from './modules/AnalyzeJOSSCriteria'
 include { AIAnalysis } from './modules/AIAnalysis'
-include { UploadToSynapse } from './modules/UploadToSynapse'
 include { TestExecutor } from './modules/TestExecutor'
 
 workflow {
@@ -58,18 +55,10 @@ workflow {
         throw new IllegalArgumentException("ERROR: Provide either a sample_sheet or repo_url parameter")
     }
 
-    if (isTrue(params.upload_to_synapse) && (params.synapse_folder_id == null || params.synapse_folder_id.toString().trim() == '')) {
-        throw new IllegalArgumentException("ERROR: synapse_folder_id must be provided when --upload_to_synapse is true.")
-    }
-
-    if (params.synapse_agent_id == null || params.synapse_agent_id.toString().trim() == '') {
-        throw new IllegalArgumentException("ERROR: synapse_agent_id must be provided.")
-    }
-
-    // Validate repository URL format
+    // Validate repository URL format (accept http or https; GitHub redirects http to https)
     def validateRepoUrl = { url ->
         if (url == null || url.toString().trim() == '') return false
-        def validUrlPattern = ~/^https:\/\/github\.com\/[^\/]+\/[^\/]+\.git$/
+        def validUrlPattern = ~/^https?:\/\/github\.com\/[^\/]+\/[^\/]+\.git$/
         return url.toString() ==~ validUrlPattern
     }
 
@@ -145,10 +134,8 @@ workflow {
         }
         .set { ai_input }
 
-    AIAnalysis(ai_input)
-
-    // Optionally upload results to Synapse if enabled
-    if (isTrue(params.upload_to_synapse)) {
-        UploadToSynapse(RunAlmanack.out)
+    if (isTrue(params.run_ai_analysis)) {
+        AIAnalysis(ai_input)
     }
+
 }
