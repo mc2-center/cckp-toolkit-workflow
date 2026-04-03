@@ -1,0 +1,15 @@
+{
+  "run_ai_analysis": true,
+  "output_dir": "s3://mc2-project-tower-bucket/cc_toolkit/rna_seq_output",
+  "sample_sheet": "https://tower.sagebionetworks.org/api/workspaces/108678154374910/datasets/4hbFDXwAXsttXikxXg5Lu7/v/1/n/repos.csv"
+}
+
+
+
+
+
+
+
+
+
+
