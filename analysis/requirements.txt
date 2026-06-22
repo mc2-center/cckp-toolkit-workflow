@@ -1,0 +1,21 @@
+# Python dependencies for the "Mapping the Garden" analysis (Python 3.11).
+# Versions are lower bounds matching the environment used for the manuscript;
+# pin exactly if you need bit-for-bit reproducibility.
+
+# --- core: modeling, statistics, figures (needed to reproduce Figures 3-6) ---
+pandas>=2.2
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.3
+shap>=0.44
+matplotlib>=3.8
+seaborn>=0.13
+
+# --- data collection / processing (only needed to rebuild inputs from scratch) ---
+requests>=2.31        # GitHub API (repo discovery, README fetch)
+boto3>=1.34           # S3 access for prepare_joss_rerun.py and classify_batch_bedrock.py
+duckdb>=0.10          # reading the CZI Software Mentions parquet
+
+# --- domain classification ---
+anthropic>=0.40       # classify_domains_claude.py, primary classifier (ANTHROPIC_API_KEY)
+                      # classify_batch_bedrock.py ("Other" reclassification) uses boto3 (above)
