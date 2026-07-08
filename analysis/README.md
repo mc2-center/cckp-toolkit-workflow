@@ -19,7 +19,7 @@ All code is processed **from the repository root** and use argparse with sensibl
 ## Data
 
 The code reads from and writes to `data/final_results/`. That directory is intentionally **ignored**
-(it holds large derived tables); it is released separately with the manuscript (see the Data and
+(it holds large derived data). Ignored data is released separately with the manuscript (see the Data and
 Code Availability section of the paper for the DOI). To reproduce, download the released data
 bundle and place it at `data/final_results/` so the default paths resolve. Key files:
 
