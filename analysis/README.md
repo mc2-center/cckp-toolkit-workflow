@@ -5,13 +5,21 @@ This analysis uses the per-repository measurements produced by the Cancer Comple
 
 ## Setup
 
+Dependencies are managed with [uv](https://docs.astral.sh/uv/) via `analysis/pyproject.toml`, and `analysis/uv.lock` pins the exact versions last used for the manuscript.
+
 ```bash
 # from the repository root
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r analysis/requirements.txt
+uv sync --project analysis                          # core deps (figures/modeling)
+uv sync --project analysis --extra data-collection  # add repo discovery / classification deps
 ```
 
-All code is processed **from the repository root** and use argparse with sensible defaults.
+Run any code through uv so it uses the locked environment; work **from the repository root** so relative default paths resolve:
+
+```bash
+uv run --project analysis python analysis/modeling/stars_shap_model.py --help
+```
+
+All code uses argparse with sensible defaults.
 Pass `--help` to any script to see its options.
 
 ## Data
@@ -66,16 +74,16 @@ visualization/        manuscript figures
 
 ```bash
 # Figure 5: sustainability-only adoption predictors (license, citability, modern branch top-ranked)
-python3 analysis/modeling/stars_shap_model.py --sustainability_only
+uv run --project analysis python analysis/modeling/stars_shap_model.py --sustainability_only
 
 # Figure 5 full model (social signals included)
-python3 analysis/modeling/stars_shap_model.py
+uv run --project analysis python analysis/modeling/stars_shap_model.py
 
 # Domain analysis (Section 4.2)
-python3 analysis/modeling/stars_domain_analysis.py
+uv run --project analysis python analysis/modeling/stars_domain_analysis.py
 
 # Figures 3 and 4
-python3 analysis/visualization/generate_results_figures.py
+uv run --project analysis python analysis/visualization/generate_results_figures.py
 ```
 
 Outputs land in `data/final_results/` (tables) and `docs/manuscript_drafts/figures/` (figures).
