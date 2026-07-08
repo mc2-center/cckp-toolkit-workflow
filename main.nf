@@ -73,14 +73,18 @@ workflow {
         return urlStr.toString().tokenize('/')[-1].replace('.git','')
     }
 
-    // Create a channel of repo URLs
-    def repoList
+    // Create a channel of repo URLs. For a sample sheet, splitCsv(header: true)
+    // consumes the header row and reads the repo_url column by name, so extra
+    // columns (e.g. description) and column order don't matter.
     if (params.sample_sheet != null && params.sample_sheet.toString().trim() != '') {
-        repoList = file(params.sample_sheet).readLines().drop(1).collect { it.trim() }.findAll { it != null && it.toString().trim() != '' }
+        Channel.fromPath(params.sample_sheet)
+            .splitCsv(header: true)
+            .map { row -> row.repo_url?.trim() }
+            .filter { it }
+            .set { repo_urls }
     } else {
-        repoList = [params.repo_url]
+        Channel.of(params.repo_url).set { repo_urls }
     }
-    Channel.from(repoList).set { repo_urls }
 
     // Validate and process each repo
     repo_urls.map { repo_url ->
