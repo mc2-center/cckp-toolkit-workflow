@@ -13,11 +13,7 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-
-try:
-    import shap
-except ImportError:
-    shap = None
+import shap
 
 
 def main():
@@ -117,10 +113,6 @@ def main():
     imp_gini.to_csv(gini_path, index=False)
     print("Top 15 (Gini importance):")
     print(imp_gini.head(15).to_string(index=False))
-
-    if shap is None:
-        print("Install shap for SHAP values: pip install shap")
-        return
 
     explainer = shap.TreeExplainer(model, X_train)
     shap_values = explainer.shap_values(X_test)
