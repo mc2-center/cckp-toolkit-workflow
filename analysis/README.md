@@ -54,31 +54,33 @@ flowchart TD
     dc --> cct --> dp --> md --> vis
 ```
 
-## Which script makes which figure / result
+## Which code produces which result
 
-| Manuscript item | Script |
+Described by output content rather than manuscript figure numbers, which can change as the manuscript is revised.
+
+| Result | Script |
 |---|---|
-| Figure 1 (conceptual framework), Figure 2 (cohort funnel) | `visualization/generate_conceptual_figures.py` |
-| Figure 3 (check pass rates), Figure 4 (domain violin) | `visualization/generate_results_figures.py` |
-| Figure 5 (SHAP adoption predictors, stars) | `modeling/stars_shap_model.py` |
-| Figure 5 mentions panel / robustness | `modeling/mentions_shap_model.py` |
-| Figure 6 (longitudinal evolution, grading) | `visualization/benchmark_analysis.py` |
-| Section 4.2 domain ANOVA + residuals | `modeling/stars_domain_analysis.py`, `data_processing/apply_logistic_weights_and_domain_anova.py`, `modeling/weighted_scores_statistical_analysis.py` |
+| Conceptual framework; cohort funnel | `visualization/generate_conceptual_figures.py` |
+| Check pass rates; domain violin | `visualization/generate_results_figures.py` |
+| SHAP adoption predictors (stars) | `modeling/stars_shap_model.py` |
+| Mentions panel / robustness | `modeling/mentions_shap_model.py` |
+| Longitudinal evolution, grading | `visualization/benchmark_analysis.py` |
+| Domain ANOVA + residuals | `modeling/stars_domain_analysis.py`, `data_processing/apply_logistic_weights_and_domain_anova.py`, `modeling/weighted_scores_statistical_analysis.py` |
 | Score distributions (supplementary) | `visualization/plot_almanack_score_distributions.py` |
 
 ## Reproducing the headline results
 
 ```bash
-# Figure 5: sustainability-only adoption predictors (license, citability, modern branch top-ranked)
+# Sustainability-only adoption predictors (license, citability, modern branch top-ranked)
 uv run --project analysis python analysis/modeling/stars_shap_model.py --sustainability_only
 
-# Figure 5 full model (social signals included)
+# Full adoption model (social signals included)
 uv run --project analysis python analysis/modeling/stars_shap_model.py
 
-# Domain analysis (Section 4.2)
+# Domain analysis
 uv run --project analysis python analysis/modeling/stars_domain_analysis.py
 
-# Figures 3 and 4
+# Check pass rates + domain violin
 uv run --project analysis python analysis/visualization/generate_results_figures.py
 ```
 
