@@ -32,7 +32,10 @@ def to_canonical(url: str) -> str:
     if s.startswith("http://github.com/"):
         s = "https://github.com/" + s[len("http://github.com/"):]
     elif not s.startswith("https://github.com/"):
-        s = "" if "github.com/" not in s else ("https://" + s.split("github.com", 1)[-1].lstrip("/"))
+        # Rebuild from the path after "github.com/" so the domain is preserved
+        # (e.g. www.github.com/... or a scheme-less github.com/... still canonicalize
+        # to https://github.com/...; without this they'd collapse to a domain-less URL).
+        s = "" if "github.com/" not in s else ("https://github.com/" + s.split("github.com/", 1)[-1].lstrip("/"))
     return s if "github.com/" in s else ""
 
 
