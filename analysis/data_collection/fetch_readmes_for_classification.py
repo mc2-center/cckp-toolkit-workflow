@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()  # pull GITHUB_TOKEN from a .env file if present
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from classify_domains_claude import fetch_readme_from_github
+from classify_domains_primary import fetch_readme_from_github
 
 README_CAP_CHARS_DEFAULT = 4000
 

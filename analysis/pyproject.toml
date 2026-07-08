@@ -25,9 +25,9 @@ dependencies = [
 # data bundle.
 data-collection = [
     "requests>=2.31",      # GitHub API (repo discovery, README fetch)
-    "boto3>=1.34",         # S3 access for prepare_joss_rerun.py and classify_batch_bedrock.py
+    "boto3>=1.34",         # S3 access for prepare_joss_rerun.py and classify_domains_other.py (Bedrock)
     "duckdb>=0.10",        # reading the CZI Software Mentions parquet
-    "anthropic>=0.40",     # classify_domains_claude.py, primary domain classifier (ANTHROPIC_API_KEY)
+    "anthropic>=0.40",     # classify_domains_primary.py, primary domain classifier (ANTHROPIC_API_KEY)
     "python-dotenv>=1.0",  # load API keys from a .env file (see .env.template)
 ]
 
