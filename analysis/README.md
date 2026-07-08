@@ -38,7 +38,7 @@ Key files:
 | `weights_logistic_refit.csv` | nf-core-calibrated logistic weights per check |
 | `nf_core_almanack_metrics.csv` | Almanack metrics for nf-core pipelines |
 
-A few scripts consume **raw inputs that are not in the data bundle** because they are large or regenerable: the per-repo Almanack JSON directory (CCT pipeline output) consumed by `build_almanack_metrics_table.py`.
+Some code consumes **raw inputs that are not in the data bundle** because they are large or regenerable: the per-repo Almanack JSON directory (CCT pipeline output) consumed by `build_almanack_metrics_table.py`.
 Everything needed for the figures is in the released tables.
 
 ## Pipeline (run order)
