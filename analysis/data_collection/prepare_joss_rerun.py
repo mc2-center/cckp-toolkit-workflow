@@ -8,17 +8,10 @@ import sys
 from pathlib import Path
 from typing import List, Tuple
 
-try:
-    import boto3
-    HAS_BOTO3 = True
-except ImportError:
-    HAS_BOTO3 = False
-    print("Warning: boto3 not installed. S3 paths will not work.", file=sys.stderr)
+import boto3
 
 
 def list_s3_files(s3_path: str) -> List[str]:
-    if not HAS_BOTO3:
-        raise ValueError("boto3 required for S3 paths")
     if not s3_path.startswith("s3://"):
         raise ValueError(f"Invalid S3 path: {s3_path}")
 
