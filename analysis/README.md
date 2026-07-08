@@ -1,7 +1,7 @@
 # Analysis code: "Mapping the Garden"
 
 Reproducible analysis for the manuscript *Mapping the Garden: Software Sustainability as a
-Correlate of Scientific Impact Across Computational Biology Ecosystems*. These scripts take the
+Correlate of Scientific Impact Across Computational Biology Ecosystems*. This analysis uses the
 per-repository measurements produced by the Cancer Complexity Toolkit (CCT) Nextflow pipeline (in
 the repository root) and produce the statistics and figures in the paper.
 
