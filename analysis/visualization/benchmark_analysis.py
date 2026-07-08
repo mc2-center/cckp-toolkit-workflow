@@ -116,7 +116,7 @@ def parse_status_file(status_file_path: Path) -> Optional[Dict]:
 
 def extract_tool_name_from_url(repo_url: str) -> str:
     """Extract tool name from a GitHub repo URL."""
-    repo_url = repo_url.rstrip('.git')
+    repo_url = repo_url.removesuffix('.git')
     parts = repo_url.rstrip('/').split('/')
     if parts:
         return parts[-1]
