@@ -27,6 +27,9 @@ combined_datasets/
 Job-*.csv
 *.parquet
 
+# Secrets (keep .env out of git; .env.template is committed)
+.env
+
 # OS and IDE
 .vscode/
 .idea/

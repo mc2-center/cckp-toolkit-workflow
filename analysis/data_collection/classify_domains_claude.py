@@ -12,6 +12,9 @@ from urllib.parse import urlparse
 
 import pandas as pd
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()  # pull API keys (ANTHROPIC_API_KEY, GITHUB_TOKEN) from a .env file if present
 
 DOMAIN_CATEGORIES = [
     "RNA-seq",

@@ -10,6 +10,10 @@ import time
 from typing import List, Set
 from urllib.parse import quote
 
+from dotenv import load_dotenv
+
+load_dotenv()  # pull GITHUB_TOKEN from a .env file if present
+
 
 def search_github_repos(query: str, token: str, max_results: int = 1000) -> List[dict]:
     repos = []
@@ -117,7 +121,7 @@ def main():
     
     args = parser.parse_args()
 
-    token = args.token or os.getenv('GITHUB_PAT') or os.getenv('GH_PATH')
+    token = args.token or os.getenv('GITHUB_TOKEN') or os.getenv('GITHUB_PAT') or os.getenv('GH_PATH')
 
     if not token:
         print("ERROR: GitHub token required!")

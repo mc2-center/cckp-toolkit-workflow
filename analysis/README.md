@@ -87,7 +87,8 @@ Outputs land in `data/final_results/` (tables) and `docs/manuscript_drafts/figur
 ## Notes
 
 - **Run from the repository root** so relative default paths (`data/final_results/...`) resolve.
-- **API keys** are read from environment variables, never hardcoded: `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, and `GEMINI_API_KEY` / `OPENAI_API_KEY` for the alternate classifiers.
+- **API keys** are loaded from a git-ignored `.env` file (or the real environment), never hardcoded.
+  Copy `.env.template` (repo root) to `.env` and fill in what you need: `GITHUB_TOKEN` and `ANTHROPIC_API_KEY` for the data-collection/classification scripts, plus `GEMINI_API_KEY` / `OPENAI_API_KEY` for the alternate classifiers in `analysis/archive/`.
 - Personal/operational scripts (S3 reparse, shell helpers) and superseded data-assembly steps (`recompute_logistic_weights`, `combine_external_datasets`) live in `analysis/archive/` and are not needed to reproduce the paper; the tables they would produce are in the released bundle.
 - Domains were classified with `data_collection/classify_domains_claude.py` (primary) and `data_collection/classify_batch_bedrock.py` ("Other" bucket).
   Alternate LLM-provider classifiers that were not used live in `analysis/archive/`.
