@@ -24,30 +24,48 @@ include { AnalyzeJOSSCriteria } from './modules/AnalyzeJOSSCriteria'
 include { AIAnalysis } from './modules/AIAnalysis'
 include { TestExecutor } from './modules/TestExecutor'
 
-workflow {
-    // Load environment variables from .env file if it exists
-    def loadEnvFile = { envFile ->
-        if (file(envFile).exists()) {
-            file(envFile).readLines().each { line ->
-                if (line != null && line.toString().trim() != '' && !line.toString().startsWith('#')) {
-                    def parts = line.toString().split('=')
-                    if (parts.size() == 2) {
-                        System.setProperty(parts[0].trim(), parts[1].trim())
-                    }
+// Load environment variables from a .env file if it exists
+def loadEnvFile(envFile) {
+    if (file(envFile).exists()) {
+        file(envFile).readLines().each { line ->
+            if (line != null && line.toString().trim() != '' && !line.toString().startsWith('#')) {
+                def parts = line.toString().split('=')
+                if (parts.size() == 2) {
+                    System.setProperty(parts[0].trim(), parts[1].trim())
                 }
             }
         }
     }
+}
 
+// Safely check boolean parameters (handles both boolean and string types)
+def isTrue(param) {
+    if (param == null) return false
+    def str = param.toString().trim().toLowerCase()
+    return str == 'true' || str == '1' || (param instanceof Boolean && param == true)
+}
+
+// Validate repository URL format (accept http or https; GitHub redirects http to https)
+def validateRepoUrl(url) {
+    if (url == null || url.toString().trim() == '') return false
+    def validUrlPattern = ~/^https?:\/\/github\.com\/[^\/]+\/[^\/]+\.git$/
+    return url.toString() ==~ validUrlPattern
+}
+
+// Extract repository name from URL
+def getRepoName(url) {
+    def urlStr
+    if (url instanceof List) {
+        urlStr = url[0]
+    } else {
+        urlStr = url
+    }
+    return urlStr.toString().tokenize('/')[-1].replace('.git','')
+}
+
+workflow {
     // Load .env file
     loadEnvFile('.env')
-
-    // Helper function to safely check boolean parameters (handles both boolean and string types)
-    def isTrue = { param ->
-        if (param == null) return false
-        def str = param.toString().trim().toLowerCase()
-        return str == 'true' || str == '1' || (param instanceof Boolean && param == true)
-    }
 
     // Parameter validation
     if ((params.repo_url == null || params.repo_url.toString().trim() == '') && 
@@ -55,32 +73,15 @@ workflow {
         throw new IllegalArgumentException("ERROR: Provide either a sample_sheet or repo_url parameter")
     }
 
-    // Validate repository URL format (accept http or https; GitHub redirects http to https)
-    def validateRepoUrl = { url ->
-        if (url == null || url.toString().trim() == '') return false
-        def validUrlPattern = ~/^https?:\/\/github\.com\/[^\/]+\/[^\/]+\.git$/
-        return url.toString() ==~ validUrlPattern
-    }
-
-    // Extract repository name from URL
-    def getRepoName = { url ->
-        def urlStr
-        if (url instanceof List) {
-            urlStr = url[0]
-        } else {
-            urlStr = url
-        }
-        return urlStr.toString().tokenize('/')[-1].replace('.git','')
-    }
-
     // Create a channel of repo URLs. For a sample sheet, splitCsv(header: true)
     // consumes the header row and reads the repo_url column by name, so extra
-    // columns (e.g. description) and column order don't matter.
+    // columns (e.g. description) and column order don't matter. A missing or
+    // empty repo_url becomes '' and is rejected by validateRepoUrl below, so a
+    // sheet without a repo_url column fails clearly rather than silently.
     if (params.sample_sheet != null && params.sample_sheet.toString().trim() != '') {
         Channel.fromPath(params.sample_sheet)
             .splitCsv(header: true)
-            .map { row -> row.repo_url?.trim() }
-            .filter { it }
+            .map { row -> (row.repo_url ?: '').toString().trim() }
             .set { repo_urls }
     } else {
         Channel.of(params.repo_url).set { repo_urls }
