@@ -50,7 +50,6 @@ flowchart TD
     dp["<b>data_processing/</b><br/>build feature table, add literature signals, merge, weight, verify"]
     md["<b>modeling/</b><br/>gradient-boosting + SHAP (adoption predictors), domain analysis"]
     vis["<b>visualization/</b><br/>manuscript figures"]
-    rr(["review-response analyses live separately in ../review_response/"])
 
     dc --> cct --> dp --> md --> vis
 ```
@@ -66,7 +65,6 @@ flowchart TD
 | Figure 6 (longitudinal evolution, grading) | `visualization/benchmark_analysis.py` |
 | Section 4.2 domain ANOVA + residuals | `modeling/stars_domain_analysis.py`, `data_processing/apply_logistic_weights_and_domain_anova.py`, `modeling/weighted_scores_statistical_analysis.py` |
 | Score distributions (supplementary) | `visualization/plot_almanack_score_distributions.py` |
-| Review-response analyses (supplementary) | `../review_response/` (separate top-level folder) |
 
 ## Reproducing the headline results
 
@@ -85,11 +83,6 @@ uv run --project analysis python analysis/visualization/generate_results_figures
 ```
 
 Outputs land in `data/final_results/` (tables) and `docs/manuscript_drafts/figures/` (figures).
-
-## Review-response analyses
-
-Analyses added in response to peer review live in the separate top-level `review_response/` folder, kept apart from the main manuscript pipeline.
-See [../review_response/README.md](../review_response/README.md).
 
 ## Notes
 
