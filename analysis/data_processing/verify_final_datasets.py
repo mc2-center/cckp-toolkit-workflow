@@ -47,11 +47,12 @@ def verify_datasets():
     for domain, count in domain_counts.items():
         print(f"    {domain:20s} {count:6,} ({100*count/len(full):5.1f}%)")
 
-    print(f"\nStars and mentions:")
-    print(f"  With star counts: {full['repo_stargazers_count'].notna().sum():,}")
-    print(f"  With >0 stars: {(full['repo_stargazers_count'] > 0).sum():,}")
-    print(f"  With mention counts: {full['repo_software_mentions_count'].notna().sum():,}")
-    print(f"  With >0 mentions: {(full['repo_software_mentions_count'] > 0).sum():,}")
+    print(f"""
+Stars and mentions:
+  With star counts: {full['repo_stargazers_count'].notna().sum():,}
+  With >0 stars: {(full['repo_stargazers_count'] > 0).sum():,}
+  With mention counts: {full['repo_software_mentions_count'].notna().sum():,}
+  With >0 mentions: {(full['repo_software_mentions_count'] > 0).sum():,}""")
 
     print(f"\nKey sustainability signals:")
     bool_signals = [
