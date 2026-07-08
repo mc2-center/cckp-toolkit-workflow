@@ -13,7 +13,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r analysis/requirements.txt
 ```
 
-All scripts are run **from the repository root** and use argparse with sensible defaults. Pass
+All code is processed **from the repository root** and use argparse with sensible defaults. Pass
 `--help` to any script to see its options.
 
 ## Data
