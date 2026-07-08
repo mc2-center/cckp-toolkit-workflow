@@ -37,7 +37,7 @@ process AnalyzeJOSSCriteria {
     
     # Create output directory if it doesn't exist (skip if S3 path)
     if [[ ! "${out_dir}" =~ ^s3:// ]]; then
-        mkdir -p "${out_dir}"
+    mkdir -p "${out_dir}"
     fi
     
     # Run JOSS analysis script with error handling
@@ -45,8 +45,10 @@ process AnalyzeJOSSCriteria {
         echo "JOSS analysis completed successfully" >&2
     else
         echo "JOSS analysis failed, but continuing due to errorStrategy 'ignore'" >&2
-        # Create empty report to prevent pipeline failure
-        echo '{"criteria": {}, "overall_score": 0, "error": "Analysis failed"}' > "joss_report_${repo_name}.json"
+        # Create empty report to prevent pipeline failure. overall_score is null
+        # (not 0) so downstream treats a failed analysis as missing rather than a
+        # legitimate zero score.
+        echo '{"criteria": {}, "overall_score": null, "error": "Analysis failed"}' > "joss_report_${repo_name}.json"
     fi
     """
 }
