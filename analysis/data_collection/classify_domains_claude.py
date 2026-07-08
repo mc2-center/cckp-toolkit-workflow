@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Classify tool domains using Claude (Anthropic API). Requires ANTHROPIC_API_KEY."""
+"""Classify tool domains using Claude (Anthropic API).
+
+Requires ANTHROPIC_API_KEY. GITHUB_TOKEN (or --github_token) is optional but
+recommended: without it, README fetches hit GitHub's ~60/hr public rate limit.
+"""
 
 import argparse
 import base64
