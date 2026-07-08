@@ -43,18 +43,16 @@ Everything needed for the figures is in the released tables.
 
 ## Pipeline (run order)
 
-```
-data_collection/      discover repos, link CZI/PubMed, classify domains
-       |
-   [ CCT Nextflow pipeline runs each repo -> Almanack + JOSS JSONs ]
-       |
-data_processing/      build feature table, add literature signals, merge, weight, verify
-       |
-modeling/             gradient-boosting + SHAP (adoption predictors), domain analysis
-       |
-visualization/        manuscript figures
+```mermaid
+flowchart TD
+    dc["<b>data_collection/</b><br/>discover repos, link CZI/PubMed, classify domains"]
+    cct[["CCT Nextflow pipeline runs each repo<br/>&rarr; Almanack + JOSS JSONs"]]
+    dp["<b>data_processing/</b><br/>build feature table, add literature signals, merge, weight, verify"]
+    md["<b>modeling/</b><br/>gradient-boosting + SHAP (adoption predictors), domain analysis"]
+    vis["<b>visualization/</b><br/>manuscript figures"]
+    rr(["review-response analyses live separately in ../review_response/"])
 
-(review-response analyses live separately in ../review_response/)
+    dc --> cct --> dp --> md --> vis
 ```
 
 ## Which script makes which figure / result
