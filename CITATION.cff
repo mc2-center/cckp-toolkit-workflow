@@ -32,9 +32,7 @@ version: 1.0.0
 date-released: 2026-06-05
 url: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
 repository-code: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
-# DOI placeholders. Uncomment and fill in each value as it is minted; the CFF
-# schema rejects non-DOI strings, so these stay commented rather than holding a
-# dummy value that would break GitHub's "Cite this repository" widget.
+# DOI placeholders. Uncomment and fill in each value as it is minted
 # doi: <journal article DOI, once published>
 # identifiers:
 #   - description: Journal article
