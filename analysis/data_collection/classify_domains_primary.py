@@ -56,10 +56,35 @@ Respond with ONLY the category name (e.g., "RNA-seq" or "Structural Biology"). D
 
 
 def normalize_tool_name(name: str) -> str:
+    """Fold a tool or repository name into a comparable key.
+
+    Lowercases and maps hyphens and spaces to underscores so that variants like
+    "Deep-Tools", "deep tools", and "deep_tools" all compare equal.
+
+    Args:
+        name: Tool or repository name.
+
+    Returns:
+        The normalized name.
+    """
     return name.lower().replace("-", "_").replace(" ", "_")
 
 
 def get_repo_url_from_csv(repos_csv: str, tool_name: str) -> Optional[str]:
+    """Look up a tool's repository URL in the repos CSV.
+
+    Matches on the last path segment of each `repo_url`, compared with
+    `normalize_tool_name`, so casing and separator differences do not matter.
+
+    Args:
+        repos_csv: Path to a CSV with a `repo_url` column.
+        tool_name: Tool name to look up.
+
+    Returns:
+        The matching repository URL, or None if there is no match. Also returns
+        None if the file is missing or unreadable, since read errors are
+        swallowed rather than raised.
+    """
     try:
         with open(repos_csv, "r") as f:
             reader = csv.DictReader(f)
@@ -76,6 +101,22 @@ def get_repo_url_from_csv(repos_csv: str, tool_name: str) -> Optional[str]:
 
 
 def fetch_readme_from_github(repo_url: str, github_token: Optional[str] = None) -> Optional[str]:
+    """Fetch a repository's README text from the GitHub API.
+
+    Tries the `/readme` endpoint first, then falls back to a few common README
+    filenames via the contents endpoint (which returns base64) if that 404s.
+
+    Args:
+        repo_url: Repository URL to parse owner and repo name from.
+        github_token: Optional token. Without one, requests are subject to
+            GitHub's ~60/hr unauthenticated rate limit.
+
+    Returns:
+        README text truncated to 8000 characters, or None if the URL cannot be
+        parsed, no README is found, or the request fails. Network and HTTP
+        errors are swallowed rather than raised, so None does not distinguish
+        "no README" from "request failed".
+    """
     parsed = urlparse(repo_url)
     path_parts = parsed.path.strip("/").split("/")
     if len(path_parts) < 2:
@@ -111,6 +152,23 @@ def extract_readme(
     repos_csv: str,
     github_token: Optional[str] = None,
 ) -> Optional[str]:
+    """Get a tool's README, preferring a local clone over the GitHub API.
+
+    Checks the pipeline results directory for an already-cloned copy first, and
+    only falls back to the network when no local README is present.
+
+    Args:
+        results_dir: Directory holding per-tool pipeline output. Skipped when
+            empty or ".".
+        tool_name: Tool whose README is wanted.
+        repos_csv: CSV used to resolve the tool to a repository URL for the
+            network fallback.
+        github_token: Optional GitHub token, passed to the fallback fetch.
+
+    Returns:
+        README text truncated to 8000 characters, or None if neither the local
+        clone nor the API yields one.
+    """
     if results_dir and results_dir != ".":
         results_path = Path(results_dir)
         for tool_dir in [results_path / tool_name, results_path / f"{tool_name}_repo"]:
@@ -134,6 +192,25 @@ def classify_with_claude(
     api_key: str,
     model: str = "claude-sonnet-4-6",
 ) -> Optional[str]:
+    """Classify a tool into one domain category using the Anthropic API.
+
+    The reply is matched against `DOMAIN_CATEGORIES` exactly, then by
+    case-insensitive substring, before falling back to "Other".
+
+    Args:
+        readme_content: README text for the tool; truncated to 6000 characters.
+        tool_name: Tool name, included in the prompt.
+        api_key: Anthropic API key.
+        model: Model to call.
+
+    Returns:
+        One of `DOMAIN_CATEGORIES`. Returns "Other" when the reply matches no
+        category, so an off-target reply is indistinguishable from a genuine
+        "Other" classification.
+
+    Raises:
+        SystemExit: If the `anthropic` package is not installed.
+    """
     try:
         from anthropic import Anthropic
     except ImportError:
@@ -168,6 +245,14 @@ def classify_with_claude(
 
 
 def main():
+    """Classify every tool in the aggregated CSV and write the labelled table.
+
+    Reads the aggregated CSV, resolves each tool's README, classifies it, and
+    writes the result back out with a `domain` column. Progress is checkpointed
+    to the output path every `--batch_size` tools so a long run can be
+    interrupted without losing everything. Requires ANTHROPIC_API_KEY; exits if
+    it is unset.
+    """
     parser = argparse.ArgumentParser(description="Classify tool domains with Claude")
     parser.add_argument("--aggregated_csv", required=True)
     parser.add_argument("--repos_csv", required=True)
