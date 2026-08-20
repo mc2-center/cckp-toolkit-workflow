@@ -1,7 +1,7 @@
-# Analysis code: "Mapping the Garden"
+# Analysis code
 
-Reproducible analysis for the manuscript *Mapping the Garden: Software Sustainability as a Correlate of Scientific Impact Across Computational Biology Ecosystems*.
-This analysis uses the per-repository measurements produced by the Cancer Complexity Toolkit (CCT) Nextflow pipeline (in the repository root) and produce the statistics and figures in the paper.
+Reproducible analysis for the accompanying manuscript.
+It consumes the per-repository measurements produced by the Cancer Complexity Toolkit (CCT) Nextflow pipeline (in the repository root) and produces the statistics and figures in the paper.
 
 ## Setup
 
@@ -26,7 +26,8 @@ Pass `--help` to any script to see its options.
 
 The code reads from and writes to `data/final_results/`.
 That directory is intentionally **ignored** (it holds large derived data).
-Ignored data is released separately with the manuscript (see the Data and Code Availability section of the paper for the DOI).
+Ignored data is released separately with the manuscript.
+Once the archive is deposited, its DOI is recorded in the repository's `CITATION.cff` (under `references:`) and in the Data and Code Availability section of the paper.
 To reproduce, download the released data bundle and place it at `data/final_results/` so the default paths resolve.
 Key files:
 
