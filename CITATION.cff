@@ -32,6 +32,20 @@ version: 1.0.0
 date-released: 2026-06-05
 url: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
 repository-code: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
+# DOI placeholders. Uncomment and fill in each value as it is minted; the CFF
+# schema rejects non-DOI strings, so these stay commented rather than holding a
+# dummy value that would break GitHub's "Cite this repository" widget.
+# doi: <journal article DOI, once published>
+# identifiers:
+#   - description: Journal article
+#     type: doi
+#     value: "<10.xxxx/xxxxx>"
+#   - description: Preprint
+#     type: doi
+#     value: "<10.xxxx/xxxxx>"
+#   - description: Zenodo software/analysis DOI
+#     type: doi
+#     value: "<10.5281/zenodo.xxxxxxx>"
 keywords:
   - software sustainability
   - research software
@@ -39,3 +53,12 @@ keywords:
   - computational biology
   - cancer research
 license: MIT
+# references:
+#   # Released data archive backing the analysis. Uncomment and fill in the DOI once
+#   # the deposit is made; the CFF schema rejects non-DOI strings, so it stays
+#   # commented rather than holding a dummy value.
+#   - type: dataset
+#     title: "Data archive for the Cancer Complexity Toolkit sustainability analysis"
+#     authors:
+#       - name: "The authors of this work"
+#     doi: "<10.5281/zenodo.xxxxxxx>"
