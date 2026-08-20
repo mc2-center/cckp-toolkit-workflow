@@ -1,0 +1,62 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: "Gopalan"
+    given-names: "Aditi"
+    affiliation: "Sage Bionetworks"
+    email: "aditi.gopalan@sagebase.org"
+    orcid: "https://orcid.org/0009-0006-5886-4639"
+  - family-names: "Bunten"
+    given-names: "Dave"
+    affiliation: "University of Colorado Anschutz"
+    orcid: "https://orcid.org/0000-0001-6041-3665"
+  - family-names: "Taylor"
+    given-names: "Adam"
+    affiliation: "Sage Bionetworks"
+    orcid: "https://orcid.org/0000-0003-0501-8886"
+  - family-names: "Varma"
+    given-names: "Susheel"
+    affiliation: "Sage Bionetworks"
+    orcid: "https://orcid.org/0000-0003-1687-2754"
+  - family-names: "Way"
+    given-names: "Gregory P."
+    affiliation: "University of Colorado Anschutz"
+    orcid: "https://orcid.org/0000-0002-0503-9348"
+  - family-names: "Banerjee"
+    given-names: "Jineta"
+    affiliation: "Sage Bionetworks"
+    orcid: "https://orcid.org/0000-0002-1775-3645"
+title: "Cancer Complexity Toolkit: Software Sustainability as a Driver of Scientific Impact"
+version: 1.0.0
+date-released: 2026-06-05
+url: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
+repository-code: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
+# DOI placeholders. Uncomment and fill in each value as it is minted
+# doi: <journal article DOI, once published>
+# identifiers:
+#   - description: Journal article
+#     type: doi
+#     value: "<10.xxxx/xxxxx>"
+#   - description: Preprint
+#     type: doi
+#     value: "<10.xxxx/xxxxx>"
+#   - description: Zenodo software/analysis DOI
+#     type: doi
+#     value: "<10.5281/zenodo.xxxxxxx>"
+keywords:
+  - software sustainability
+  - research software
+  - reproducibility
+  - computational biology
+  - cancer research
+license: MIT
+# references:
+#   # Released data archive backing the analysis. Uncomment and fill in the DOI once
+#   # the deposit is made; the CFF schema rejects non-DOI strings, so it stays
+#   # commented rather than holding a dummy value.
+#   - type: dataset
+#     title: "Data archive for the Cancer Complexity Toolkit sustainability analysis"
+#     authors:
+#       - name: "The authors of this work"
+#     doi: "<10.5281/zenodo.xxxxxxx>"

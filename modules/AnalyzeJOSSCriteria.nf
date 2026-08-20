@@ -14,8 +14,10 @@ nextflow.enable.dsl = 2
 process AnalyzeJOSSCriteria {
     tag "${repo_name}"
     label 'joss'
-    container 'python:3.8'
+    container 'python:3.11'
     errorStrategy 'ignore'
+    maxRetries 2
+    time '30m'
     publishDir "${params.output_dir}", mode: 'copy', pattern: '*.json'
     
     input:
@@ -27,16 +29,27 @@ process AnalyzeJOSSCriteria {
     script:
     """
     #!/bin/bash
-    set -euxo pipefail
+    set -euo pipefail
     echo "Analyzing JOSS criteria for: ${repo_name}" >&2
     echo "Repository URL: ${repo_url}" >&2
     echo "Repository directory: ${repo_dir}" >&2
     echo "Almanack results file: ${almanack_results}" >&2
-    # Create output directory if it doesn't exist
-    mkdir -p "${out_dir}"
     
-    # Run JOSS analysis script
-    analyze_joss.py "${repo_name}" "${almanack_results}" "${test_results}" "${repo_dir}"
+    # Create output directory if it doesn't exist (skip if S3 path)
+    if [[ ! "${out_dir}" =~ ^s3:// ]]; then
+    mkdir -p "${out_dir}"
+    fi
+    
+    # Run JOSS analysis script with error handling
+    if analyze_joss.py "${repo_name}" "${almanack_results}" "${test_results}" "${repo_dir}"; then
+        echo "JOSS analysis completed successfully" >&2
+    else
+        echo "JOSS analysis failed, but continuing due to errorStrategy 'ignore'" >&2
+        # Create empty report to prevent pipeline failure. overall_score is null
+        # (not 0) so downstream treats a failed analysis as missing rather than a
+        # legitimate zero score.
+        echo '{"criteria": {}, "overall_score": null, "error": "Analysis failed"}' > "joss_report_${repo_name}.json"
+    fi
     """
 }
 

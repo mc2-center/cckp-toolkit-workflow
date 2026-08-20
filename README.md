@@ -133,7 +133,7 @@ The workflow generates several output files in the `results` directory:
 ## Development Status
 
 > [!WARNING]
-> The AI Analysis component is currently in beta. Results may vary and the interface is subject to change.
+> The AI Analysis and Test Executor components are currently in beta. Results may vary and the interface is subject to change.
 
 > [!IMPORTANT]
 > Synapse integration requires proper authentication and permissions setup.
@@ -147,6 +147,26 @@ The workflow generates several output files in the `results` directory:
 | [arjunrajlaboratory/memSeqASEanalysis](https://github.com/arjunrajlaboratory/memSeqASEanalysis) | memSeq ASE Analysis | Fails dependency and test checks |
 
 ## Configuration
+
+### Seqera Platform (Nextflow Tower)
+
+Large runs are launched on the [Seqera Platform](https://seqera.io/platform/) (formerly
+Nextflow Tower), a hosted service for launching, monitoring, and logging Nextflow runs
+without managing the compute yourself. Sage's instance is at `tower.sagebionetworks.org`.
+
+Two things in this repository exist only for that path:
+
+- The `tower` profile in `nextflow.config` switches the executor to AWS Batch and points
+  the work and output directories at S3 instead of the local filesystem.
+- `tower_params.json` is the params file handed to the platform at launch. It sets
+  `output_dir` to an S3 prefix and `sample_sheet` to a dataset URL served by the platform.
+
+```bash
+nextflow run main.nf -profile tower -params-file tower_params.json
+```
+
+Neither is needed to run the workflow locally; the commands under
+[Running the Workflow](#running-the-workflow) use the default local executor.
 
 ### Synapse Configuration
 

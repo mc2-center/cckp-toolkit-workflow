@@ -1,0 +1,36 @@
+[project]
+name = "mapping-the-garden-analysis"
+version = "0.1.0"
+description = "Reproducible analysis for the manuscript \"Mapping the Garden: Software Sustainability as a Correlate of Scientific Impact Across Computational Biology Ecosystems\""
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+
+# Core: modeling, statistics, figures (needed to reproduce Figures 3-6).
+# numpy is capped below 2.2 so it stays within the range supported by the
+# numba build that shap depends on (newer numpy forces numba down to an
+# ancient, py<3.10-only release).
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=1.26,<2.2",
+    "scipy>=1.11",
+    "scikit-learn>=1.3",
+    "shap>=0.44",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+]
+
+[project.optional-dependencies]
+# Data collection / processing and domain classification: only needed to
+# rebuild inputs from scratch, not to reproduce the figures from the released
+# data bundle.
+data-collection = [
+    "requests>=2.31",      # GitHub API (repo discovery, README fetch)
+    "boto3>=1.34",         # S3 access for prepare_joss_rerun.py and classify_domains_other.py (Bedrock)
+    "duckdb>=0.10",        # reading the CZI Software Mentions parquet
+    "anthropic>=0.40",     # classify_domains_primary.py, primary domain classifier (ANTHROPIC_API_KEY)
+    "python-dotenv>=1.0",  # load API keys from a .env file (see .env.template)
+]
+
+[tool.uv]
+# This is a collection of analysis scripts, not an installable package.
+package = false

@@ -4,5 +4,47 @@ work/
 .nextflow.log*
 results/
 .nf-test/
-tests/
 .DS_Store
+
+# analysis outputs
+benchmark_results_aggregated_output/
+archive/
+aggregated_results/
+ml_stars/
+benchmark_analysis_combined/
+weighted_almanack/
+weighted_almanack_unweighted_no_other/
+statistical_analysis_llm_classified/
+plots/
+
+# external dataset raw downloads (kept out of git; regenerable)
+data/
+aggregated_results_new/
+new_aggregated_output/
+combined_datasets/
+
+# Job exports and temp files
+Job-*.csv
+*.parquet
+
+# Secrets (keep .env out of git; .env.template is committed)
+.env
+
+# OS and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Large data files
+*.csv.gz
+*.json.gz
+*.tar.gz
