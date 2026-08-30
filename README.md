@@ -25,10 +25,9 @@ The Cancer Complexity Toolkit Workflow is a scalable infrastructure framework to
 ## Requirements
 
 ### Core Dependencies
-- **Nextflow** (version 24.04.3 or later): Install from [Nextflow's official website]. Install instructions below (https://www.nextflow.io/).
+- **Nextflow** (version 24.04.3 or later): Install from [Nextflow's official website]. Please see the [installation instructions](https://www.nextflow.io/docs/latest/install.html).
 - **Docker** (required for containerized execution): Install from [Docker's official website](https://www.docker.com/get-started).
-- **Python 3.8+**: Install from [Python's official website](https://www.python.org/downloads/).
-- **Git**
+- **Git** : use your system's installation of `git` or follow the [instruction details here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
 
 > [!IMPORTANT]
 > Docker is required to run this workflow. The toolkit uses containerized processes to ensure consistent execution environments across different systems.
@@ -39,19 +38,12 @@ For Synapse integration:
 - Synapse authentication token
 - Synapse configuration file
 
-## Installation
+## Configuration
 
-1. **Install Nextflow**
-```bash
-curl -s https://get.nextflow.io | bash
-```
+Please ensure you have installed the [requirements](#requirements).
+Once the requirements have been installed we suggest configuring the system as found below.
 
-2. **Install Python Dependencies**
-```bash
-pip install -r requirements.txt
-```
-
-3. **Configure Synapse** (Optional)
+1. **Configure Synapse** (Optional)
 ```bash
 # Create Synapse config file
 mkdir -p ~/.synapse
