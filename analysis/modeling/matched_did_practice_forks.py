@@ -106,6 +106,10 @@ SEED = 42
 # Validated pair: green against purple, distinguishable under protanopia and deuteranopia
 # (OKLab delta-E 17.4). The grey used previously falls below the chroma floor.
 TREATED, CONTROL = "#1b7837", "#7b3294"
+# Third series for the forest plot, where a second estimate sits beside the first. Blue
+# against the green survives protanopia and deuteranopia, and the marker shape differs too,
+# so the distinction does not rest on hue alone.
+JUMP = "#2166ac"
 
 rcParams["font.family"] = "sans-serif"
 rcParams["font.sans-serif"] = ["Helvetica", "Arial", "DejaVu Sans"]
@@ -767,43 +771,99 @@ def cross_practice_outputs(results, args):
     print("\n" + report)
     (out_dir / "matched_did_all_practices_summary.txt").write_text(report + "\n")
 
-    # Forest plot, ordered by effect size.
-    order = table.iloc[::-1]
-    fig, ax = plt.subplots(figsize=(7.2, 0.52 * len(order) + 1.5), dpi=600)
-    y = np.arange(len(order))
-    # A filled marker means the pre-event gap was flat, so the estimate is a difference in
-    # differences. An open marker means it was already rising, so the estimate absorbs part of
-    # an existing trajectory and should be read alongside the trend-adjusted jump.
+    # Forest plot, ordered by effect size. Two estimates per practice rather than one, with
+    # the diagnostics as text columns: the mean difference in differences is only the whole
+    # story where the pre-event gap was flat and no single repository dominates the mean, and
+    # both of those conditions fail for some practices. Putting the estimates and the caveats
+    # in one figure means a reader cannot take a point estimate without its qualification.
+    order = table.iloc[::-1].reset_index(drop=True)
+    n_rows = len(order)
+    # Laid out in inches rather than fractions, so adding or dropping a practice changes the
+    # figure height and leaves row spacing, title margin and footer margin untouched.
+    row_in, top_in, bottom_in = 0.62, 0.55, 1.30
+    # The legend and the footnote share a baseline this far below the axes, in
+    # inches, so neither drifts when the number of practices changes.
+    footer_in = 0.62
+    fig_h = row_in * n_rows + top_in + bottom_in
+    fig = plt.figure(figsize=(12.2, fig_h), dpi=600)
+    # The axes occupy a middle band; the label column sits left of it and the numeric columns
+    # right of it, both drawn in axes coordinates so they track the axes on resize.
+    ax = fig.add_axes([0.245, bottom_in / fig_h, 0.335, row_in * n_rows / fig_h])
+    y = np.arange(n_rows)
+
     for k, row in enumerate(order.itertuples()):
-        ax.errorbar(row.did, k,
+        # Circle: the mean difference in differences. Filled where the pre-event gap was flat,
+        # open where it was already rising and the estimate absorbs part of that trajectory.
+        ax.errorbar(row.did, k + 0.17,
                     xerr=[[row.did - row.did_lo], [row.did_hi - row.did]],
-                    fmt="o", color=TREATED, ecolor=TREATED, elinewidth=1.4, capsize=3,
+                    fmt="o", color=TREATED, ecolor=TREATED, elinewidth=1.4, capsize=2.5,
                     markersize=6, zorder=3,
                     markerfacecolor=TREATED if row.parallel_trends else "white",
                     markeredgecolor=TREATED, markeredgewidth=1.4)
+        # Diamond: the jump at the adoption month net of the fitted pre-event trend, which is
+        # the quantity that still means something when the gap was not flat.
+        ax.errorbar(row.jump, k - 0.17,
+                    xerr=[[max(row.jump - row.jump_lo, 0)], [max(row.jump_hi - row.jump, 0)]],
+                    fmt="D", color=JUMP, ecolor=JUMP, elinewidth=1.2, capsize=2.5,
+                    markersize=5, zorder=3)
+        if k:
+            ax.axhline(k - 0.5, color="0.9", linewidth=0.6, zorder=0)
+
     ax.axvline(0, color="#444444", linewidth=0.9, linestyle="--", zorder=1)
     ax.set_yticks(y)
-    ax.set_yticklabels([f"{r.label}\n(n = {r.n_treated:,})" for r in order.itertuples()],
-                       fontsize=FS_LABEL)
-    ax.set_ylim(-0.6, len(order) - 0.4)
-    ax.set_xlabel("Difference in differences, forks per month", fontsize=FS_AXIS)
-    ax.set_title("Fork accrual after adopting a sustainability practice,\nagainst matched "
-                 "never-adopting controls", fontsize=FS_TITLE, loc="left")
-    handles = [
-        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor=TREATED, linestyle="",
-                   markersize=6, label="pre-event trend flat (parallel trends hold)"),
-        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor="white",
-                   markeredgewidth=1.4, linestyle="", markersize=6,
-                   label="pre-event gap already rising"),
-    ]
-    # Below the axis rather than inside it: the widest interval reaches the right edge, so
-    # there is no corner an inset legend can occupy without overlapping a row.
-    ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=2,
-              fontsize=FS_LABEL - 0.5, frameon=False)
-    ax.tick_params(labelsize=FS_TICK)
+    ax.set_yticklabels([])
+    ax.set_ylim(-0.6, n_rows - 0.4)
+    ax.set_xlabel("Forks per month, treated minus matched controls", fontsize=FS_AXIS)
+    ax.tick_params(labelsize=FS_TICK, left=False)
     ax.grid(axis="x", linestyle="--", alpha=0.3, linewidth=0.5)
     for spine in ("top", "right", "left"):
         ax.spines[spine].set_visible(False)
+
+    # x in axes fraction, y in data coordinates, so a column keeps its place against the rows.
+    blend = ax.get_yaxis_transform()
+    header_y = n_rows - 0.42
+
+    def column(x, header, value_of, align="center"):
+        ax.text(x, header_y, header, transform=blend, ha=align, va="bottom",
+                fontsize=FS_LABEL - 0.5, fontweight="bold")
+        for k, row in enumerate(order.itertuples()):
+            ax.text(x, k, value_of(row), transform=blend, ha=align, va="center",
+                    fontsize=FS_LABEL - 0.5)
+
+    column(-0.045, "Practice", lambda r: f"{r.label}\n(n = {r.n_treated:,})", align="right")
+    column(1.05, "Median", lambda r: f"{r.did_median:+.3f}")
+    column(1.21, "% up", lambda r: f"{100 * r.share_positive:.0f}%")
+    column(1.37, "p", lambda r: f"{r.did_p:.1g}")
+    column(1.60, "Pre-event\ntrend",
+           lambda r: "flat" if r.parallel_trends else "rising")
+    column(1.86, "Mean from\ntop repo", lambda r: f"{100 * r.top_share:.0f}%")
+
+    handles = [
+        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor=TREATED, linestyle="",
+                   markersize=6, label="mean DiD, pre-event trend flat"),
+        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor="white",
+                   markeredgewidth=1.4, linestyle="", markersize=6,
+                   label="mean DiD, pre-event gap already rising"),
+        plt.Line2D([], [], marker="D", color=JUMP, linestyle="", markersize=5,
+                   label="jump at adoption, net of the pre-event trend"),
+    ]
+    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(-0.34, -footer_in / (row_in * n_rows)),
+              ncol=1, fontsize=FS_LABEL - 0.5, frameon=False, handletextpad=0.6)
+
+    fig.suptitle("Fork accrual after adopting a sustainability practice, against matched "
+                 "never-adopting controls", fontsize=FS_TITLE, x=0.02, ha="left",
+                 y=1 - 0.18 / fig_h)
+    fig.text(0.60, (bottom_in - footer_in) / fig_h,
+             "Bars are 95% intervals from 2,000 cluster bootstrap resamples of treated "
+             "repositories. Median is the per-repository median\nDiD and % up the share whose "
+             "DiD exceeds zero; both are unaffected by a single large project, unlike the "
+             "mean. p is a\nWilcoxon signed-rank test on the per-repository DiD. A rising "
+             "pre-event trend means the treated repositories were\nalready pulling ahead "
+             "before adopting, so their mean DiD absorbs part of that trajectory and the jump "
+             "is the\ndefensible estimate. Mean from top repo is the share of the mean "
+             "contributed by its single largest repository.",
+             ha="left", va="top", fontsize=6, color="#555555")
+
     for ext in ("png", "pdf"):
         fig.savefig(fig_dir / f"fig_did_forest.{ext}", dpi=600, bbox_inches="tight")
     plt.close(fig)
