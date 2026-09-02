@@ -41,21 +41,27 @@ eventually adopted, which matching cannot fix and which the Limitations should s
 
 WHICH PRACTICES CAN BE RUN, AND WHICH CANNOT
 
-A practice qualifies only if adoption is a dated act recoverable from git history. Five are:
-license, citability, contributing guidelines, a code of conduct, and common documentation.
-Three of the Toolkit's checks are not, and their absence is a real limit on the design rather
-than an omission:
+A practice qualifies only if adoption is a dated act recoverable from git history. Six are:
+a test suite, common documentation, contributing guidelines, a code of conduct, a license,
+and citability. Three of the Toolkit's checks are not, and their absence is a real limit on
+the design rather than an omission:
 
   repo_default_branch_not_master  renaming a branch leaves no commit, and the GitHub API
     exposes no rename history, so there is no date to anchor a window on
-  joss_score, almanack_score      composites over many checks, not single acts, so there is
+  almanack_score                  a composite over many checks, not a single act, so there is
     no moment of adoption
   repo_includes_readme            present at creation for 97% of the cohort, leaving almost
     no adopters to observe
 
-Two of these, JOSS compliance and the modern default branch, are among the strongest features
-in the sustainability model, so the timing evidence covers the practices it can date and is
-silent about those two.
+JOSS compliance is the strongest feature in the sustainability model and is likewise a
+composite with no moment of adoption, but unlike the Almanack score it decomposes into acts
+that can be dated. Four of its five criteria reduce to file presence, and this design dates
+the practices behind all four: Tests, which is the largest of the five once scored from static
+evidence, Installation Instructions and Example Usage, which are both decided by common
+documentation, and Community Guidelines, which is decided by the contributing file and the
+code of conduct. Only Statement of Need is out of reach, being README presence. So the
+cross-practice figure is also a decomposition of JOSS compliance, and it is ordered by how
+much of the variance in the JOSS score each criterion accounts for.
 
 A caveat that applies to every practice: repositories tend to add several artifacts in one
 housekeeping push, so each estimate is the effect of adopting that practice together with
@@ -70,6 +76,7 @@ import argparse
 import ast
 import json
 import warnings
+from functools import lru_cache
 from pathlib import Path
 
 import matplotlib
@@ -125,44 +132,42 @@ warnings.filterwarnings("ignore", message="Mean of empty slice")
 
 REV = "data/final_results/revision"
 
+# The JOSS score is the mean of five criteria, and each practice below either determines one
+# of them or is not scored by the composite at all. The mapping is structural, read off
+# bin/analyze_joss.py: Community Guidelines is decided by the contributing file and the code
+# of conduct together, and Installation Instructions and Example Usage are both gated on
+# `has_readme and has_docs`, which makes them identical on all 10,217 scored repositories and
+# gives common documentation two of the five criteria by itself. Statement of Need is decided
+# by README presence, which is not a datable act. Neither the license nor citability is one of
+# the five, though an OSI-approved license is a JOSS submission requirement, so the composite
+# is silent about the two practices whose timing evidence is cleanest.
+JOSS_CRITERIA = {
+    # In this table joss_tests_score is already the statically scored criterion; the
+    # execution-based one it replaced is kept alongside as joss_tests_score_execution.
+    "tests": ["joss_tests_score"],
+    "installation_and_usage": ["joss_installation_instructions_score",
+                               "joss_example_usage_score"],
+    "community_guidelines": ["joss_community_guidelines_score"],
+    "statement_of_need": ["joss_statement_of_need_score"],
+}
+JOSS_TABLE = "data/final_results/combined_almanack_joss_static_tests.csv"
+JOSS_SCORE = "joss_score_static_tests"
+
 # Each practice needs the check column that defines its control pool, and a dated event
 # series. The three documentation practices share one file, since one clone dated all three.
 PRACTICES = {
-    "license": {
-        "check": "repo_includes_license",
-        "events": f"{REV}/event_study_results_license.csv",
-        "field": "t0",
-        "label": "license",
-        "event": "license addition",
-        "treated": "added a license",
-        "control": "matched never-licensed controls",
-    },
-    "citability": {
-        "check": "repo_is_citable",
-        "events": f"{REV}/citability_events.jsonl",
-        "field": "citable_add",
-        "label": "citability",
-        "event": "becoming citable",
-        "treated": "became citable",
-        "control": "matched never-citable controls",
-    },
-    "contributing": {
-        "check": "repo_includes_contributing",
-        "events": f"{REV}/docs_events.jsonl",
-        "field": "contributing_add",
-        "label": "contributing guidelines",
-        "event": "contributing guidelines",
-        "treated": "added contributing guidelines",
+    "tests": {
+        "check": "has_tests",
+        # has_tests is scored by detect_test_evidence.py rather than by the Almanack, so the
+        # column comes from that table rather than from the metrics table.
+        "check_from": "data/final_results/test_evidence_static.csv",
+        "events": f"{REV}/test_events.jsonl",
+        "field": "tests_add",
+        "label": "test suite",
+        "event": "test suite",
+        "treated": "added a test suite",
         "control": "matched controls with none",
-    },
-    "code_of_conduct": {
-        "check": "repo_includes_code_of_conduct",
-        "events": f"{REV}/docs_events.jsonl",
-        "field": "code_of_conduct_add",
-        "label": "code of conduct",
-        "event": "code of conduct",
-        "treated": "added a code of conduct",
-        "control": "matched controls with none",
+        "joss_criterion": "tests",
     },
     "common_docs": {
         "check": "repo_includes_common_docs",
@@ -172,6 +177,47 @@ PRACTICES = {
         "event": "documentation site",
         "treated": "added a documentation site",
         "control": "matched controls with none",
+        "joss_criterion": "installation_and_usage",
+    },
+    "contributing": {
+        "check": "repo_includes_contributing",
+        "events": f"{REV}/docs_events.jsonl",
+        "field": "contributing_add",
+        "label": "contributing guidelines",
+        "event": "contributing guidelines",
+        "treated": "added contributing guidelines",
+        "control": "matched controls with none",
+        "joss_criterion": "community_guidelines",
+    },
+    "code_of_conduct": {
+        "check": "repo_includes_code_of_conduct",
+        "events": f"{REV}/docs_events.jsonl",
+        "field": "code_of_conduct_add",
+        "label": "code of conduct",
+        "event": "code of conduct",
+        "treated": "added a code of conduct",
+        "control": "matched controls with none",
+        "joss_criterion": "community_guidelines",
+    },
+    "license": {
+        "check": "repo_includes_license",
+        "events": f"{REV}/event_study_results_license.csv",
+        "field": "t0",
+        "label": "license",
+        "event": "license addition",
+        "treated": "added a license",
+        "control": "matched never-licensed controls",
+        "joss_criterion": None,
+    },
+    "citability": {
+        "check": "repo_is_citable",
+        "events": f"{REV}/citability_events.jsonl",
+        "field": "citable_add",
+        "label": "citability",
+        "event": "becoming citable",
+        "treated": "became citable",
+        "control": "matched never-citable controls",
+        "joss_criterion": None,
     },
 }
 
@@ -218,7 +264,54 @@ def load_metrics(metrics_csv):
     metrics["birth"] = pd.to_datetime(
         metrics["repo_commit_time_range"].map(first_commit), utc=True, errors="coerce"
     )
+    # Practices whose check is scored outside the Almanack carry the table it comes from, so
+    # the check column is merged on rather than assumed present.
+    for spec in PRACTICES.values():
+        source = spec.get("check_from")
+        if not source or spec["check"] in metrics.columns:
+            continue
+        path = REPO_ROOT / source
+        if not path.exists():
+            continue
+        extra = pd.read_csv(path, low_memory=False)[["canonical_repo", spec["check"]]]
+        metrics = metrics.merge(extra.drop_duplicates("canonical_repo"),
+                                on="canonical_repo", how="left")
     return metrics
+
+
+@lru_cache(maxsize=1)
+def joss_weights():
+    """Each JOSS criterion's share of the variance in the JOSS score.
+
+    The composite is an unweighted mean of five criteria, but they do not contribute equally
+    to how it varies across the cohort: a criterion that is nearly constant moves the score
+    for nobody. The share reported is cov(criterion / 5, score) / var(score), which sums to
+    one across the five, so it says how much of the spread in JOSS compliance each criterion
+    is responsible for. This is what orders the forest plot: it puts the practices in the
+    order a reader asking "what drives the JOSS score" should meet them.
+
+    Computed from the table that scores Tests from static evidence, since the execution-based
+    Tests criterion was zero for 10,100 of 10,217 repositories and understated a criterion
+    that is in fact the largest of the five.
+    """
+    path = REPO_ROOT / JOSS_TABLE
+    if not path.exists():
+        return {}
+    columns = [c for group in JOSS_CRITERIA.values() for c in group]
+    frame = pd.read_csv(path, low_memory=False)
+    if JOSS_SCORE not in frame.columns or any(c not in frame.columns for c in columns):
+        return {}
+    frame = frame.dropna(subset=columns + [JOSS_SCORE])
+    score = frame[JOSS_SCORE].to_numpy(float)
+    total = np.var(score, ddof=1)
+    if not np.isfinite(total) or total == 0:
+        return {}
+    n_criteria = len(columns)
+    return {
+        name: float(sum(np.cov(frame[c].to_numpy(float) / n_criteria, score, ddof=1)[0, 1]
+                        for c in group) / total)
+        for name, group in JOSS_CRITERIA.items()
+    }
 
 
 def load_events(spec):
@@ -648,6 +741,8 @@ def run_practice(name, spec, metrics, fork_dates, args):
 
     meta = {
         "practice": name, "label": spec["label"],
+        "joss_criterion": spec.get("joss_criterion"),
+        "joss_share": joss_weights().get(spec.get("joss_criterion"), 0.0),
         "n_treated": len(frame), "n_pairs": int(np.sum(match_counts)),
         "n_distinct_controls": len(used),
         "treated_pre": frame.treated_pre.mean(), "control_pre": frame.control_pre.mean(),
@@ -721,20 +816,127 @@ def co_adoption(results, args):
     return frame
 
 
+# Width the annotated forest needs: the axis band is a third of it and the six text columns
+# take the rest, so a narrower figure overlaps the columns rather than shrinking them.
+FOREST_WIDTH_IN = 12.2
+
+FOREST_FOOTNOTE = (
+    "Practices are ordered by how much of the variance in the JOSS score their criterion "
+    "accounts for, since JOSS compliance is the\nstrongest predictor of adoption and is a "
+    "composite rather than a dated act. Neither the license nor citability is one of the "
+    "five\nJOSS criteria, though a license is a submission requirement. Bars are 95% "
+    "intervals from 2,000 cluster bootstrap resamples of\ntreated repositories. Median is the "
+    "per-repository median DiD and % up the share whose DiD exceeds zero; both are unaffected "
+    "by\na single large project, unlike the mean. p is a Wilcoxon signed-rank test on the "
+    "per-repository DiD. A rising pre-event trend means\nthe treated repositories were already "
+    "pulling ahead before adopting, so their mean DiD absorbs part of that trajectory and "
+    "the\njump is the defensible estimate. Mean from top repo is the share of the mean "
+    "contributed by its single largest repository."
+)
+
+
+def draw_forest(ax, table, legend_y=-0.20):
+    """Draw the cross-practice forest into one axes, in axes-relative coordinates.
+
+    Two estimates per practice rather than one, with the diagnostics as text columns. The mean
+    difference in differences is only the whole story where the pre-event gap was flat and no
+    single repository dominates the mean, and both conditions fail for some practices, so
+    putting the estimates and their caveats in one figure keeps a reader from taking a point
+    estimate without its qualification.
+
+    Everything is positioned relative to the axes rather than the figure, so the same drawing
+    serves the standalone supplementary figure and panel b of Figure 3.
+    """
+    order = table.iloc[::-1].reset_index(drop=True)
+    n_rows = len(order)
+
+    for k, row in enumerate(order.itertuples()):
+        # Circle: the mean difference in differences. Filled where the pre-event gap was flat,
+        # open where it was already rising and the estimate absorbs part of that trajectory.
+        ax.errorbar(row.did, k + 0.17,
+                    xerr=[[row.did - row.did_lo], [row.did_hi - row.did]],
+                    fmt="o", color=TREATED, ecolor=TREATED, elinewidth=1.4, capsize=2.5,
+                    markersize=6, zorder=3,
+                    markerfacecolor=TREATED if row.parallel_trends else "white",
+                    markeredgecolor=TREATED, markeredgewidth=1.4)
+        # Diamond: the jump at the adoption month net of the fitted pre-event trend, which is
+        # the quantity that still means something when the gap was not flat.
+        ax.errorbar(row.jump, k - 0.17,
+                    xerr=[[max(row.jump - row.jump_lo, 0)], [max(row.jump_hi - row.jump, 0)]],
+                    fmt="D", color=JUMP, ecolor=JUMP, elinewidth=1.2, capsize=2.5,
+                    markersize=5, zorder=3)
+        if k:
+            ax.axhline(k - 0.5, color="0.9", linewidth=0.6, zorder=0)
+
+    ax.axvline(0, color="#444444", linewidth=0.9, linestyle="--", zorder=1)
+    ax.set_yticks(np.arange(n_rows))
+    ax.set_yticklabels([])
+    ax.set_ylim(-0.6, n_rows - 0.4)
+    ax.set_xlabel("Forks per month, treated minus matched controls", fontsize=FS_AXIS)
+    ax.tick_params(labelsize=FS_TICK, left=False)
+    ax.grid(axis="x", linestyle="--", alpha=0.3, linewidth=0.5)
+    for spine in ("top", "right", "left"):
+        ax.spines[spine].set_visible(False)
+
+    # x in axes fraction, y in data coordinates, so a column keeps its place against the rows.
+    blend = ax.get_yaxis_transform()
+    header_y = n_rows - 0.42
+
+    def column(x, header, value_of, align="center"):
+        ax.text(x, header_y, header, transform=blend, ha=align, va="bottom",
+                fontsize=FS_LABEL - 0.5, fontweight="bold")
+        for k, row in enumerate(order.itertuples()):
+            ax.text(x, k, value_of(row), transform=blend, ha=align, va="center",
+                    fontsize=FS_LABEL - 0.5)
+
+    def joss_cell(row):
+        # A practice the composite does not score is labelled as such rather than 0%, since
+        # zero weight and no criterion are different statements. Tested for a string rather
+        # than for truth: read back from CSV the missing criterion is NaN, which is truthy.
+        scored = isinstance(row.joss_criterion, str) and row.joss_criterion
+        return f"{100 * row.joss_share:.0f}%" if scored else "not scored"
+
+    column(-0.045, "Practice", lambda r: f"{r.label}\n(n = {r.n_treated:,})", align="right")
+    column(1.05, "Share of\nJOSS score", joss_cell)
+    column(1.28, "Median", lambda r: f"{r.did_median:+.3f}")
+    column(1.44, "% up", lambda r: f"{100 * r.share_positive:.0f}%")
+    column(1.58, "p", lambda r: f"{r.did_p:.1g}")
+    column(1.78, "Pre-event\ntrend", lambda r: "flat" if r.parallel_trends else "rising")
+    column(2.02, "Mean from\ntop repo", lambda r: f"{100 * r.top_share:.0f}%")
+
+    handles = [
+        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor=TREATED, linestyle="",
+                   markersize=6, label="mean DiD, pre-event trend flat"),
+        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor="white",
+                   markeredgewidth=1.4, linestyle="", markersize=6,
+                   label="mean DiD, pre-event gap already rising"),
+        plt.Line2D([], [], marker="D", color=JUMP, linestyle="", markersize=5,
+                   label="jump at adoption, net of the pre-event trend"),
+    ]
+    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(-0.34, legend_y),
+              ncol=1, fontsize=FS_LABEL - 0.5, frameon=False, handletextpad=0.6)
+
+
 def cross_practice_outputs(results, args):
     """Comparison table, forest plot and a grid of event-time panels."""
     out_dir = REPO_ROOT / args.out_dir
     fig_dir = REPO_ROOT / args.fig_dir
 
+    # Ordered by each practice's share of the variance in the JOSS score, then by effect size
+    # within a tie, so the two practices the composite does not score fall to the bottom
+    # together rather than being interleaved by effect size.
     table = pd.DataFrame([r["meta"] for r in results.values()]).sort_values(
-        "did", ascending=False)
+        ["joss_share", "did"], ascending=[False, False]).reset_index(drop=True)
     table.to_csv(out_dir / "matched_did_all_practices.csv", index=False)
 
     lines = ["MATCHED DIFFERENCE-IN-DIFFERENCES ACROSS SUSTAINABILITY PRACTICES", "",
-             f"{'practice':<24}{'n':>6}{'DiD':>9}{'95% CI':>20}{'median':>9}{'p':>11}"
-             f"{'>0':>7}{'pre-slope':>11}{'trends':>9}{'jump':>9}{'top':>6}"]
+             "Ordered by each practice's share of the variance in the JOSS score, the "
+             "strongest predictor of adoption.", "",
+             f"{'practice':<24}{'JOSS':>7}{'n':>6}{'DiD':>9}{'95% CI':>20}{'median':>9}"
+             f"{'p':>11}{'>0':>7}{'pre-slope':>11}{'trends':>9}{'jump':>9}{'top':>6}"]
     for row in table.itertuples():
-        lines.append(f"{row.label:<24}{row.n_treated:>6}{row.did:>+9.4f}"
+        share = f"{100 * row.joss_share:.0f}%" if isinstance(row.joss_criterion, str) else "n/a"
+        lines.append(f"{row.label:<24}{share:>7}{row.n_treated:>6}{row.did:>+9.4f}"
                      f"{f'[{row.did_lo:+.3f}, {row.did_hi:+.3f}]':>20}"
                      f"{row.did_median:>+9.4f}"
                      f"{row.did_p:>11.2g}{100 * row.share_positive:>6.0f}%"
@@ -742,6 +944,8 @@ def cross_practice_outputs(results, args):
                      f"{'flat' if row.parallel_trends else 'RISING':>9}"
                      f"{row.jump:>+9.4f}{100 * row.top_share:>5.0f}%")
     lines += ["",
+              "JOSS is the share of the variance in the JOSS score carried by the criterion "
+              "this practice decides; n/a means the composite does not score the practice.",
               "DiD is the treated change in forks per month minus the matched control change.",
               "pre-slope is the fitted trend in the treated-minus-control gap over the 12 "
               "pre-event months.",
@@ -771,97 +975,21 @@ def cross_practice_outputs(results, args):
     print("\n" + report)
     (out_dir / "matched_did_all_practices_summary.txt").write_text(report + "\n")
 
-    # Forest plot, ordered by effect size. Two estimates per practice rather than one, with
-    # the diagnostics as text columns: the mean difference in differences is only the whole
-    # story where the pre-event gap was flat and no single repository dominates the mean, and
-    # both of those conditions fail for some practices. Putting the estimates and the caveats
-    # in one figure means a reader cannot take a point estimate without its qualification.
-    order = table.iloc[::-1].reset_index(drop=True)
-    n_rows = len(order)
-    # Laid out in inches rather than fractions, so adding or dropping a practice changes the
-    # figure height and leaves row spacing, title margin and footer margin untouched.
-    row_in, top_in, bottom_in = 0.62, 0.55, 1.30
-    # The legend and the footnote share a baseline this far below the axes, in
-    # inches, so neither drifts when the number of practices changes.
-    footer_in = 0.62
+    # Forest plot. Laid out in inches rather than figure fractions, so adding or dropping a
+    # practice changes the figure height and leaves row spacing and the footer where they are.
+    n_rows = len(table)
+    row_in, top_in, bottom_in, footer_in = 0.62, 0.55, 1.30, 0.62
     fig_h = row_in * n_rows + top_in + bottom_in
-    fig = plt.figure(figsize=(12.2, fig_h), dpi=600)
+    fig = plt.figure(figsize=(FOREST_WIDTH_IN, fig_h), dpi=600)
     # The axes occupy a middle band; the label column sits left of it and the numeric columns
     # right of it, both drawn in axes coordinates so they track the axes on resize.
     ax = fig.add_axes([0.245, bottom_in / fig_h, 0.335, row_in * n_rows / fig_h])
-    y = np.arange(n_rows)
-
-    for k, row in enumerate(order.itertuples()):
-        # Circle: the mean difference in differences. Filled where the pre-event gap was flat,
-        # open where it was already rising and the estimate absorbs part of that trajectory.
-        ax.errorbar(row.did, k + 0.17,
-                    xerr=[[row.did - row.did_lo], [row.did_hi - row.did]],
-                    fmt="o", color=TREATED, ecolor=TREATED, elinewidth=1.4, capsize=2.5,
-                    markersize=6, zorder=3,
-                    markerfacecolor=TREATED if row.parallel_trends else "white",
-                    markeredgecolor=TREATED, markeredgewidth=1.4)
-        # Diamond: the jump at the adoption month net of the fitted pre-event trend, which is
-        # the quantity that still means something when the gap was not flat.
-        ax.errorbar(row.jump, k - 0.17,
-                    xerr=[[max(row.jump - row.jump_lo, 0)], [max(row.jump_hi - row.jump, 0)]],
-                    fmt="D", color=JUMP, ecolor=JUMP, elinewidth=1.2, capsize=2.5,
-                    markersize=5, zorder=3)
-        if k:
-            ax.axhline(k - 0.5, color="0.9", linewidth=0.6, zorder=0)
-
-    ax.axvline(0, color="#444444", linewidth=0.9, linestyle="--", zorder=1)
-    ax.set_yticks(y)
-    ax.set_yticklabels([])
-    ax.set_ylim(-0.6, n_rows - 0.4)
-    ax.set_xlabel("Forks per month, treated minus matched controls", fontsize=FS_AXIS)
-    ax.tick_params(labelsize=FS_TICK, left=False)
-    ax.grid(axis="x", linestyle="--", alpha=0.3, linewidth=0.5)
-    for spine in ("top", "right", "left"):
-        ax.spines[spine].set_visible(False)
-
-    # x in axes fraction, y in data coordinates, so a column keeps its place against the rows.
-    blend = ax.get_yaxis_transform()
-    header_y = n_rows - 0.42
-
-    def column(x, header, value_of, align="center"):
-        ax.text(x, header_y, header, transform=blend, ha=align, va="bottom",
-                fontsize=FS_LABEL - 0.5, fontweight="bold")
-        for k, row in enumerate(order.itertuples()):
-            ax.text(x, k, value_of(row), transform=blend, ha=align, va="center",
-                    fontsize=FS_LABEL - 0.5)
-
-    column(-0.045, "Practice", lambda r: f"{r.label}\n(n = {r.n_treated:,})", align="right")
-    column(1.05, "Median", lambda r: f"{r.did_median:+.3f}")
-    column(1.21, "% up", lambda r: f"{100 * r.share_positive:.0f}%")
-    column(1.37, "p", lambda r: f"{r.did_p:.1g}")
-    column(1.60, "Pre-event\ntrend",
-           lambda r: "flat" if r.parallel_trends else "rising")
-    column(1.86, "Mean from\ntop repo", lambda r: f"{100 * r.top_share:.0f}%")
-
-    handles = [
-        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor=TREATED, linestyle="",
-                   markersize=6, label="mean DiD, pre-event trend flat"),
-        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor="white",
-                   markeredgewidth=1.4, linestyle="", markersize=6,
-                   label="mean DiD, pre-event gap already rising"),
-        plt.Line2D([], [], marker="D", color=JUMP, linestyle="", markersize=5,
-                   label="jump at adoption, net of the pre-event trend"),
-    ]
-    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(-0.34, -footer_in / (row_in * n_rows)),
-              ncol=1, fontsize=FS_LABEL - 0.5, frameon=False, handletextpad=0.6)
+    draw_forest(ax, table, legend_y=-footer_in / (row_in * n_rows))
 
     fig.suptitle("Fork accrual after adopting a sustainability practice, against matched "
                  "never-adopting controls", fontsize=FS_TITLE, x=0.02, ha="left",
                  y=1 - 0.18 / fig_h)
-    fig.text(0.60, (bottom_in - footer_in) / fig_h,
-             "Bars are 95% intervals from 2,000 cluster bootstrap resamples of treated "
-             "repositories. Median is the per-repository median\nDiD and % up the share whose "
-             "DiD exceeds zero; both are unaffected by a single large project, unlike the "
-             "mean. p is a\nWilcoxon signed-rank test on the per-repository DiD. A rising "
-             "pre-event trend means the treated repositories were\nalready pulling ahead "
-             "before adopting, so their mean DiD absorbs part of that trajectory and the jump "
-             "is the\ndefensible estimate. Mean from top repo is the share of the mean "
-             "contributed by its single largest repository.",
+    fig.text(0.60, (bottom_in - footer_in) / fig_h, FOREST_FOOTNOTE,
              ha="left", va="top", fontsize=6, color="#555555")
 
     for ext in ("png", "pdf"):

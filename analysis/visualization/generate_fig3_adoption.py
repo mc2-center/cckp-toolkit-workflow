@@ -2,7 +2,7 @@
 """
 Figure 3 (revision): adoption and sustainability.
   Panel a: sustainability-only SHAP importances (which practices track GitHub stars).
-  Panel b: fork rate around license addition, against matched never-licensed controls.
+  Panel b: matched difference-in-differences for every practice whose adoption can be dated.
 
 Panel a reproduces the existing main-text figure from data/final_results/shap_importance_with_joss.csv.
 
@@ -14,30 +14,43 @@ either way. And the placebo dates sat later in the lifecycle than license additi
 two curves started from different fork rates and part of the gap was regression to the mean
 rather than the license.
 
-It now plots the rate directly against control repositories that never added a license,
-matched on age at the event date and on the preceding year's fork rate, computed by
-analysis/modeling/matched_did_practice_forks.py. That script writes the curve table this
-panel reads, so the matching is not repeated here and the two renderings cannot drift. It
-runs the same design for the other four datable practices; those go to a supplementary
-figure, and this panel shows the license because it is the practice the model ranks highest
-among those whose adoption can be dated.
+It then showed the license event-time curve against matched never-licensed controls, which
+fixed both problems but reported one practice out of six. Panel a ranks JOSS compliance
+first, so a reader meeting a license-only panel b is being shown the timing evidence for a
+practice the model ranks fourth. JOSS compliance is a composite rather than a dated act, but
+four of its five criteria reduce to file presence and all four are now dated, so panel b
+carries every practice at once and is ordered by how much of the variance in the JOSS score
+each one's criterion accounts for. The two practices JOSS does not score, the license and
+citability, are marked as such and fall to the bottom.
+
+The forest is drawn by matched_did_practice_forks.draw_forest, the same function that draws
+the standalone supplementary figure, so the two renderings cannot drift and the matching is
+not repeated here. This script reads only the results table that script writes.
+
+Panels are stacked rather than side by side because the forest needs the full figure width:
+its axis band is a third of the width and six text columns take the rest.
 """
 
+import sys
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "analysis" / "modeling"))
+from matched_did_practice_forks import (  # noqa: E402
+    FOREST_FOOTNOTE,
+    FOREST_WIDTH_IN,
+    draw_forest,
+)
 
 REV = Path("data/final_results")
 OUT = Path("docs/manuscript_drafts/figures")
 
 SUST_BLUE = "#9ecae1"
-# Green against purple, distinguishable under protanopia and deuteranopia (OKLab delta-E
-# 17.4). The grey previously used for the comparison series falls below the chroma floor.
-TREATED_GREEN, CONTROL_PURPLE = "#1b7837", "#7b3294"
 
 LABELS = {
     "repo_includes_license": "License",
@@ -72,41 +85,39 @@ def panel_a(ax):
         ax.spines[s].set_visible(False)
 
 
-def panel_b(ax):
-    curves = pd.read_csv(REV / "revision" / "matched_did_curves_license.csv")
-    meta = pd.read_csv(REV / "revision" / "matched_did_curves_license_meta.csv").iloc[0]
-    m = curves["month"].to_numpy()
-
-    ax.axvline(0, color="#c0392b", ls=":", lw=1.2, zorder=1)
-    ax.fill_between(m, curves["treated_lo"], curves["treated_hi"],
-                    color=TREATED_GREEN, alpha=0.18, lw=0)
-    ax.fill_between(m, curves["control_lo"], curves["control_hi"],
-                    color=CONTROL_PURPLE, alpha=0.16, lw=0)
-    ax.plot(m, curves["treated"], color=TREATED_GREEN, lw=2.2, marker="o", ms=3.5,
-            label=f"license added (n={int(meta.n_treated):,})", zorder=3)
-    ax.plot(m, curves["control"], color=CONTROL_PURPLE, lw=2.0, ls="--", marker="s", ms=3.5,
-            label=f"matched never-licensed controls\n({int(meta.n_pairs):,} pairs, "
-                  f"{int(meta.n_distinct_controls):,} repositories)", zorder=3)
-
-    ax.set_xlabel("Months relative to license addition", fontweight="bold")
-    ax.set_ylabel("Forks per month", fontweight="bold")
-    ax.set_title("b  Fork rate after license addition", fontweight="bold", loc="left")
-    ax.set_xlim(-12.5, 11.5)
-    ax.set_xticks(np.arange(-12, 12, 3))
-    ax.set_ylim(0, max(curves["treated_hi"].max(), 0.7) * 1.12)
-    ax.legend(loc="upper left", frameon=False, fontsize=8.5)
-    ax.grid(axis="y", ls=":", color="0.85", zorder=0)
-    ax.set_axisbelow(True)
-    for s in ("top", "right"):
-        ax.spines[s].set_visible(False)
-
-
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    fig, (axA, axB) = plt.subplots(1, 2, figsize=(13, 5))
+    table = pd.read_csv(REV / "revision" / "matched_did_all_practices.csv")
+
+    # Inches throughout, so the number of practices sets the figure height and neither panel's
+    # margins move when one is added.
+    n_rows = len(table)
+    # The gap clears panel a's centred x-axis label and panel b's left-aligned title,
+    # which would otherwise sit on the same line and read as one caption.
+    a_in, gap_in, row_in, footer_in = 4.0, 1.25, 0.62, 0.62
+    b_in = row_in * n_rows
+    top_in, bottom_in = 0.35, 1.30
+    fig_h = top_in + a_in + gap_in + b_in + bottom_in
+    fig = plt.figure(figsize=(FOREST_WIDTH_IN, fig_h), dpi=600)
+
+    # Panel a spans the same horizontal extent as panel b, label column and text columns
+    # included, so the two panels read as one figure rather than leaving the top right empty.
+    left, right = 0.075, 0.955
+    axA = fig.add_axes([left, (bottom_in + b_in + gap_in) / fig_h, right - left, a_in / fig_h])
     panel_a(axA)
-    panel_b(axB)
-    fig.tight_layout()
+
+    # Panel b's axes hold only the estimate band; its text columns extend well past the right
+    # edge, which is why the axes are narrow and offset rather than spanning the figure.
+    b_left, b_width = 0.245, 0.335
+    axB = fig.add_axes([b_left, bottom_in / fig_h, b_width, b_in / fig_h])
+    draw_forest(axB, table, legend_y=-footer_in / b_in)
+    # Placed in axes coordinates, solved so the two panel titles share a left edge.
+    axB.set_title("b  Fork accrual after adopting a practice, against matched controls",
+                  fontweight="bold", loc="left", pad=26, x=(left - b_left) / b_width)
+
+    fig.text(0.60, (bottom_in - footer_in) / fig_h, FOREST_FOOTNOTE,
+             ha="left", va="top", fontsize=6, color="#555555")
+
     # The file in the drafts directory is fig_3_adoption_sustainability_model; this script
     # used to write fig_3_adoption, which meant the figure in use was a hand-renamed copy
     # that no rerun could update.
@@ -114,7 +125,8 @@ def main():
         fig.savefig(OUT / f"fig_3_adoption_sustainability_model.{ext}", dpi=300,
                     bbox_inches="tight")
     plt.close()
-    print(f"Wrote {OUT / 'fig_3_adoption_sustainability_model.png'}")
+    print(f"Wrote {OUT / 'fig_3_adoption_sustainability_model.png'} "
+          f"({n_rows} practices in panel b)")
 
 
 if __name__ == "__main__":
