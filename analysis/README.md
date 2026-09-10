@@ -42,6 +42,7 @@ Key files:
 | `weights_logistic_refit.csv` | nf-core-calibrated logistic weights per check |
 | `nf_core_almanack_metrics.csv` | Almanack metrics for nf-core pipelines |
 | `test_evidence_static.csv` | Per-repository test evidence flags and the static JOSS Tests score |
+| `owner_type.csv` | `canonical_repo`, `owner_login`, `owner_type` (Organization or User) |
 | `revision/event_candidates.csv` | The cohort the fork accrual chain iterates over |
 | `revision/fork_history/<owner>__<repo>.csv` | One fork `created_at` per row, ascending |
 | `revision/*_events.jsonl` | Practice adoption dates, one JSON record per repository |
@@ -76,6 +77,7 @@ Described by output content rather than manuscript figure numbers, which can cha
 | Domain ANOVA + residuals | `modeling/stars_domain_analysis.py`, `data_processing/apply_logistic_weights_and_domain_anova.py`, `modeling/weighted_scores_statistical_analysis.py` |
 | Score distributions (supplementary) | `visualization/plot_almanack_score_distributions.py` |
 | Fork accrual after practice adoption, both directions | `modeling/matched_did_practice_forks.py`, `modeling/reverse_direction_adoption.py` |
+| Organization versus individual ownership | `data_collection/fetch_owner_type.py`, then `modeling/owner_type_scores.py` |
 
 ## Fork accrual around practice adoption
 
