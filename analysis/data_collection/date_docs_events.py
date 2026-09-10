@@ -1,37 +1,17 @@
 #!/usr/bin/env python3
-"""Date when each repository first satisfied the three documentation-artifact practices.
-
-The matched difference-in-differences design needs, for each practice, the date a repository
-first satisfied it. Two practices already have that: license additions from
-date_practice_events.py, and citability from date_citability_events.py. This supplies the
-remaining three file-presence practices, which have no dated series at all:
-
-  repo_includes_contributing     a CONTRIBUTING file at the root or under .github/
-  repo_includes_code_of_conduct  a CODE_OF_CONDUCT file at the root
-  repo_includes_common_docs      one of twelve docsite entry points under docs/
+"""Date when each repository first satisfied the three documentation-artifact practices:
+contributing guidelines, a code of conduct, and common docs.
 
 All three are decided by the Almanack from the file tree at HEAD, so the event is the first
-commit that adds a qualifying file, which `git log --diff-filter=A` reports directly. No
-pickaxe is needed here, unlike citability, whose README routes required searching for text
-inside a file that already existed.
+commit adding a qualifying file, which `git log --diff-filter=A` reports directly. One clone
+dates all three. Matching mirrors the Almanack's own case and extension rules, so a
+repository cannot be dated here on a file the check would not have counted.
 
-One clone dates all three, so the three practices cost one pass rather than three. Clones are
---filter=blob:none --no-checkout, since only path names and commit dates are read and no file
-contents are ever needed.
+Reads:  combined_almanack_with_source_flags.csv, for the cohort's slugs
+Writes: revision/docs_events.jsonl, one record per repository. Resumable.
 
-Matching mirrors the Almanack's own rules rather than approximating them, because a looser
-pattern would date events for repositories the metrics table records as failing the check:
-
-  file_exists_in_repo lowercases the expected name and compares case-insensitively, over the
-    extensions .md, .txt, .rtf and none, so `Contributing.rtf` counts and `CONTRIBUTING.html`
-    does not
-  the .github/ subdirectory is checked case-sensitively, and only for contributing; a
-    CODE_OF_CONDUCT under .github/ does not satisfy the Almanack's check, so it is not dated
-    here either
-  find_file compares docsite paths case-sensitively
-
-Resumable: one JSON line per repository, appended, and repositories already present are
-skipped.
+The exact matching rules and why they are mirrored rather than approximated:
+analysis/DECISIONS.md#documentation-artifacts
 """
 
 import argparse

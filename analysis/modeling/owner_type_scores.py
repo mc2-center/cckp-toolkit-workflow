@@ -3,34 +3,16 @@
 
 Author: Dave Bunten (ORCID 0000-0001-6041-3665).
 
-Section 4.3 argues that shared infrastructure raises sustainability, on evidence from 167
-nf-core pipelines and one migration case study. Owner type tests a related claim across the
-whole cohort: repositories owned by an organization account carry shared conventions and
-continuity across maintainers, where a personal account usually does not.
+Reports the JOSS score, the stored Almanack score and an 11-check fixed-denominator
+reconstruction, for the full cohort and excluding nf-core, raw and with age, commits and
+contributors as covariates. A specification adding stars is printed as a sensitivity check
+only, since stars are downstream of the practices being measured.
 
-Both scores are reported because they measure different things. The JOSS score is a mean of
-five review criteria and always has the same denominator. The Almanack score as stored does
-not: it is out of 7 for 5,414 repositories and out of 8 for 5,361, depending on which metrics
-could be retrieved, so a group difference in it could partly reflect which repositories got
-which denominator. An 11-check reconstruction with a fixed denominator is therefore reported
-alongside it, and agreement between the two is what makes the Almanack comparison usable.
+Reads:  combined_almanack_joss_static_tests.csv, owner_type.csv
+Writes: a printed summary; no tables
 
-nf-core repositories are organization-owned by construction and score far above the cohort, so
-the comparison is repeated with them excluded; otherwise 167 repositories would carry part of
-a difference attributed to organizations in general.
-
-Organization repositories are also older, larger and better resourced, so the raw gap partly
-measures resourcing. A regression adjusting for age, commit count and contributors is reported
-next to the raw difference; the adjusted coefficient is the one to quote.
-
-Stars are deliberately not among those covariates, although an earlier version included them.
-Section 4.2 treats stars as a consequence of these same practices, so conditioning on stars
-conditions on a variable downstream of the exposure. Both versions are printed because the
-choice changes a conclusion rather than a decimal place: with stars the adjusted 11-check gap
-reaches t = 2.4, without them it is t = 1.9, so the Almanack gap does not survive maturity
-adjustment on the defensible specification. The JOSS gap is t = 9 either way. The manuscript
-should therefore rest the ownership claim on JOSS and describe the Almanack gap as pointing the
-same way but marginal.
+Why both scores are reported, why nf-core is excluded, and why stars are not a covariate:
+analysis/DECISIONS.md#owner-type
 """
 
 import argparse

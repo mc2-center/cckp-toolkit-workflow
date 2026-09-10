@@ -1,31 +1,16 @@
 #!/usr/bin/env python3
 """Date when each repository first became citable, using the Almanack's own definition.
 
-An earlier pass dated only CITATION.cff and codemeta.json additions and found 307 events, too
-few to characterise adoption. That undercount was not a coverage failure: the Almanack counts
-a repository as citable through any of several routes, and most of the cohort's 2,586 citable
-repositories use one that leaves no citation file to date.
+Citability is satisfied by a citation file, a README citation heading, or a README DOI badge,
+so the event is whichever route came first. The README routes need git's pickaxe
+(`git log -G<regex>`) rather than a first-touch date, since for most repositories the README
+arrives in the initial commit.
 
-The Almanack (garden_lattice/connectedness.py: is_citable) returns True if any of these hold:
-  a CITATION.cff or CITATION.bib file exists
-  the README carries a citation heading (## Citation, ## Citing, ## Cite, ## How to cite, or
-    the reStructuredText equivalents)
-  the README carries a shields.io DOI badge
+Reads:  combined_almanack_joss_static_tests.csv, for the cohort's slugs
+Writes: revision/citability_events.jsonl, one record per repository. Resumable.
 
-So dating citability means dating whichever route came first, and for the README routes that
-means finding the commit that introduced the heading or badge, not the earliest commit
-touching the README, which for most repositories is the initial commit.
-
-Git's pickaxe does exactly this: `git log -G<regex>` reports commits where the number of
-matching lines changed, so the earliest such commit is where the text first appeared. That
-needs history but not file contents up front, so repositories are cloned with
---filter=blob:none --no-checkout and git fetches only the README blobs the search touches,
-keeping each clone under a megabyte where a full clone would be hundreds.
-
-Every repository is dated by the same rule, including those with a citation file, so the
-series is internally consistent rather than a merge of two methods.
-
-Resumable: one JSON line per repository, appended, and repositories already present are skipped.
+Why every route is dated by one rule, and why the earlier citation-file-only pass undercounted:
+analysis/DECISIONS.md#citability
 """
 
 import argparse

@@ -1,72 +1,17 @@
 #!/usr/bin/env python3
 """Does attention precede the practice? The reverse of the matched difference-in-differences.
 
-matched_did_practice_forks.py asks whether fork accrual speeds up after a practice is
-adopted. It found that it does for all six datable practices, but also that the treated
-repositories were already pulling ahead of their controls before adopting in four of the six.
-That pre-existing trend is reported there as a caveat on the estimate. It is also a
-measurement of something in its own right, and this script makes it one.
+A discrete-time hazard model on repository-months: given a repository that has not yet
+adopted a practice, does forking above its own recent baseline predict that it adopts in the
+following months? Reported as an odds ratio per doubling, cluster-robust by repository,
+alongside a Mantel-Haenszel rate ratio and the surge-to-adoption lag distribution.
 
-The question here is the mirror image: given a repository that has not yet adopted a
-practice, does a recent burst of forking predict that it adopts in the following months? If
-it does about as strongly as adoption predicts forking, the honest reading of both results
-together is that practices and attention co-evolve, and no directional claim survives. If the
-forward direction is much the stronger, the precedence claim is quantified against its main
-rival rather than merely defended against it. Either outcome is reportable; the current
-position, where only one direction has been measured, is not.
+Reads:  revision/fork_history/, recent_forks_controls.csv,
+        combined_almanack_with_source_flags.csv, matched_did_all_practices.csv
+Writes: a per-practice results table and a printed summary
 
-DESIGN
-
-A discrete-time hazard model on repository-months. For every repository with datable fork
-history, each month of its life is one row, and the row is at risk if the repository had not
-yet adopted the practice at the start of that month. Repositories that eventually adopt
-contribute months up to and including the month they adopt, which carries the event.
-Repositories failing the check at assessment never adopt and are censored at their last fully
-observed month, so they are never-adopters rather than not-yet adopters, matching the control
-pool of the forward analysis.
-
-The predictor is built strictly from months before the row's own month, so no row can see its
-own outcome:
-
-  recent    forks in the three months immediately before this month
-  baseline  mean monthly forks over the twelve months before those three
-  accel     log2 of the recent rate over the baseline rate, in doublings
-
-`accel` is the quantity of interest: forking above the repository's own recent norm.
-`baseline` enters separately as a covariate, so the coefficient on `accel` is the effect of
-accelerating rather than the effect of being a busy repository. Cumulative forks to date and
-age enter for the same reason, and calendar year absorbs the cohort-wide growth in both
-forking and in the prevalence of these practices, which would otherwise correlate the two by
-itself.
-
-The reported effect is the odds ratio on the monthly adoption hazard per doubling of recent
-fork rate above baseline. The forward analysis reports its effect in doublings of fork rate
-too (did_log2), so the two directions are on a comparable log2 footing, though they are not
-the same estimand and the comparison is of magnitude and sign, not a like-for-like contrast.
-
-Inference is cluster-robust by repository, since a repository contributes many rows and they
-are not independent. The sandwich is computed directly rather than by bootstrap: the panel
-runs to hundreds of thousands of rows per practice and a two-thousand-resample cluster
-bootstrap of a logistic fit at that size is not affordable, while the sandwich is exact for
-the same asymptotics.
-
-Alongside the model, two transparent statistics that do not depend on its functional form:
-
-  a Mantel-Haenszel rate ratio comparing adoption per thousand at-risk months in surge months
-    against ordinary months, pooled over strata of age and size, where a surge is at least
-    three forks in the recent window at twice the baseline rate or better
-  the distribution of the lag from a repository's last pre-adoption surge to its adoption
-
-WHAT THIS CANNOT SETTLE
-
-Both directions are vulnerable to the same third cause. A repository that submits a paper or
-makes its first public release tends to acquire forks and to acquire a license, a citation
-file and a documentation site at about the same time, so a result in either direction may be
-that event rather than either variable acting on the other. Nothing here identifies that
-away. What the comparison does establish is whether the data prefer one direction, which is
-the specific question a reader who doubts the precedence claim is asking.
-
-Writes a per-practice results table and a printed summary.
+Why both directions are measured, the panel construction, and what this cannot settle:
+analysis/DECISIONS.md#the-reverse-direction
 """
 
 import argparse

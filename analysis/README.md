@@ -19,6 +19,10 @@ Run any code through uv so it uses the locked environment; work **from the repos
 uv run --project analysis python analysis/modeling/stars_shap_model.py --help
 ```
 
+Each script's docstring says what it reads, what it writes and what it computes. Why an analysis
+is specified the way it is, and what it cannot establish, is in [DECISIONS.md](DECISIONS.md),
+which the relevant docstrings link into by section.
+
 Most scripts use argparse with defaults that resolve from the repository root, so `--help`
 lists their options.
 A few take positional arguments or read their paths from module-level constants instead;

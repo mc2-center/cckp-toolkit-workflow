@@ -1,48 +1,17 @@
 #!/usr/bin/env python3
-"""
-RETIRED as an analysis; do not cite its estimates. Superseded by
-matched_did_practice_forks.py, which replaces the within-repository placebo below with control
-repositories that never adopted the practice. The placebo is the reason: a date drawn uniformly
-from a repository's history lands mid-life, whereas licenses are added early, so the placebo
-windows open at more than double the fork rate of the treated windows (0.34 against 0.15 forks
-per month). Regression to the mean then pushes the two series apart on its own, which accounts
-for part of the effect reported here, including the finding that 62% of repositories with no
-prior forks accelerated after a license: 59% also do so after a random date.
+"""RETIRED as an analysis; do not cite its estimates. Superseded by
+matched_did_practice_forks.py, which replaces this script's within-repository placebo with
+control repositories that never adopted the practice.
 
-STILL RUN, though, for one side effect: event_study_results_license.csv is where
-matched_did_practice_forks.py reads the license practice's event dates, so this script has to
-run before the license row of that analysis can be produced. That makes the license row's
-treated pool narrower than the other five practices', which read their dates straight from the
-event files: the filters below (MIN_GAP_DAYS, MIN_DUR_DAYS, and a fork history to measure) cut
-3,568 dated license additions to 614 before matching ever sees them. Reading
-practice_events.jsonl directly instead admits 777 matched repositories rather than 575 and puts
-the effect at +0.419 doublings rather than +0.510, with parallel trends holding either way.
+Still run for one side effect: event_study_results_license.csv is where
+matched_did_practice_forks.py reads the license practice's event dates, so this has to run
+before that analysis' license row can be produced.
 
-Analysis B3/B4 (revision, comment 62): practice-addition event study on FORK accrual.
+Reads:  practice_events.jsonl, event_candidates.csv, revision/fork_history/
+Writes: event_study_results.csv, event_study_summary.txt, fig_practice_event_study.{png,pdf}
 
-Question: does adoption (fork accrual) accelerate AFTER a tool adds a sustainability practice
-(license file; machine-readable citation file)? This tests temporal precedence, the part of the
-chicken-and-egg question the cross-sectional model cannot address.
-
-Design (per tool with an *informative* event, i.e. practice added >= MIN_GAP days after first commit):
-  t0        = practice-addition date
-  rate_before = forks/month in [t0 - W, t0)   (window clipped to repo start)
-  rate_after  = forks/month in [t0, t0 + W]   (window clipped to data coverage)
-  effect      = log2((rate_after + EPS) / (rate_before + EPS))
-Aggregate across tools: Wilcoxon signed-rank (paired before vs after), median effect with
-bootstrap CI, and the share of tools that accelerate.
-
-Placebo: repeat with a random pseudo-event date inside each tool's history (fixed seed). Generic
-maturation would raise fork rate at any date; the real events must beat placebo to be meaningful.
-
-Honesty: forks are an adoption proxy (historical stars are unavailable here); the design observes
-ordering so it curbs reverse causation, but a common cause (e.g. a paper that triggers both the
-citation file and the forks) is not ruled out.
-
-Outputs (to --output_dir):
-  event_study_results.csv       per-tool effects (real + placebo)
-  event_study_summary.txt       aggregate stats
-  fig_practice_event_study.{png,pdf}  event-time fork trajectories (also to figures dir)
+Why it was retired, and what its filters cost the license row:
+analysis/DECISIONS.md#the-retired-event-study
 """
 
 import argparse

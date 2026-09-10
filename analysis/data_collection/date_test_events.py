@@ -1,37 +1,17 @@
 #!/usr/bin/env python3
 """Date when each repository first carried an automated test suite.
 
-The JOSS Tests criterion is the largest single component of the JOSS score: once the
-criterion is scored from static evidence rather than by executing each suite, it accounts
-for 58% of the variance in joss_score, against 27% for the two documentation-gated criteria
-and 12% for community guidelines. The matched difference-in-differences design therefore has
-a gap exactly where the composite carries most of its weight, since the other four criteria
-reduce to file-presence checks that are already dated (docs, contributing, code of conduct)
-or are near-constant (a README, present at creation for 97% of the cohort).
+The event is the first commit that adds test evidence, the 0.0 to 0.7 transition in
+detect_test_evidence.py. Promotion to 1.0, when CI starts invoking the suite, is not dated:
+that needs CI file contents at every revision rather than path names alone. The detector's
+rules are imported rather than restated, so a repository cannot be dated here on evidence the
+detector would not have counted.
 
-The event dated here is the first commit that adds test evidence, which is the transition
-detect_test_evidence.py scores as 0.0 to 0.7 and the one that separates the 6,243
-no-evidence repositories from the 3,567 with a suite. The subsequent promotion to 1.0, when
-continuous integration starts invoking the suite, is not dated: that requires reading CI file
-contents at every revision rather than path names alone, so it needs blobs for the whole
-history rather than a blobless clone.
+Reads:  test_evidence_static.csv, for the cohort's slugs
+Writes: revision/test_events.jsonl, one record per repository. Resumable.
 
-Test evidence is decided from path names only, which is what makes it datable:
-
-    has_tests = has_test_dir or has_test_file or has_runner_config
-
-so `git log --diff-filter=A` reports the event directly and no pickaxe is needed, as with
-date_docs_events.py. The three components are recorded separately as well, since a runner
-config and a test directory are different acts and their timing may differ.
-
-Rather than restate the detector's rules, this imports them. A path is classified by the
-same TEST_DIR_NAMES, TEST_FILE_PATTERNS, RUNNER_CONFIGS and SKIP_DIRS that scored the
-cohort, so a repository cannot be dated here on evidence the detector would not have
-counted. The pathspecs exist only to keep git from walking the whole tree and are
-deliberately broader than the rules; every path git returns is then classified exactly.
-
-Resumable: one JSON line per repository, appended, and repositories already present are
-skipped.
+Why this practice needed dating most, and what the path-name-only rule buys:
+analysis/DECISIONS.md#test-suites
 """
 
 import argparse

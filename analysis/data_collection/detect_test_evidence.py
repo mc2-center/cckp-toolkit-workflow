@@ -1,51 +1,20 @@
 #!/usr/bin/env python3
 """Score the JOSS Tests criterion from static repository evidence, as a JOSS reviewer does.
 
-Builds `test_evidence_static.csv`, which `date_test_events.py` and the tests row of
-`matched_did_practice_forks.py` both read for the `has_tests` column.
+Clones each repository shallowly and reads path names and CI file contents to place it in one
+of four tiers: a suite wired to continuous integration (1.0), a suite alone (0.7), sample
+inputs a reviewer could run by hand (0.3), or no evidence (0.0).
 
-The scoring below now also lives in the pipeline (`bin/analyze_joss.py`), which computes the
-same flags per repository and reports them under `test_evidence` in each JOSS report. The
-pipeline is authoritative for new runs. This script stays because it is what produced the
-table the manuscript's analysis reads, and because it rebuilds that table from clones alone,
-without rerunning the whole workflow across the cohort. Any change to the tiers or the
-patterns has to be made in both places, or the two will disagree.
+Reads:  combined_almanack_with_joss_backfill.csv, for the cohort's slugs
+Writes: test_evidence_static.csv, which date_test_events.py and the tests row of
+        matched_did_practice_forks.py both read for the has_tests column
 
-The pipeline formerly scored this criterion by executing each test suite and grading the pass
-rate (>=90% passing is good, >=70% is ok, otherwise poor, and no collected tests scores zero).
-That is not the criterion JOSS applies. JOSS asks whether an automated test suite exists and
-is wired to continuous integration, which a reviewer establishes by looking at the repository
-rather than by running it:
+The same rules live in the pipeline (bin/analyze_joss.py), which is authoritative for new
+runs; this script produced the table the manuscript reads and rebuilds it from clones alone.
+Any change to the tiers or the patterns has to be made in both places.
 
-    Good: an automated test suite hooked up to continuous integration
-    OK:   documented manual steps that objectively check expected functionality,
-          for example a sample input file to assert behavior
-    Bad:  no way for a reviewer to objectively assess whether the software works
-
-Executing suites also failed in practice: joss_tests_score was zero for 10,619 of 10,736
-scored repositories while roughly a third of repositories have a test directory. Static
-detection is both faithful to the criterion and evaluable at cohort scale, so it replaces
-execution rather than approximating it.
-
-Scoring, onto the pipeline's existing 1.0 / 0.7 / 0.3 / 0.0 constants:
-
-  1.0  tests present and a CI config that invokes a test runner
-  0.7  tests present, but no CI, or CI that never invokes a runner. An automated suite
-       exists and a reviewer could run it, which falls short of the Good tier's CI
-       requirement without dropping to manual-only assessment.
-  0.3  no tests, but sample inputs or an examples directory a reviewer could work through
-  0.0  no evidence a reviewer could use
-
-The 0.3 tier deliberately reads only sample input files and example directories, never
-README prose. The Example Usage criterion already scores documentation, and letting both
-criteria read the same evidence would make two of the five criteria measure one thing.
-
-Test presence is detected more broadly than ProcessRepo's check, which looks only for
-`tests/`, `test/`, and top-level `*.test.py`, and so misses the common `test_*.py` inside a
-package directory and R's `tests/testthat`.
-
-Measured from the default branch as cloned, matching the other Almanack checks, which are
-computed from the most recent version of each repository.
+Why the criterion is scored statically rather than by execution, and what each tier admits:
+analysis/DECISIONS.md#scoring-the-joss-tests-criterion
 """
 
 import argparse

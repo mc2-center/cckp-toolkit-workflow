@@ -1,75 +1,19 @@
 #!/usr/bin/env python3
 """Matched difference-in-differences: does adopting a sustainability practice precede faster
-forking? Run for each practice whose adoption date can be recovered from repository history.
+forking?
 
-The earlier event study compared each repository's fork rate before and after its license
-addition, using a random date in the same repository as a placebo. That design does not
-support the conclusion drawn from it, for two reasons found on inspection.
+Run once per practice whose adoption date can be recovered from repository history. Each
+treated repository is matched to controls that never adopted, on age at the event and on
+pre-period fork rate, and the estimate is the treated change in fork rate minus the mean
+control change over the same calendar window, in log2 doublings.
 
-First, the placebo dates sit at a different point in the lifecycle. A date drawn uniformly
-from a repository's history lands, on average, mid-life, whereas licenses are added early:
-the treated windows open at a mean 0.15 forks per month against the placebo windows' 0.34.
-Second, and because of that gap, regression to the mean pushes the two series in opposite
-directions. A window opening at a low rate can mostly only rise, one opening at a high rate
-can mostly only fall, so part of the reported real-versus-placebo difference is produced by
-the baseline mismatch rather than by the license. The same artifact accounts for the finding
-that 62% of repositories with no prior forks accelerated afterward: 59% of them also do so
-after a random date.
+Reads:  revision/fork_history/, recent_forks_controls.csv,
+        combined_almanack_with_source_flags.csv, and each practice's event dates
+Writes: per-repository results and an event-time figure per practice, plus a cross-practice
+        comparison table and forest plot when more than one practice is run
 
-This replaces the within-repository placebo with control repositories that never adopted the
-practice, and matches on the two quantities that broke the placebo:
-
-  age at the event date, so treated and control windows sit at the same lifecycle stage
-  fork rate in the pre-period, so both sides face the same regression to the mean
-
-Matching on age has a second benefit. A repository younger than twelve months at its event
-has a pre-window that extends before its first commit, and rates here are computed over the
-months actually observed. Because a treated repository is matched to controls of similar
-age, both sides lose the same months, so the truncation cancels instead of biasing the
-contrast.
-
-The estimand is the difference in differences. For each treated repository, the change in
-its fork rate across the event minus the mean change in its matched controls over the same
-calendar window. Under the identifying assumption that matched controls track what the
-treated repositories would have done without the practice, a positive value is the effect of
-adopting it, and the pre-event months of the difference curve are a direct test of that
-assumption: they should be flat.
-
-Controls come from repositories failing the practice's check at assessment, so they are never
-treated rather than not-yet treated. Treated repositories are still selected on having
-eventually adopted, which matching cannot fix and which the Limitations should state.
-
-WHICH PRACTICES CAN BE RUN, AND WHICH CANNOT
-
-A practice qualifies only if adoption is a dated act recoverable from git history. Six are:
-a test suite, common documentation, contributing guidelines, a code of conduct, a license,
-and citability. Three of the Toolkit's checks are not, and their absence is a real limit on
-the design rather than an omission:
-
-  repo_default_branch_not_master  renaming a branch leaves no commit, and the GitHub API
-    exposes no rename history, so there is no date to anchor a window on
-  almanack_score                  a composite over many checks, not a single act, so there is
-    no moment of adoption
-  repo_includes_readme            present at creation for 97% of the cohort, leaving almost
-    no adopters to observe
-
-JOSS compliance is the strongest feature in the sustainability model and is likewise a
-composite with no moment of adoption, but unlike the Almanack score it decomposes into acts
-that can be dated. Four of its five criteria reduce to file presence, and this design dates
-the practices behind all four: Tests, which is the largest of the five once scored from static
-evidence, Installation Instructions and Example Usage, which are both decided by common
-documentation, and Community Guidelines, which is decided by the contributing file and the
-code of conduct. Only Statement of Need is out of reach, being README presence. So the
-cross-practice figure is also a decomposition of JOSS compliance, and it is ordered by how
-much of the variance in the JOSS score each criterion accounts for.
-
-A caveat that applies to every practice: repositories tend to add several artifacts in one
-housekeeping push, so each estimate is the effect of adopting that practice together with
-whatever arrived alongside it, not of the artifact in isolation. The per-practice overlap in
-co-adoption dates is reported so the extent of that bundling is visible.
-
-Writes per-repository results, a printed summary, and an event-time figure for each practice,
-plus a cross-practice comparison table and forest plot when more than one is run.
+Design, the estimand, which practices qualify, and the limitations:
+analysis/DECISIONS.md#matched-difference-in-differences
 """
 
 import argparse
