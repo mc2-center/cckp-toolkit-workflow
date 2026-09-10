@@ -135,6 +135,17 @@ The workflow generates several output files in the `results` directory:
 > [!WARNING]
 > The AI Analysis and Test Executor components are currently in beta. Results may vary and the interface is subject to change.
 
+> [!WARNING]
+> The Test Executor is the least reliable component and its output should not be read as a
+> measure of a project's testing. It runs a repository's suite inside the workflow container,
+> where third-party dependencies are usually absent, so imports fail before any test is
+> collected. A project with a full suite and passing CI is therefore scored the same as a
+> project with no tests at all: across a 10,217-repository evaluation, the JOSS Tests criterion
+> came out 0.0 for 10,100 of them. Until dependency installation is added, score the criterion
+> from repository contents instead, as `analysis/data_collection/detect_test_evidence.py` does
+> (a suite plus CI, a suite alone, sample inputs only, or no evidence). The manuscript analysis
+> uses that static scoring, not the executor's.
+
 > [!IMPORTANT]
 > Synapse integration requires proper authentication and permissions setup.
 
