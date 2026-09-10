@@ -19,8 +19,11 @@ Run any code through uv so it uses the locked environment; work **from the repos
 uv run --project analysis python analysis/modeling/stars_shap_model.py --help
 ```
 
-All code uses argparse with sensible defaults.
-Pass `--help` to any script to see its options.
+Most scripts use argparse with defaults that resolve from the repository root, so `--help`
+lists their options.
+A few take positional arguments or read their paths from module-level constants instead;
+those are the figure generators, `merge_classifications.py`, `verify_final_datasets.py`, and
+`classify_domains_other.py`.
 
 ## Data
 
