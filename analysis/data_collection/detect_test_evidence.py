@@ -42,22 +42,45 @@ TEST_DIR_NAMES = {"tests", "test", "testing", "spec", "specs", "unittests", "tes
 
 # Filenames that are tests wherever they sit in the tree.
 TEST_FILE_PATTERNS = [
-    re.compile(r"^test_.*\.py$"), re.compile(r".*_test\.py$"),
-    re.compile(r"^test-.*\.R$", re.I), re.compile(r"^test_.*\.R$", re.I),
-    re.compile(r".*\.test\.[jt]sx?$"), re.compile(r".*\.spec\.[jt]sx?$"),
-    re.compile(r".*_test\.go$"), re.compile(r".*Test\.java$"),
-    re.compile(r".*_spec\.rb$"), re.compile(r".*\.t$"),
+    re.compile(r"^test_.*\.py$"),
+    re.compile(r".*_test\.py$"),
+    re.compile(r"^test-.*\.R$", re.I),
+    re.compile(r"^test_.*\.R$", re.I),
+    re.compile(r".*\.test\.[jt]sx?$"),
+    re.compile(r".*\.spec\.[jt]sx?$"),
+    re.compile(r".*_test\.go$"),
+    re.compile(r".*Test\.java$"),
+    re.compile(r".*_spec\.rb$"),
+    re.compile(r".*\.t$"),
 ]
 
 # Config files that declare a test runner even with no CI service attached.
-RUNNER_CONFIGS = {"tox.ini", "noxfile.py", "pytest.ini", "conftest.py", "phpunit.xml",
-                  "karma.conf.js", "jest.config.js", "vitest.config.js"}
+RUNNER_CONFIGS = {
+    "tox.ini",
+    "noxfile.py",
+    "pytest.ini",
+    "conftest.py",
+    "phpunit.xml",
+    "karma.conf.js",
+    "jest.config.js",
+    "vitest.config.js",
+}
 
 # CI configuration locations. Directories are searched for yaml/yml members.
 CI_DIRS = [".github/workflows", ".circleci", ".buildkite", ".woodpecker"]
-CI_FILES = [".travis.yml", ".gitlab-ci.yml", "azure-pipelines.yml", "Jenkinsfile",
-            ".appveyor.yml", "appveyor.yml", ".drone.yml", "bitbucket-pipelines.yml",
-            ".cirrus.yml", "codecov.yml", ".codecov.yml"]
+CI_FILES = [
+    ".travis.yml",
+    ".gitlab-ci.yml",
+    "azure-pipelines.yml",
+    "Jenkinsfile",
+    ".appveyor.yml",
+    "appveyor.yml",
+    ".drone.yml",
+    "bitbucket-pipelines.yml",
+    ".cirrus.yml",
+    "codecov.yml",
+    ".codecov.yml",
+]
 
 # A CI file counts toward the Good tier only if it invokes a test runner. Direct
 # invocation is one signal; nf-core repositories drive tests through nf-test and
@@ -95,16 +118,65 @@ CI_PIPELINE_RUN = re.compile(
 
 # Sample inputs a reviewer could run by hand. Directory names, then data file suffixes
 # found inside them.
-EXAMPLE_DIR_NAMES = {"example", "examples", "demo", "demos", "sample", "samples",
-                     "sample_data", "example_data", "testdata", "test_data", "fixtures",
-                     "vignettes", "tutorial", "tutorials"}
-SAMPLE_SUFFIXES = {".csv", ".tsv", ".json", ".yaml", ".yml", ".txt", ".fa", ".fasta",
-                   ".fastq", ".vcf", ".bed", ".gff", ".gtf", ".h5", ".h5ad", ".rds",
-                   ".mtx", ".loom", ".nii", ".tif", ".tiff", ".png", ".xlsx", ".ipynb"}
+EXAMPLE_DIR_NAMES = {
+    "example",
+    "examples",
+    "demo",
+    "demos",
+    "sample",
+    "samples",
+    "sample_data",
+    "example_data",
+    "testdata",
+    "test_data",
+    "fixtures",
+    "vignettes",
+    "tutorial",
+    "tutorials",
+}
+SAMPLE_SUFFIXES = {
+    ".csv",
+    ".tsv",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".txt",
+    ".fa",
+    ".fasta",
+    ".fastq",
+    ".vcf",
+    ".bed",
+    ".gff",
+    ".gtf",
+    ".h5",
+    ".h5ad",
+    ".rds",
+    ".mtx",
+    ".loom",
+    ".nii",
+    ".tif",
+    ".tiff",
+    ".png",
+    ".xlsx",
+    ".ipynb",
+}
 
 # Directories never worth walking into.
-SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", ".tox", ".mypy_cache",
-             "dist", "build", ".eggs", "site-packages", ".next", "target"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".tox",
+    ".mypy_cache",
+    "dist",
+    "build",
+    ".eggs",
+    "site-packages",
+    ".next",
+    "target",
+}
 
 MAX_CI_BYTES = 200_000
 
@@ -233,11 +305,26 @@ def score_one(slug: str, clone_root: Path) -> dict:
     env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
     try:
         clone = subprocess.run(
-            ["git", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=",
-             "-c", "filter.lfs.required=false",
-             "clone", "--depth", "1", "--quiet", "--no-tags",
-             f"https://github.com/{slug}.git", str(target)],
-            capture_output=True, text=True, timeout=300, env=env,
+            [
+                "git",
+                "-c",
+                "filter.lfs.smudge=",
+                "-c",
+                "filter.lfs.process=",
+                "-c",
+                "filter.lfs.required=false",
+                "clone",
+                "--depth",
+                "1",
+                "--quiet",
+                "--no-tags",
+                f"https://github.com/{slug}.git",
+                str(target),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            env=env,
         )
         if clone.returncode != 0:
             result["error"] = clone.stderr.strip()[:160]
@@ -275,15 +362,20 @@ def _resolve_output(output: str | None, partial: bool) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--metrics_csv",
-                        default="data/final_results/combined_almanack_with_joss_backfill.csv")
-    parser.add_argument("--output", default=None,
-                        help=f"Defaults to {COHORT_OUTPUT} for a full run and "
-                             f"{SPOT_CHECK_OUTPUT} when --slugs or --limit narrows it")
+    parser.add_argument(
+        "--metrics_csv", default="data/final_results/combined_almanack_with_joss_backfill.csv"
+    )
+    parser.add_argument(
+        "--output",
+        default=None,
+        help=f"Defaults to {COHORT_OUTPUT} for a full run and "
+        f"{SPOT_CHECK_OUTPUT} when --slugs or --limit narrows it",
+    )
     parser.add_argument("--workers", type=int, default=12)
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--slugs", default=None,
-                        help="Comma-separated slugs to score instead of the whole cohort")
+    parser.add_argument(
+        "--slugs", default=None, help="Comma-separated slugs to score instead of the whole cohort"
+    )
     args = parser.parse_args()
 
     if args.slugs:
@@ -315,23 +407,33 @@ def main() -> None:
     out.to_csv(path, index=False)
 
     scored = out[out.get("joss_tests_tier").notna()] if "joss_tests_tier" in out else out.iloc[0:0]
-    print(f"\nscored {len(scored)} of {len(out)}   "
-          f"unclonable {int((~out['cloned'].astype(bool)).sum())}")
+    print(
+        f"\nscored {len(scored)} of {len(out)}   "
+        f"unclonable {int((~out['cloned'].astype(bool)).sum())}"
+    )
     if len(scored):
         print("\ntier distribution:")
-        for tier, label in [("good", "tests + CI          1.0"),
-                            ("ok", "tests, no CI        0.7"),
-                            ("manual", "sample inputs only  0.3"),
-                            ("none", "no evidence         0.0")]:
+        for tier, label in [
+            ("good", "tests + CI          1.0"),
+            ("ok", "tests, no CI        0.7"),
+            ("manual", "sample inputs only  0.3"),
+            ("none", "no evidence         0.0"),
+        ]:
             n = int((scored["joss_tests_tier"] == tier).sum())
             print(f"  {label}  n={n:6}  ({100 * n / len(scored):5.1f}%)")
         print(f"\nmean static tests score: {scored['joss_tests_score_static'].mean():.4f}")
-        print(f"has tests at all:        {int(scored['has_tests'].sum())} "
-              f"({100 * scored['has_tests'].mean():.1f}%)")
-        print(f"has any CI config:       {int(scored['has_ci_config'].sum())} "
-              f"({100 * scored['has_ci_config'].mean():.1f}%)")
-        print(f"CI that runs tests:      {int(scored['ci_runs_tests'].sum())} "
-              f"({100 * scored['ci_runs_tests'].mean():.1f}%)")
+        print(
+            f"has tests at all:        {int(scored['has_tests'].sum())} "
+            f"({100 * scored['has_tests'].mean():.1f}%)"
+        )
+        print(
+            f"has any CI config:       {int(scored['has_ci_config'].sum())} "
+            f"({100 * scored['has_ci_config'].mean():.1f}%)"
+        )
+        print(
+            f"CI that runs tests:      {int(scored['ci_runs_tests'].sum())} "
+            f"({100 * scored['ci_runs_tests'].mean():.1f}%)"
+        )
     print(f"\nwrote {path}")
 
 

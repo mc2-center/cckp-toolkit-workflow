@@ -33,8 +33,8 @@ def build_query(slugs: list[str]) -> str:
     for i, slug in enumerate(slugs):
         owner, name = slug.split("/", 1)
         parts.append(
-            f'r{i}: repository(owner: {json.dumps(owner)}, name: {json.dumps(name)}) '
-            f'{{ nameWithOwner owner {{ __typename login }} }}'
+            f"r{i}: repository(owner: {json.dumps(owner)}, name: {json.dumps(name)}) "
+            f"{{ nameWithOwner owner {{ __typename login }} }}"
         )
     return "query {\n" + "\n".join(parts) + "\n}"
 
@@ -42,7 +42,8 @@ def build_query(slugs: list[str]) -> str:
 def run_batch(slugs: list[str]) -> list[dict]:
     result = subprocess.run(
         ["gh", "api", "graphql", "-f", f"query={build_query(slugs)}"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if not result.stdout.strip():
         print(f"  batch failed: {result.stderr.strip()[:150]}")
@@ -54,18 +55,21 @@ def run_batch(slugs: list[str]) -> list[dict]:
             rows.append({"canonical_repo": requested, "owner_type": None})
             continue
         owner = entry.get("owner") or {}
-        rows.append({
-            "canonical_repo": requested,
-            "owner_login": owner.get("login"),
-            "owner_type": owner.get("__typename"),
-        })
+        rows.append(
+            {
+                "canonical_repo": requested,
+                "owner_login": owner.get("login"),
+                "owner_type": owner.get("__typename"),
+            }
+        )
     return rows
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--metrics_csv",
-                    default="data/final_results/combined_almanack_joss_static_tests.csv")
+    ap.add_argument(
+        "--metrics_csv", default="data/final_results/combined_almanack_joss_static_tests.csv"
+    )
     ap.add_argument("--output", default="data/final_results/owner_type.csv")
     args = ap.parse_args()
 
@@ -75,7 +79,7 @@ def main() -> None:
 
     rows = []
     for start in range(0, len(slugs), BATCH):
-        rows.extend(run_batch(slugs[start:start + BATCH]))
+        rows.extend(run_batch(slugs[start : start + BATCH]))
         if (start // BATCH) % 20 == 0:
             print(f"  {min(start + BATCH, len(slugs))}/{len(slugs)}", flush=True)
 

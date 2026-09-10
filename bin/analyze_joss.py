@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 
-import json
-import sys
-import os
 import csv
+import json
+import os
 import re
+import sys
+from enum import Enum
 from pathlib import Path
-from typing import Dict, Any, List, Union, Optional
-from enum import Enum, auto
+from typing import Any
+
 
 class Status(Enum):
     """Enum for status values used in criteria evaluation."""
+
     NEEDS_IMPROVEMENT = "needs improvement"
     OK = "ok"
     GOOD = "good"
     UNKNOWN = "UNKNOWN"
 
+
 class Details(Enum):
     """Enum for detail messages used in criteria evaluation."""
+
     NOT_ANALYZED = "Not analyzed"
     MISSING_README = "Missing README with statement of need"
     MISSING_INSTALL = "Missing installation instructions"
@@ -32,18 +36,23 @@ class Details(Enum):
     FOUND_BOTH_GUIDELINES = "Found both contributing guidelines and code of conduct"
     FOUND_PARTIAL_GUIDELINES = "Found partial community guidelines"
     TESTS_AUTOMATED_IN_CI = "Found an automated test suite that runs in continuous integration"
-    TESTS_PIPELINE_IN_CI = "Found continuous integration that runs the pipeline itself on exemplar data"
+    TESTS_PIPELINE_IN_CI = (
+        "Found continuous integration that runs the pipeline itself on exemplar data"
+    )
     TESTS_SUITE_NO_CI = "Found an automated test suite, but no continuous integration runs it"
     TESTS_SAMPLE_INPUTS = "Found no test suite, but sample inputs a reviewer could run by hand"
     TESTS_NO_EVIDENCE = "Found no automated tests, continuous integration, or sample inputs"
 
+
 class Criteria(Enum):
     """Enum for JOSS criteria names."""
+
     STATEMENT_OF_NEED = "Statement of Need"
     INSTALLATION_INSTRUCTIONS = "Installation Instructions"
     EXAMPLE_USAGE = "Example Usage"
     COMMUNITY_GUIDELINES = "Community Guidelines"
     TESTS = "Tests"
+
 
 # Constants for scoring
 SCORE_GOOD = 1.0
@@ -72,22 +81,45 @@ TEST_DIR_NAMES = {"tests", "test", "testing", "spec", "specs", "unittests", "tes
 # Filenames that are tests wherever they sit in the tree, including test_*.py inside a
 # package directory and R's tests/testthat members.
 TEST_FILE_PATTERNS = [
-    re.compile(r"^test_.*\.py$"), re.compile(r".*_test\.py$"),
-    re.compile(r"^test-.*\.R$", re.I), re.compile(r"^test_.*\.R$", re.I),
-    re.compile(r".*\.test\.[jt]sx?$"), re.compile(r".*\.spec\.[jt]sx?$"),
-    re.compile(r".*_test\.go$"), re.compile(r".*Test\.java$"),
-    re.compile(r".*_spec\.rb$"), re.compile(r".*\.t$"),
+    re.compile(r"^test_.*\.py$"),
+    re.compile(r".*_test\.py$"),
+    re.compile(r"^test-.*\.R$", re.I),
+    re.compile(r"^test_.*\.R$", re.I),
+    re.compile(r".*\.test\.[jt]sx?$"),
+    re.compile(r".*\.spec\.[jt]sx?$"),
+    re.compile(r".*_test\.go$"),
+    re.compile(r".*Test\.java$"),
+    re.compile(r".*_spec\.rb$"),
+    re.compile(r".*\.t$"),
 ]
 
 # Config files that declare a test runner even with no CI service attached.
-RUNNER_CONFIGS = {"tox.ini", "noxfile.py", "pytest.ini", "conftest.py", "phpunit.xml",
-                  "karma.conf.js", "jest.config.js", "vitest.config.js"}
+RUNNER_CONFIGS = {
+    "tox.ini",
+    "noxfile.py",
+    "pytest.ini",
+    "conftest.py",
+    "phpunit.xml",
+    "karma.conf.js",
+    "jest.config.js",
+    "vitest.config.js",
+}
 
 # CI configuration locations. Directories are searched for yaml/yml members.
 CI_DIRS = [".github/workflows", ".circleci", ".buildkite", ".woodpecker"]
-CI_FILES = [".travis.yml", ".gitlab-ci.yml", "azure-pipelines.yml", "Jenkinsfile",
-            ".appveyor.yml", "appveyor.yml", ".drone.yml", "bitbucket-pipelines.yml",
-            ".cirrus.yml", "codecov.yml", ".codecov.yml"]
+CI_FILES = [
+    ".travis.yml",
+    ".gitlab-ci.yml",
+    "azure-pipelines.yml",
+    "Jenkinsfile",
+    ".appveyor.yml",
+    "appveyor.yml",
+    ".drone.yml",
+    "bitbucket-pipelines.yml",
+    ".cirrus.yml",
+    "codecov.yml",
+    ".codecov.yml",
+]
 
 # A CI config counts toward the Good tier only if it invokes a test runner.
 TEST_INVOCATION = re.compile(
@@ -122,30 +154,82 @@ CI_PIPELINE_RUN = re.compile(
 # found inside them. This tier deliberately never reads README prose, because the Example
 # Usage criterion already scores documentation and letting both read the same evidence
 # would make two of the five criteria measure one thing.
-EXAMPLE_DIR_NAMES = {"example", "examples", "demo", "demos", "sample", "samples",
-                     "sample_data", "example_data", "testdata", "test_data", "fixtures",
-                     "vignettes", "tutorial", "tutorials"}
-SAMPLE_SUFFIXES = {".csv", ".tsv", ".json", ".yaml", ".yml", ".txt", ".fa", ".fasta",
-                   ".fastq", ".vcf", ".bed", ".gff", ".gtf", ".h5", ".h5ad", ".rds",
-                   ".mtx", ".loom", ".nii", ".tif", ".tiff", ".png", ".xlsx", ".ipynb"}
+EXAMPLE_DIR_NAMES = {
+    "example",
+    "examples",
+    "demo",
+    "demos",
+    "sample",
+    "samples",
+    "sample_data",
+    "example_data",
+    "testdata",
+    "test_data",
+    "fixtures",
+    "vignettes",
+    "tutorial",
+    "tutorials",
+}
+SAMPLE_SUFFIXES = {
+    ".csv",
+    ".tsv",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".txt",
+    ".fa",
+    ".fasta",
+    ".fastq",
+    ".vcf",
+    ".bed",
+    ".gff",
+    ".gtf",
+    ".h5",
+    ".h5ad",
+    ".rds",
+    ".mtx",
+    ".loom",
+    ".nii",
+    ".tif",
+    ".tiff",
+    ".png",
+    ".xlsx",
+    ".ipynb",
+}
 
 # Directories never worth walking into.
-SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", ".tox", ".mypy_cache",
-             "dist", "build", ".eggs", "site-packages", ".next", "target"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".tox",
+    ".mypy_cache",
+    "dist",
+    "build",
+    ".eggs",
+    "site-packages",
+    ".next",
+    "target",
+}
 
 MAX_CI_BYTES = 200_000
 
-def get_metric_value(metrics: Union[List[Dict[str, Any]], Dict[str, Any]], metric_name: str) -> Union[None, str, int, float, bool]:
+
+def get_metric_value(
+    metrics: list[dict[str, Any]] | dict[str, Any], metric_name: str
+) -> None | str | int | float | bool:
     """
     Extract a metric value from either JSON or CSV formatted metrics data.
-    
+
     Args:
         metrics: Either a list of metric dictionaries (JSON format) or a dictionary of metrics (CSV format)
         metric_name: Name of the metric to extract
-        
+
     Returns:
         The value of the metric if found, None otherwise
-        
+
     Examples:
         >>> metrics_json = [{"name": "test", "result": "pass"}]
         >>> get_metric_value(metrics_json, "test")
@@ -164,10 +248,11 @@ def get_metric_value(metrics: Union[List[Dict[str, Any]], Dict[str, Any]], metri
         return metrics.get(metric_name)
     return None
 
-def read_status_file(status_file: str) -> Dict[str, str]:
+
+def read_status_file(status_file: str) -> dict[str, str]:
     """
     Read and parse the status file containing repository processing status information (CloneRepo, HasRepo, HasDependencies, HasTests).
-    
+
     Returns:
         Dict[str, str]: Dictionary containing status information with keys:
             - clone_status: Status of repository cloning
@@ -176,28 +261,29 @@ def read_status_file(status_file: str) -> Dict[str, str]:
             If the file cannot be read or is malformed, all statuses default to 'UNKNOWN'
     """
     try:
-        with open(status_file, 'r') as f:
+        with open(status_file) as f:
             reader = csv.reader(f)
             row = next(reader)  # Read the first row
             return {
-                'clone_status': row[1] if len(row) > 1 else Status.UNKNOWN.value,
-                'dep_status': row[2] if len(row) > 2 else Status.UNKNOWN.value,
-                'tests_status': row[3] if len(row) > 3 else Status.UNKNOWN.value
+                "clone_status": row[1] if len(row) > 1 else Status.UNKNOWN.value,
+                "dep_status": row[2] if len(row) > 2 else Status.UNKNOWN.value,
+                "tests_status": row[3] if len(row) > 3 else Status.UNKNOWN.value,
             }
     except (FileNotFoundError, IndexError):
         return {
-            'clone_status': Status.UNKNOWN.value,
-            'dep_status': Status.UNKNOWN.value,
-            'tests_status': Status.UNKNOWN.value
+            "clone_status": Status.UNKNOWN.value,
+            "dep_status": Status.UNKNOWN.value,
+            "tests_status": Status.UNKNOWN.value,
         }
 
-def analyze_readme_content(repo_dir: str) -> Dict[str, bool]:
+
+def analyze_readme_content(repo_dir: str) -> dict[str, bool]:
     """
     Analyze README content for key components required for JOSS submission.
-    
+
     Args:
         repo_dir (str): Path to the repository directory containing the README.md file.
-    
+
     Returns:
         Dict[str, bool]: Dictionary containing boolean flags for key README components:
             - statement_of_need: True if README contains problem statement, target audience, and related work
@@ -207,156 +293,133 @@ def analyze_readme_content(repo_dir: str) -> Dict[str, bool]:
     """
     readme_path = os.path.join(repo_dir, "README.md")
     if not os.path.exists(readme_path):
-        return {
-            "statement_of_need": False,
-            "installation": False,
-            "example_usage": False
-        }
-    
-    with open(readme_path, 'r', encoding='utf-8') as f:
+        return {"statement_of_need": False, "installation": False, "example_usage": False}
+
+    with open(readme_path, encoding="utf-8") as f:
         content = f.read().lower()
-    
+
     # Check for statement of need components
-    has_problem_statement = any(phrase in content for phrase in [
-        "problem", "solve", "purpose", "aim", "goal", "objective"
-    ])
-    has_target_audience = any(phrase in content for phrase in [
-        "audience", "users", "intended for", "designed for"
-    ])
-    has_related_work = any(phrase in content for phrase in [
-        "related", "similar", "compared to", "alternative"
-    ])
-    
+    has_problem_statement = any(
+        phrase in content for phrase in ["problem", "solve", "purpose", "aim", "goal", "objective"]
+    )
+    has_target_audience = any(
+        phrase in content for phrase in ["audience", "users", "intended for", "designed for"]
+    )
+    has_related_work = any(
+        phrase in content for phrase in ["related", "similar", "compared to", "alternative"]
+    )
+
     # Check for installation instructions
-    has_installation = any(phrase in content for phrase in [
-        "install", "setup", "dependencies", "requirements", "pip install"
-    ])
-    
+    has_installation = any(
+        phrase in content
+        for phrase in ["install", "setup", "dependencies", "requirements", "pip install"]
+    )
+
     # Check for example usage
-    has_examples = any(phrase in content for phrase in [
-        "example", "usage", "how to use", "quick start", "getting started"
-    ])
-    
+    has_examples = any(
+        phrase in content
+        for phrase in ["example", "usage", "how to use", "quick start", "getting started"]
+    )
+
     return {
         "statement_of_need": all([has_problem_statement, has_target_audience, has_related_work]),
         "installation": has_installation,
-        "example_usage": has_examples
+        "example_usage": has_examples,
     }
 
-def analyze_dependencies(repo_dir: str) -> Dict[str, Any]:
+
+def analyze_dependencies(repo_dir: str) -> dict[str, Any]:
     """
     Analyze dependency files for quality and completeness.
     """
     dependency_files = {
-        'python': [
-            'requirements.txt',
-            'setup.py',
-            'Pipfile',
-            'pyproject.toml'
-        ],
-        'node': [
-            'package.json',
-            'package-lock.json',
-            'yarn.lock'
-        ],
-        'java': [
-            'pom.xml',
-            'build.gradle',
-            'settings.gradle'
-        ],
-        'r': [
-            'DESCRIPTION',
-            'renv.lock',
-            'packrat/packrat.lock'
-        ],
-        'rust': [
-            'Cargo.toml',
-            'Cargo.lock'
-        ],
-        'ruby': [
-            'Gemfile',
-            'Gemfile.lock'
-        ],
-        'go': [
-            'go.mod',
-            'go.sum'
-        ]
+        "python": ["requirements.txt", "setup.py", "Pipfile", "pyproject.toml"],
+        "node": ["package.json", "package-lock.json", "yarn.lock"],
+        "java": ["pom.xml", "build.gradle", "settings.gradle"],
+        "r": ["DESCRIPTION", "renv.lock", "packrat/packrat.lock"],
+        "rust": ["Cargo.toml", "Cargo.lock"],
+        "ruby": ["Gemfile", "Gemfile.lock"],
+        "go": ["go.mod", "go.sum"],
     }
 
-    def check_python_requirements(file_path: str) -> Dict[str, Any]:
+    def check_python_requirements(file_path: str) -> dict[str, Any]:
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path) as f:
                 lines = f.readlines()
-            
+
             deps = []
             issues = []
-            
+
             for line in lines:
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
-                
+
                 # Check for basic formatting
-                if '==' in line:
+                if "==" in line:
                     deps.append(line)
-                elif '>=' in line or '<=' in line:
+                elif ">=" in line or "<=" in line:
                     deps.append(line)
                     issues.append(f"Loose version constraint: {line}")
                 else:
                     issues.append(f"No version constraint: {line}")
-            
+
             return {
                 "has_dependencies": len(deps) > 0,
                 "total_dependencies": len(deps),
                 "issues": issues,
-                "status": "good" if len(issues) == 0 else "ok" if len(issues) < len(deps) else "needs improvement"
+                "status": (
+                    "good"
+                    if len(issues) == 0
+                    else "ok" if len(issues) < len(deps) else "needs improvement"
+                ),
             }
         except Exception as e:
             return {
                 "has_dependencies": False,
                 "total_dependencies": 0,
                 "issues": [f"Error reading file: {str(e)}"],
-                "status": Status.NEEDS_IMPROVEMENT.value
+                "status": Status.NEEDS_IMPROVEMENT.value,
             }
 
-    def check_package_json(file_path: str) -> Dict[str, Any]:
+    def check_package_json(file_path: str) -> dict[str, Any]:
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path) as f:
                 data = json.load(f)
-            
+
             deps = []
             issues = []
-            
+
             # Check dependencies
-            for dep_type in ['dependencies', 'devDependencies']:
+            for dep_type in ["dependencies", "devDependencies"]:
                 if dep_type not in data:
                     continue
                 for dep, version in data[dep_type].items():
                     deps.append(f"{dep}:{version}")
-                    if version.startswith('^') or version.startswith('~'):
+                    if version.startswith("^") or version.startswith("~"):
                         issues.append(f"Loose version constraint: {dep} {version}")
-                    elif version == '*':
+                    elif version == "*":
                         issues.append(f"No version constraint: {dep}")
-            
+
             return {
                 "has_dependencies": len(deps) > 0,
                 "total_dependencies": len(deps),
                 "issues": issues,
-                "status": "good" if len(issues) == 0 else "ok" if len(issues) < len(deps) else "needs improvement"
+                "status": (
+                    "good"
+                    if len(issues) == 0
+                    else "ok" if len(issues) < len(deps) else "needs improvement"
+                ),
             }
         except Exception as e:
             return {
                 "has_dependencies": False,
                 "total_dependencies": 0,
                 "issues": [f"Error reading file: {str(e)}"],
-                "status": Status.NEEDS_IMPROVEMENT.value
+                "status": Status.NEEDS_IMPROVEMENT.value,
             }
 
-    results = {
-        "found_files": [],
-        "analysis": {},
-        "overall_status": Status.NEEDS_IMPROVEMENT.value
-    }
+    results = {"found_files": [], "analysis": {}, "overall_status": Status.NEEDS_IMPROVEMENT.value}
 
     # Check for dependency files
     for _, files in dependency_files.items():
@@ -364,11 +427,11 @@ def analyze_dependencies(repo_dir: str) -> Dict[str, Any]:
             file_path = os.path.join(repo_dir, file)
             if os.path.exists(file_path):
                 results["found_files"].append(file)
-                
+
                 # Analyze based on file type
-                if file.endswith('.txt'):
+                if file.endswith(".txt"):
                     results["analysis"][file] = check_python_requirements(file_path)
-                elif file == 'package.json':
+                elif file == "package.json":
                     results["analysis"][file] = check_package_json(file_path)
                 # Add more file type checks as needed
 
@@ -385,6 +448,7 @@ def analyze_dependencies(repo_dir: str) -> Dict[str, Any]:
             results["overall_status"] = Status.NEEDS_IMPROVEMENT.value
 
     return results
+
 
 def walk_repo(root: Path):
     """
@@ -416,7 +480,7 @@ def walk_repo(root: Path):
             yield entry.relative_to(root), is_dir
 
 
-def detect_test_evidence(repo_dir: str) -> Dict[str, Any]:
+def detect_test_evidence(repo_dir: str) -> dict[str, Any]:
     """
     Collect the static evidence the Tests criterion needs from a cloned repository.
 
@@ -429,8 +493,8 @@ def detect_test_evidence(repo_dir: str) -> Dict[str, Any]:
     """
     root = Path(repo_dir)
     has_test_dir = has_test_file = has_runner_config = False
-    ci_paths: List[Path] = []
-    example_dirs: List[Path] = []
+    ci_paths: list[Path] = []
+    example_dirs: list[Path] = []
 
     for rel, is_dir in walk_repo(root):
         name = rel.name
@@ -505,7 +569,7 @@ def detect_test_evidence(repo_dir: str) -> Dict[str, Any]:
     }
 
 
-def analyze_test_results(test_results: Dict[str, Any], repo_dir: str) -> Dict[str, Any]:
+def analyze_test_results(test_results: dict[str, Any], repo_dir: str) -> dict[str, Any]:
     """
     Evaluate the Tests criterion from static repository evidence.
 
@@ -522,17 +586,24 @@ def analyze_test_results(test_results: Dict[str, Any], repo_dir: str) -> Dict[st
     if evidence["automated_check_in_ci"]:
         # Both routes to the Good tier score the same; they are named apart so a workflow
         # tool with no unit tests is not reported as having a suite.
-        headline = (Details.TESTS_AUTOMATED_IN_CI if evidence["has_tests"]
-                    else Details.TESTS_PIPELINE_IN_CI)
+        headline = (
+            Details.TESTS_AUTOMATED_IN_CI if evidence["has_tests"] else Details.TESTS_PIPELINE_IN_CI
+        )
         status, score = Status.GOOD.value, SCORE_GOOD
     elif evidence["has_tests"]:
         status, score, headline = Status.OK.value, SCORE_OK, Details.TESTS_SUITE_NO_CI
     elif evidence["has_sample_input"]:
-        status, score, headline = (Status.NEEDS_IMPROVEMENT.value, SCORE_NEEDS_IMPROVEMENT,
-                                   Details.TESTS_SAMPLE_INPUTS)
+        status, score, headline = (
+            Status.NEEDS_IMPROVEMENT.value,
+            SCORE_NEEDS_IMPROVEMENT,
+            Details.TESTS_SAMPLE_INPUTS,
+        )
     else:
-        status, score, headline = (Status.NEEDS_IMPROVEMENT.value, SCORE_NONE,
-                                  Details.TESTS_NO_EVIDENCE)
+        status, score, headline = (
+            Status.NEEDS_IMPROVEMENT.value,
+            SCORE_NONE,
+            Details.TESTS_NO_EVIDENCE,
+        )
 
     details = [headline.value]
 
@@ -556,14 +627,17 @@ def analyze_test_results(test_results: Dict[str, Any], repo_dir: str) -> Dict[st
         "evidence": evidence,
     }
 
-def analyze_almanack_results(almanack_results: List[Dict[str, Any]], repo_dir: str) -> Dict[str, Dict[str, Any]]:
+
+def analyze_almanack_results(
+    almanack_results: list[dict[str, Any]], repo_dir: str
+) -> dict[str, dict[str, Any]]:
     """
     Analyze Almanack results and return criteria evaluations.
-    
+
     Args:
         almanack_results (List[Dict[str, Any]]): Results from Almanack analysis
         repo_dir (str): Path to the repository directory
-        
+
     Returns:
         Dict[str, Dict[str, Any]]: Dictionary containing criteria evaluations for:
             - Statement of Need
@@ -575,25 +649,25 @@ def analyze_almanack_results(almanack_results: List[Dict[str, Any]], repo_dir: s
         Criteria.STATEMENT_OF_NEED.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
-            "details": Details.NOT_ANALYZED.value
+            "details": Details.NOT_ANALYZED.value,
         },
         Criteria.INSTALLATION_INSTRUCTIONS.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
-            "details": Details.NOT_ANALYZED.value
+            "details": Details.NOT_ANALYZED.value,
         },
         Criteria.EXAMPLE_USAGE.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
-            "details": Details.NOT_ANALYZED.value
+            "details": Details.NOT_ANALYZED.value,
         },
         Criteria.COMMUNITY_GUIDELINES.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
-            "details": Details.NOT_ANALYZED.value
-        }
+            "details": Details.NOT_ANALYZED.value,
+        },
     }
-    
+
     if almanack_results:
         # Extract relevant metrics
         has_readme = get_metric_value(almanack_results, "repo-includes-readme")
@@ -606,16 +680,20 @@ def analyze_almanack_results(almanack_results: List[Dict[str, Any]], repo_dir: s
             if readme_content["statement_of_need"]:
                 criteria[Criteria.STATEMENT_OF_NEED.value]["status"] = Status.GOOD.value
                 criteria[Criteria.STATEMENT_OF_NEED.value]["score"] = SCORE_GOOD
-                criteria[Criteria.STATEMENT_OF_NEED.value]["details"] = Details.FOUND_COMPREHENSIVE_NEED.value
+                criteria[Criteria.STATEMENT_OF_NEED.value][
+                    "details"
+                ] = Details.FOUND_COMPREHENSIVE_NEED.value
             else:
                 criteria[Criteria.STATEMENT_OF_NEED.value]["status"] = Status.OK.value
                 criteria[Criteria.STATEMENT_OF_NEED.value]["score"] = SCORE_OK
-                criteria[Criteria.STATEMENT_OF_NEED.value]["details"] = Details.FOUND_NEED_IMPROVEMENT.value
+                criteria[Criteria.STATEMENT_OF_NEED.value][
+                    "details"
+                ] = Details.FOUND_NEED_IMPROVEMENT.value
         else:
             criteria[Criteria.STATEMENT_OF_NEED.value]["status"] = Status.NEEDS_IMPROVEMENT.value
             criteria[Criteria.STATEMENT_OF_NEED.value]["score"] = SCORE_NEEDS_IMPROVEMENT
             criteria[Criteria.STATEMENT_OF_NEED.value]["details"] = Details.MISSING_README.value
-        
+
         # Check for installation instructions. JOSS asks for the instructions, not for a
         # separate documentation site, so the README alone can satisfy this; the docs site
         # is scored on its own by the Almanack's common-docs check.
@@ -624,16 +702,24 @@ def analyze_almanack_results(almanack_results: List[Dict[str, Any]], repo_dir: s
             if readme_content["installation"]:
                 criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["status"] = Status.GOOD.value
                 criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["score"] = SCORE_GOOD
-                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["details"] = Details.FOUND_COMPREHENSIVE_INSTALL.value
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value][
+                    "details"
+                ] = Details.FOUND_COMPREHENSIVE_INSTALL.value
             else:
                 criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["status"] = Status.OK.value
                 criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["score"] = SCORE_OK
-                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["details"] = Details.FOUND_INSTALL_IMPROVEMENT.value
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value][
+                    "details"
+                ] = Details.FOUND_INSTALL_IMPROVEMENT.value
         else:
-            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["status"] = Status.NEEDS_IMPROVEMENT.value
+            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value][
+                "status"
+            ] = Status.NEEDS_IMPROVEMENT.value
             criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["score"] = SCORE_NEEDS_IMPROVEMENT
-            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["details"] = Details.MISSING_INSTALL.value
-        
+            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value][
+                "details"
+            ] = Details.MISSING_INSTALL.value
+
         # Check for example usage, read from the README for the same reason as installation
         # instructions above.
         if has_readme:
@@ -641,41 +727,54 @@ def analyze_almanack_results(almanack_results: List[Dict[str, Any]], repo_dir: s
             if readme_content["example_usage"]:
                 criteria[Criteria.EXAMPLE_USAGE.value]["status"] = Status.GOOD.value
                 criteria[Criteria.EXAMPLE_USAGE.value]["score"] = SCORE_GOOD
-                criteria[Criteria.EXAMPLE_USAGE.value]["details"] = Details.FOUND_COMPREHENSIVE_USAGE.value
+                criteria[Criteria.EXAMPLE_USAGE.value][
+                    "details"
+                ] = Details.FOUND_COMPREHENSIVE_USAGE.value
             else:
                 criteria[Criteria.EXAMPLE_USAGE.value]["status"] = Status.OK.value
                 criteria[Criteria.EXAMPLE_USAGE.value]["score"] = SCORE_OK
-                criteria[Criteria.EXAMPLE_USAGE.value]["details"] = Details.FOUND_USAGE_IMPROVEMENT.value
+                criteria[Criteria.EXAMPLE_USAGE.value][
+                    "details"
+                ] = Details.FOUND_USAGE_IMPROVEMENT.value
         else:
             criteria[Criteria.EXAMPLE_USAGE.value]["status"] = Status.NEEDS_IMPROVEMENT.value
             criteria[Criteria.EXAMPLE_USAGE.value]["score"] = SCORE_NEEDS_IMPROVEMENT
             criteria[Criteria.EXAMPLE_USAGE.value]["details"] = Details.MISSING_USAGE.value
-        
+
         # Check for community guidelines
         if has_contributing and has_code_of_conduct:
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["status"] = Status.GOOD.value
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["score"] = SCORE_GOOD
-            criteria[Criteria.COMMUNITY_GUIDELINES.value]["details"] = Details.FOUND_BOTH_GUIDELINES.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value][
+                "details"
+            ] = Details.FOUND_BOTH_GUIDELINES.value
         elif has_contributing or has_code_of_conduct:
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["status"] = Status.OK.value
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["score"] = SCORE_OK
-            criteria[Criteria.COMMUNITY_GUIDELINES.value]["details"] = Details.FOUND_PARTIAL_GUIDELINES.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value][
+                "details"
+            ] = Details.FOUND_PARTIAL_GUIDELINES.value
         else:
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["status"] = Status.NEEDS_IMPROVEMENT.value
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["score"] = SCORE_NEEDS_IMPROVEMENT
-            criteria[Criteria.COMMUNITY_GUIDELINES.value]["details"] = Details.MISSING_GUIDELINES.value
-    
+            criteria[Criteria.COMMUNITY_GUIDELINES.value][
+                "details"
+            ] = Details.MISSING_GUIDELINES.value
+
     return criteria
 
-def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: Dict[str, Any], repo_dir: str) -> Dict[str, Any]:
+
+def analyze_joss_criteria(
+    almanack_results: list[dict[str, Any]], test_results: dict[str, Any], repo_dir: str
+) -> dict[str, Any]:
     """
     Analyze repository against JOSS criteria based on Almanack and test results.
-    
+
     Args:
         almanack_results (List[Dict[str, Any]]): Results from Almanack analysis
         test_results (Dict[str, Any]): Results from test execution
         repo_dir (str): Path to the repository directory
-        
+
     Returns:
         Dict[str, Any]: Dictionary containing JOSS criteria evaluation with overall scores
     """
@@ -684,30 +783,30 @@ def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: 
         Criteria.STATEMENT_OF_NEED.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
-            "details": Details.NOT_ANALYZED.value
+            "details": Details.NOT_ANALYZED.value,
         },
         Criteria.INSTALLATION_INSTRUCTIONS.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
-            "details": Details.NOT_ANALYZED.value
+            "details": Details.NOT_ANALYZED.value,
         },
         Criteria.EXAMPLE_USAGE.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
-            "details": Details.NOT_ANALYZED.value
+            "details": Details.NOT_ANALYZED.value,
         },
         Criteria.COMMUNITY_GUIDELINES.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
-            "details": Details.NOT_ANALYZED.value
+            "details": Details.NOT_ANALYZED.value,
         },
         Criteria.TESTS.value: {
             "status": Status.NEEDS_IMPROVEMENT.value,
             "score": SCORE_NONE,
-            "details": Details.NOT_ANALYZED.value
-        }
+            "details": Details.NOT_ANALYZED.value,
+        },
     }
-    
+
     # Analyze test results. The evidence flags are lifted out of the criterion and reported
     # alongside it, so the per-criterion shape stays status/score/details for any consumer.
     test_criteria = analyze_test_results(test_results, repo_dir)
@@ -728,13 +827,16 @@ def analyze_joss_criteria(almanack_results: List[Dict[str, Any]], test_results: 
         "overall_score": overall_score,
         "total_score": total_score,
         "max_score": max_score,
-        "test_evidence": test_evidence
+        "test_evidence": test_evidence,
     }
+
 
 if __name__ == "__main__":
     print(f"[DEBUG] sys.argv: {sys.argv}")
     if len(sys.argv) != 5:
-        print("Usage: python analyze_joss.py <repo_name> <almanack_results> <test_results> <repo_dir>")
+        print(
+            "Usage: python analyze_joss.py <repo_name> <almanack_results> <test_results> <repo_dir>"
+        )
         sys.exit(1)
 
     repo_name = sys.argv[1]
@@ -744,9 +846,9 @@ if __name__ == "__main__":
 
     try:
         # Read input files
-        with open(almanack_results_file, 'r') as f:
+        with open(almanack_results_file) as f:
             almanack_results = json.load(f)
-        with open(test_results_file, 'r') as f:
+        with open(test_results_file) as f:
             test_results = json.load(f)
 
         # Analyze JOSS criteria
@@ -754,10 +856,10 @@ if __name__ == "__main__":
 
         # Write the analysis to a JSON file
         output_file = f"joss_report_{repo_name}.json"
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(joss_analysis, f, indent=2)
         print(f"[DEBUG] JOSS analysis written to {output_file}")
 
     except Exception as e:
         print(f"[ERROR] JOSS analysis failed: {str(e)}")
-        sys.exit(1) 
+        sys.exit(1)

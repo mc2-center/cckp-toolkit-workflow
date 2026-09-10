@@ -27,10 +27,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BOOL_MAP = {True: 1, False: 0, "True": 1, "False": 0}
 
 CHECKS_11 = [
-    "repo_includes_readme", "repo_includes_contributing", "repo_includes_code_of_conduct",
-    "repo_includes_license", "repo_is_citable", "repo_default_branch_not_master",
-    "repo_includes_common_docs", "repo_uses_issues", "repo_pull_requests_enabled",
-    "repo_doi_valid_format", "repo_check_notebook_exec_order",
+    "repo_includes_readme",
+    "repo_includes_contributing",
+    "repo_includes_code_of_conduct",
+    "repo_includes_license",
+    "repo_is_citable",
+    "repo_default_branch_not_master",
+    "repo_includes_common_docs",
+    "repo_uses_issues",
+    "repo_pull_requests_enabled",
+    "repo_doi_valid_format",
+    "repo_check_notebook_exec_order",
 ]
 CONFOUNDERS = ["age_years", "log_commits", "log_contributors"]
 # Reported as a sensitivity check only; see the note on stars in the module docstring.
@@ -65,14 +72,17 @@ def report(frame, label, score_cols):
         if len(a) < 30 or len(b) < 30:
             continue
         p = mannwhitneyu(a, b, alternative="two-sided").pvalue
-        print(f"  {name:26} org {a.mean():.3f}  individual {b.mean():.3f}  "
-              f"diff {a.mean() - b.mean():+.3f}  p={p:.2e}")
+        print(
+            f"  {name:26} org {a.mean():.3f}  individual {b.mean():.3f}  "
+            f"diff {a.mean() - b.mean():+.3f}  p={p:.2e}"
+        )
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--metrics_csv",
-                    default="data/final_results/combined_almanack_joss_static_tests.csv")
+    ap.add_argument(
+        "--metrics_csv", default="data/final_results/combined_almanack_joss_static_tests.csv"
+    )
     ap.add_argument("--owner_csv", default="data/final_results/owner_type.csv")
     args = ap.parse_args()
 
@@ -85,9 +95,11 @@ def main() -> None:
     checks = d[CHECKS_11].apply(lambda s: s.map(BOOL_MAP)).fillna(0)
     d["score11"] = checks.sum(axis=1) / len(CHECKS_11)
 
-    score_cols = [("joss_score", "JOSS score (/5 criteria)"),
-                  ("almanack_score", "Almanack score (stored)"),
-                  ("score11", "Almanack, 11-check fixed")]
+    score_cols = [
+        ("joss_score", "JOSS score (/5 criteria)"),
+        ("almanack_score", "Almanack score (stored)"),
+        ("score11", "Almanack, 11-check fixed"),
+    ]
 
     report(d, "full cohort", score_cols)
     report(d[~d["from_nfcore"].astype(bool)], "excluding nf-core", score_cols)
@@ -108,18 +120,22 @@ def main() -> None:
     d["log_contributors"] = np.log10(contributors + 1)
     d["log_stars"] = np.log10(pd.to_numeric(d.get("stargazers_refreshed"), errors="coerce") + 1)
 
-    for covariates, label in ((CONFOUNDERS, "adjusted for age, commits and contributors"),
-                              (CONFOUNDERS_WITH_STARS,
-                               "sensitivity: the same plus stars, which is downstream of the "
-                               "practices")):
+    for covariates, label in (
+        (CONFOUNDERS, "adjusted for age, commits and contributors"),
+        (
+            CONFOUNDERS_WITH_STARS,
+            "sensitivity: the same plus stars, which is downstream of the " "practices",
+        ),
+    ):
         print(f"\n{label}:")
         for col, name in score_cols:
             sub = d[["is_org", col] + covariates].dropna()
             if len(sub) < 100:
                 print(f"  {name:26} insufficient rows ({len(sub)})")
                 continue
-            coef, se, t, dof = ols(sub[col].to_numpy(float),
-                                   sub[["is_org"] + covariates].to_numpy(float))
+            coef, se, t, dof = ols(
+                sub[col].to_numpy(float), sub[["is_org"] + covariates].to_numpy(float)
+            )
             print(f"  {name:26} n={len(sub):5}  coef {coef:+.4f}  se {se:.4f}  t {t:+.1f}")
 
 

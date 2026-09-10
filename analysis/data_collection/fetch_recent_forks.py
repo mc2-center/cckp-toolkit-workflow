@@ -35,10 +35,10 @@ def build_query(slugs: list[str]) -> str:
     for i, slug in enumerate(slugs):
         owner, name = slug.split("/", 1)
         parts.append(
-            f'r{i}: repository(owner: {json.dumps(owner)}, name: {json.dumps(name)}) {{ '
-            f'nameWithOwner forkCount '
-            f'forks(first: {PAGE}, orderBy: {{field: CREATED_AT, direction: DESC}}) '
-            f'{{ nodes {{ createdAt }} }} }}'
+            f"r{i}: repository(owner: {json.dumps(owner)}, name: {json.dumps(name)}) {{ "
+            f"nameWithOwner forkCount "
+            f"forks(first: {PAGE}, orderBy: {{field: CREATED_AT, direction: DESC}}) "
+            f"{{ nodes {{ createdAt }} }} }}"
         )
     return "query {\n" + "\n".join(parts) + "\n}"
 
@@ -52,8 +52,9 @@ def call_graphql(query: str, attempts: int = 3) -> dict | None:
     its own batch and nothing else.
     """
     for attempt in range(attempts):
-        result = subprocess.run(["gh", "api", "graphql", "-f", f"query={query}"],
-                                capture_output=True, text=True)
+        result = subprocess.run(
+            ["gh", "api", "graphql", "-f", f"query={query}"], capture_output=True, text=True
+        )
         text = result.stdout.strip()
         if text:
             try:
@@ -79,36 +80,51 @@ def run_batch(slugs: list[str]) -> list[dict]:
             rows.append({"canonical_repo": requested, "resolved": False})
             continue
         dates = [n["createdAt"] for n in (entry.get("forks", {}).get("nodes") or [])]
-        rows.append({
-            "canonical_repo": requested,
-            "resolved": True,
-            "fork_count": entry.get("forkCount"),
-            # True when the page did not reach the oldest fork, so an old-enough
-            # trailing window may be undercounted.
-            "truncated": (entry.get("forkCount") or 0) > PAGE,
-            "fork_dates": ";".join(dates),
-        })
+        rows.append(
+            {
+                "canonical_repo": requested,
+                "resolved": True,
+                "fork_count": entry.get("forkCount"),
+                # True when the page did not reach the oldest fork, so an old-enough
+                # trailing window may be undercounted.
+                "truncated": (entry.get("forkCount") or 0) > PAGE,
+                "fork_dates": ";".join(dates),
+            }
+        )
     return rows
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--metrics_csv",
-                        default="data/final_results/combined_almanack_with_source_flags.csv")
+    parser.add_argument(
+        "--metrics_csv", default="data/final_results/combined_almanack_with_source_flags.csv"
+    )
     parser.add_argument("--output", default="data/final_results/recent_forks_unlicensed.csv")
-    parser.add_argument("--only_unlicensed", action="store_true",
-                        help="Restrict to repositories failing the license check. Retained "
-                             "as the flag the unlicensed control set was fetched with; "
-                             "equivalent to --lacking_any repo_includes_license")
-    parser.add_argument("--lacking_any", default=None,
-                        help="Comma-separated Almanack check columns. Selects repositories "
-                             "failing at least one, so one run can serve the control pools "
-                             "of several practices at once")
-    parser.add_argument("--skip_zero_forks", action="store_true",
-                        help="Skip repositories whose recorded fork count is zero")
-    parser.add_argument("--jsonl", default=None,
-                        help="Append each batch here and skip repositories already present. "
-                             "Defaults to the output path with a .jsonl suffix")
+    parser.add_argument(
+        "--only_unlicensed",
+        action="store_true",
+        help="Restrict to repositories failing the license check. Retained "
+        "as the flag the unlicensed control set was fetched with; "
+        "equivalent to --lacking_any repo_includes_license",
+    )
+    parser.add_argument(
+        "--lacking_any",
+        default=None,
+        help="Comma-separated Almanack check columns. Selects repositories "
+        "failing at least one, so one run can serve the control pools "
+        "of several practices at once",
+    )
+    parser.add_argument(
+        "--skip_zero_forks",
+        action="store_true",
+        help="Skip repositories whose recorded fork count is zero",
+    )
+    parser.add_argument(
+        "--jsonl",
+        default=None,
+        help="Append each batch here and skip repositories already present. "
+        "Defaults to the output path with a .jsonl suffix",
+    )
     args = parser.parse_args()
 
     frame = pd.read_csv(REPO_ROOT / args.metrics_csv, low_memory=False)
@@ -162,7 +178,7 @@ def main() -> None:
 
     with jsonl.open("a") as handle:
         for start in range(0, len(todo), BATCH):
-            for row in run_batch(todo[start:start + BATCH]):
+            for row in run_batch(todo[start : start + BATCH]):
                 done[row["canonical_repo"]] = row
                 handle.write(json.dumps(row) + "\n")
             handle.flush()

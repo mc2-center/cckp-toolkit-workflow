@@ -30,9 +30,12 @@ def slug(owner_repo: str) -> str:
 def fetch_fork_dates(owner_repo: str, timeout: int = 300):
     """Return (list_of_iso_timestamps, status). status in {ok, gone, error}."""
     cmd = [
-        "gh", "api", "--paginate",
+        "gh",
+        "api",
+        "--paginate",
         f"repos/{owner_repo}/forks?sort=oldest&per_page=100",
-        "--jq", ".[].created_at",
+        "--jq",
+        ".[].created_at",
     ]
     try:
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -52,9 +55,13 @@ def main():
     ap.add_argument("--candidates", default="data/final_results/revision/event_candidates.csv")
     ap.add_argument("--output_dir", default="data/final_results/revision")
     ap.add_argument("--limit", type=int, default=0, help="0 = all candidates")
-    ap.add_argument("--min_snapshot_forks", type=int, default=1,
-                    help="skip candidates whose snapshot repo_forks_count is below this "
-                         "(0-fork repos have no accrual to reconstruct; reported as excluded downstream)")
+    ap.add_argument(
+        "--min_snapshot_forks",
+        type=int,
+        default=1,
+        help="skip candidates whose snapshot repo_forks_count is below this "
+        "(0-fork repos have no accrual to reconstruct; reported as excluded downstream)",
+    )
     args = ap.parse_args()
 
     cand = pd.read_csv(args.candidates)
@@ -85,7 +92,10 @@ def main():
         else:
             errors += 1  # transient: leave uncached so a rerun retries it
         if i % 25 == 0:
-            print(f"[{i}/{len(repos)}] fetched={done} gone={gone} err={errors} skipped={skipped}", flush=True)
+            print(
+                f"[{i}/{len(repos)}] fetched={done} gone={gone} err={errors} skipped={skipped}",
+                flush=True,
+            )
 
     print(f"DONE: fetched={done} gone={gone} err={errors} skipped={skipped} total={len(repos)}")
 

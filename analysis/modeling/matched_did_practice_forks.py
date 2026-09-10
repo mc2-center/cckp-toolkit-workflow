@@ -24,6 +24,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -89,8 +90,7 @@ JOSS_CRITERIA = {
     # In this table joss_tests_score is already the statically scored criterion; the
     # execution-based one it replaced is kept alongside as joss_tests_score_execution.
     "tests": ["joss_tests_score"],
-    "installation_and_usage": ["joss_installation_instructions_score",
-                               "joss_example_usage_score"],
+    "installation_and_usage": ["joss_installation_instructions_score", "joss_example_usage_score"],
     "community_guidelines": ["joss_community_guidelines_score"],
     "statement_of_need": ["joss_statement_of_need_score"],
 }
@@ -218,8 +218,9 @@ def load_metrics(metrics_csv):
         if not path.exists():
             continue
         extra = pd.read_csv(path, low_memory=False)[["canonical_repo", spec["check"]]]
-        metrics = metrics.merge(extra.drop_duplicates("canonical_repo"),
-                                on="canonical_repo", how="left")
+        metrics = metrics.merge(
+            extra.drop_duplicates("canonical_repo"), on="canonical_repo", how="left"
+        )
     return metrics
 
 
@@ -252,8 +253,10 @@ def joss_weights():
         return {}
     n_criteria = len(columns)
     return {
-        name: float(sum(np.cov(frame[c].to_numpy(float) / n_criteria, score, ddof=1)[0, 1]
-                        for c in group) / total)
+        name: float(
+            sum(np.cov(frame[c].to_numpy(float) / n_criteria, score, ddof=1)[0, 1] for c in group)
+            / total
+        )
         for name, group in JOSS_CRITERIA.items()
     }
 
@@ -291,8 +294,9 @@ def load_fork_dates(fork_dir, forks_csv):
             frame = pd.read_csv(path)
             if "created_at" not in frame.columns or frame.empty:
                 continue
-            when = pd.to_datetime(frame["created_at"], format="ISO8601", utc=True,
-                                  errors="coerce").dropna()
+            when = pd.to_datetime(
+                frame["created_at"], format="ISO8601", utc=True, errors="coerce"
+            ).dropna()
             if when.empty:
                 continue
             slug = path.stem.replace("__", "/")
@@ -313,15 +317,18 @@ def load_fork_dates(fork_dir, forks_csv):
             if len(parts) < (row.fork_count or 0):
                 n_truncated += 1
                 continue
-            when = pd.to_datetime(pd.Series(parts), format="ISO8601", utc=True,
-                                  errors="coerce").dropna()
+            when = pd.to_datetime(
+                pd.Series(parts), format="ISO8601", utc=True, errors="coerce"
+            ).dropna()
             if when.empty:
                 continue
             dates[slug] = np.sort(when.astype("int64").to_numpy() / 1e9)
             n_added += 1
 
-    print(f"fork dates: {n_history} from paginated history, {n_added} from the batched table, "
-          f"{n_truncated} table rows dropped as page-capped")
+    print(
+        f"fork dates: {n_history} from paginated history, {n_added} from the batched table, "
+        f"{n_truncated} table rows dropped as page-capped"
+    )
     return dates
 
 
@@ -342,8 +349,9 @@ def build_units(slugs, events, metrics, fork_dates, reasons):
         if forks is None:
             reasons["no usable fork history"] += 1
             continue
-        units.append({"repo": row.owner_repo, "t0": row.t0, "birth": b,
-                      "age_days": age_days, "forks": forks})
+        units.append(
+            {"repo": row.owner_repo, "t0": row.t0, "birth": b, "age_days": age_days, "forks": forks}
+        )
     return units
 
 
@@ -360,8 +368,7 @@ def build_controls(slugs, metrics, fork_dates):
     return rows
 
 
-def draw_rate_panel(ax, months, mean_t, ci_t, mean_c, ci_c, n_treated, n_pairs, spec,
-                    legend=True):
+def draw_rate_panel(ax, months, mean_t, ci_t, mean_c, ci_c, n_treated, n_pairs, spec, legend=True):
     """Render the two event-time rate curves onto an existing axis.
 
     Figure 3 draws the license panel too, but from the exported curve table and in its own
@@ -370,10 +377,27 @@ def draw_rate_panel(ax, months, mean_t, ci_t, mean_c, ci_c, n_treated, n_pairs, 
     ax.axvline(0, color="#C0392B", linestyle="--", linewidth=1.0, zorder=1)
     ax.fill_between(months, ci_t[0], ci_t[1], color=TREATED, alpha=0.18, linewidth=0)
     ax.fill_between(months, ci_c[0], ci_c[1], color=CONTROL, alpha=0.16, linewidth=0)
-    ax.plot(months, mean_t, color=TREATED, linewidth=1.8, marker="o", markersize=3,
-            label=f"{spec['treated']} (n = {n_treated:,})", zorder=3)
-    ax.plot(months, mean_c, color=CONTROL, linewidth=1.8, linestyle="--", marker="s",
-            markersize=3, label=f"{spec['control']} ({n_pairs:,} pairs)", zorder=3)
+    ax.plot(
+        months,
+        mean_t,
+        color=TREATED,
+        linewidth=1.8,
+        marker="o",
+        markersize=3,
+        label=f"{spec['treated']} (n = {n_treated:,})",
+        zorder=3,
+    )
+    ax.plot(
+        months,
+        mean_c,
+        color=CONTROL,
+        linewidth=1.8,
+        linestyle="--",
+        marker="s",
+        markersize=3,
+        label=f"{spec['control']} ({n_pairs:,} pairs)",
+        zorder=3,
+    )
     ax.set_ylabel("Forks per month", fontsize=FS_AXIS)
     ax.set_xlabel(f"Months relative to {spec['event']}", fontsize=FS_AXIS)
     ax.set_xticks(np.arange(-12, 13, 3))
@@ -404,17 +428,21 @@ def run_practice(name, spec, metrics, fork_dates, args):
         print(f"[{name}] skipped: no dated events at {spec['events']}")
         return None
 
-    reasons = {"no datable first commit": 0,
-               f"adopted within {MIN_GAP_DAYS} days of the first commit": 0,
-               "no usable fork history": 0,
-               "no control in age caliper": 0,
-               "no control in rate caliper": 0,
-               "pre- or post-window under 3 observed months": 0}
+    reasons = {
+        "no datable first commit": 0,
+        f"adopted within {MIN_GAP_DAYS} days of the first commit": 0,
+        "no usable fork history": 0,
+        "no control in age caliper": 0,
+        "no control in rate caliper": 0,
+        "pre- or post-window under 3 observed months": 0,
+    }
 
     treated = build_units(passing, events, metrics, fork_dates, reasons)
     controls = build_controls(failing, metrics, fork_dates)
-    print(f"[{name}] {len(events)} dated events, {len(treated)} usable treated, "
-          f"{len(controls)} controls")
+    print(
+        f"[{name}] {len(events)} dated events, {len(treated)} usable treated, "
+        f"{len(controls)} controls"
+    )
     if len(treated) < 30 or len(controls) < 50:
         print(f"[{name}] skipped: too few units to match")
         return None
@@ -448,8 +476,10 @@ def run_practice(name, spec, metrics, fork_dates, args):
             reasons["pre- or post-window under 3 observed months"] += 1
             continue
 
-        age_ok = np.abs(np.log(np.maximum(c_age[:, i], 1)) - np.log(max(unit["age_days"], 1))) \
+        age_ok = (
+            np.abs(np.log(np.maximum(c_age[:, i], 1)) - np.log(max(unit["age_days"], 1)))
             <= AGE_CALIPER
+        )
         eligible = age_ok & np.isfinite(c_pre[:, i])
         if not eligible.any():
             reasons["no control in age caliper"] += 1
@@ -469,8 +499,9 @@ def run_practice(name, spec, metrics, fork_dates, args):
         # first and age second, since the baseline is what drives the regression to the mean
         # this design exists to neutralise.
         idx = np.flatnonzero(eligible)
-        distance = np.abs(log_rate(c_pre[idx, i]) - log_rate(pre)) * 3.0 + \
-            np.abs(np.log(np.maximum(c_age[idx, i], 1)) - np.log(max(unit["age_days"], 1)))
+        distance = np.abs(log_rate(c_pre[idx, i]) - log_rate(pre)) * 3.0 + np.abs(
+            np.log(np.maximum(c_age[idx, i], 1)) - np.log(max(unit["age_days"], 1))
+        )
         chosen = idx[np.argsort(distance)[:N_CONTROLS]]
 
         t_counts = monthly_counts(unit["forks"], centre_s)
@@ -498,22 +529,26 @@ def run_practice(name, spec, metrics, fork_dates, args):
         curves_c.append(c_curve)
         match_counts.append(len(chosen))
         control_use.extend(controls[j]["repo"] for j in chosen)
-        records.append({
-            "repo": unit["repo"],
-            "t0": unit["t0"].date().isoformat(),
-            "age_days": unit["age_days"],
-            "control_age_days": float(np.mean(c_age[chosen, i])),
-            "n_controls": len(chosen),
-            "treated_pre": pre, "treated_post": post,
-            "control_pre": c_pre_m, "control_post": c_post_m,
-            "treated_delta": post - pre,
-            "control_delta": c_post_m - c_pre_m,
-            "did": (post - pre) - (c_post_m - c_pre_m),
-            "treated_log2": log_rate(post) - log_rate(pre),
-            "control_log2": log_rate(c_post_m) - log_rate(c_pre_m),
-            "did_log2": (log_rate(post) - log_rate(pre))
-                        - (log_rate(c_post_m) - log_rate(c_pre_m)),
-        })
+        records.append(
+            {
+                "repo": unit["repo"],
+                "t0": unit["t0"].date().isoformat(),
+                "age_days": unit["age_days"],
+                "control_age_days": float(np.mean(c_age[chosen, i])),
+                "n_controls": len(chosen),
+                "treated_pre": pre,
+                "treated_post": post,
+                "control_pre": c_pre_m,
+                "control_post": c_post_m,
+                "treated_delta": post - pre,
+                "control_delta": c_post_m - c_pre_m,
+                "did": (post - pre) - (c_post_m - c_pre_m),
+                "treated_log2": log_rate(post) - log_rate(pre),
+                "control_log2": log_rate(c_post_m) - log_rate(c_pre_m),
+                "did_log2": (log_rate(post) - log_rate(pre))
+                - (log_rate(c_post_m) - log_rate(c_pre_m)),
+            }
+        )
 
     if len(records) < 30:
         print(f"[{name}] skipped: only {len(records)} treated repositories matched")
@@ -577,8 +612,11 @@ def run_practice(name, spec, metrics, fork_dates, args):
     # removed, so a result resting on one repository is visible rather than implied.
     excess = did_values - did_values.mean()
     worst = int(np.argmax(np.abs(excess)))
-    top_share = float(abs(excess[worst]) / (len(did_values) * abs(did_values.mean()))) \
-        if did_values.mean() else np.nan
+    top_share = (
+        float(abs(excess[worst]) / (len(did_values) * abs(did_values.mean())))
+        if did_values.mean()
+        else np.nan
+    )
     drop_one = float(np.delete(did_values, worst).mean())
     fragile = np.isfinite(top_share) and top_share > 0.25
 
@@ -599,40 +637,58 @@ def run_practice(name, spec, metrics, fork_dates, args):
     add(f"treated repositories matched: {len(frame)} of {len(events)} dated events")
     for reason, n in reasons.items():
         add(f"  dropped, {reason}: {n}")
-    add(f"controls per treated repository: median {int(np.median(match_counts))}, "
-        f"total pairs {int(np.sum(match_counts))}")
+    add(
+        f"controls per treated repository: median {int(np.median(match_counts))}, "
+        f"total pairs {int(np.sum(match_counts))}"
+    )
     # A flat control curve built from a handful of heavily reused repositories would be a
     # property of those repositories rather than of untreated projects generally.
-    add(f"distinct control repositories used: {len(used)}; most reused appears "
+    add(
+        f"distinct control repositories used: {len(used)}; most reused appears "
         f"{int(used.iloc[0])} times; median reuse {int(used.median())}; "
         f"share of pairs from the 10 most reused controls "
-        f"{100 * used.head(10).sum() / used.sum():.1f}%")
+        f"{100 * used.head(10).sum() / used.sum():.1f}%"
+    )
     add("")
     add("BALANCE (means, matched sample)")
-    add(f"  age at event, days        treated {frame.age_days.mean():8.0f}   "
-        f"control {frame.control_age_days.mean():8.0f}")
-    add(f"  fork rate before, /month  treated {frame.treated_pre.mean():8.4f}   "
-        f"control {frame.control_pre.mean():8.4f}")
-    add(f"  fork rate after,  /month  treated {frame.treated_post.mean():8.4f}   "
-        f"control {frame.control_post.mean():8.4f}")
-    smd = (frame.treated_pre.mean() - frame.control_pre.mean()) / \
-        np.sqrt((frame.treated_pre.var() + frame.control_pre.var()) / 2)
-    add(f"  standardised mean difference on the pre-event rate: {smd:+.4f} "
-        f"(under 0.1 is conventionally balanced)")
+    add(
+        f"  age at event, days        treated {frame.age_days.mean():8.0f}   "
+        f"control {frame.control_age_days.mean():8.0f}"
+    )
+    add(
+        f"  fork rate before, /month  treated {frame.treated_pre.mean():8.4f}   "
+        f"control {frame.control_pre.mean():8.4f}"
+    )
+    add(
+        f"  fork rate after,  /month  treated {frame.treated_post.mean():8.4f}   "
+        f"control {frame.control_post.mean():8.4f}"
+    )
+    smd = (frame.treated_pre.mean() - frame.control_pre.mean()) / np.sqrt(
+        (frame.treated_pre.var() + frame.control_pre.var()) / 2
+    )
+    add(
+        f"  standardised mean difference on the pre-event rate: {smd:+.4f} "
+        f"(under 0.1 is conventionally balanced)"
+    )
     add("")
     add("EFFECT")
     add(f"  treated change            {frame.treated_delta.mean():+8.4f} forks/month")
     add(f"  matched control change    {frame.control_delta.mean():+8.4f} forks/month")
-    add(f"  difference in differences {frame.did.mean():+8.4f} forks/month "
-        f"[{did_lo:+.4f}, {did_hi:+.4f}]")
-    add(f"  median per-repository DiD  {med:+8.4f} forks/month "
-        f"[{med_lo:+.4f}, {med_hi:+.4f}]")
-    add(f"  Wilcoxon signed-rank on the per-repository DiD: W={w.statistic:.0f}, "
-        f"p={w.pvalue:.3g}")
+    add(
+        f"  difference in differences {frame.did.mean():+8.4f} forks/month "
+        f"[{did_lo:+.4f}, {did_hi:+.4f}]"
+    )
+    add(f"  median per-repository DiD  {med:+8.4f} forks/month " f"[{med_lo:+.4f}, {med_hi:+.4f}]")
+    add(
+        f"  Wilcoxon signed-rank on the per-repository DiD: W={w.statistic:.0f}, "
+        f"p={w.pvalue:.3g}"
+    )
     add(f"  share of repositories with DiD > 0: {100 * (frame.did > 0).mean():.1f}%")
     add(f"  on the log2 scale: {frame.did_log2.mean():+.3f} doublings, p={wl.pvalue:.3g}")
-    add(f"  largest single contribution to the mean: {100 * top_share:.0f}% "
-        f"({frame.repo.iloc[worst]}); mean without it {drop_one:+.4f}")
+    add(
+        f"  largest single contribution to the mean: {100 * top_share:.0f}% "
+        f"({frame.repo.iloc[worst]}); mean without it {drop_one:+.4f}"
+    )
     if fragile:
         add("  The mean rests substantially on one repository, so the median, the share")
         add("  positive and the Wilcoxon test are the estimates to report for this practice.")
@@ -640,19 +696,31 @@ def run_practice(name, spec, metrics, fork_dates, args):
     add("PARALLEL-TRENDS TEST (the identifying assumption)")
     add(f"  mean treated-minus-control gap, months -12 to -1: {np.nanmean(pre_diff):+.4f}")
     add(f"  mean treated-minus-control gap, months   0 to +11: {np.nanmean(post_diff):+.4f}")
-    add(f"  pre-event trend in the gap: {slope:+.5f} forks/month per month "
-        f"[{slope_lo:+.5f}, {slope_hi:+.5f}]")
-    add(f"  parallel trends: {'HOLDS' if parallel else 'FAILS'} "
-        f"(the slope interval {'includes' if parallel else 'excludes'} zero)")
-    add(f"  jump at the event, net of that trend: {jump:+.4f} forks/month "
-        f"[{jump_lo:+.4f}, {jump_hi:+.4f}]")
-    add(f"  pre-event months above their controls: "
+    add(
+        f"  pre-event trend in the gap: {slope:+.5f} forks/month per month "
+        f"[{slope_lo:+.5f}, {slope_hi:+.5f}]"
+    )
+    add(
+        f"  parallel trends: {'HOLDS' if parallel else 'FAILS'} "
+        f"(the slope interval {'includes' if parallel else 'excludes'} zero)"
+    )
+    add(
+        f"  jump at the event, net of that trend: {jump:+.4f} forks/month "
+        f"[{jump_lo:+.4f}, {jump_hi:+.4f}]"
+    )
+    add(
+        f"  pre-event months above their controls: "
         f"{int(np.sum(ci_d[0, :WINDOW] > 0))}; below: "
-        f"{int(np.sum(ci_d[1, :WINDOW] < 0))}; of {WINDOW}")
-    add(f"  gap in the final pre-event quarter (-3 to -1): "
-        f"{np.nanmean(diff[WINDOW - 3:WINDOW]):+.4f}")
-    add(f"  gap in the event quarter (0 to +2):            "
-        f"{np.nanmean(diff[WINDOW:WINDOW + 3]):+.4f}")
+        f"{int(np.sum(ci_d[1, :WINDOW] < 0))}; of {WINDOW}"
+    )
+    add(
+        f"  gap in the final pre-event quarter (-3 to -1): "
+        f"{np.nanmean(diff[WINDOW - 3:WINDOW]):+.4f}"
+    )
+    add(
+        f"  gap in the event quarter (0 to +2):            "
+        f"{np.nanmean(diff[WINDOW:WINDOW + 3]):+.4f}"
+    )
     if not parallel:
         add("  The gap was already moving before the event, so the difference in differences")
         add("  above absorbs part of a pre-existing trajectory. The trend-adjusted jump is the")
@@ -662,8 +730,10 @@ def run_practice(name, spec, metrics, fork_dates, args):
     add("EVENT-TIME CURVES (forks per month)")
     add(f"  {'month':>6}  {'treated':>8}  {'control':>8}  {'diff':>8}  {'diff 95% CI':>18}")
     for k, m in enumerate(months):
-        add(f"  {m:>6}  {mean_t[k]:8.3f}  {mean_c[k]:8.3f}  {diff[k]:+8.3f}  "
-            f"[{ci_d[0, k]:+.3f}, {ci_d[1, k]:+.3f}]")
+        add(
+            f"  {m:>6}  {mean_t[k]:8.3f}  {mean_c[k]:8.3f}  {diff[k]:+8.3f}  "
+            f"[{ci_d[0, k]:+.3f}, {ci_d[1, k]:+.3f}]"
+        )
 
     report = "\n".join(lines)
     print("\n" + report + "\n")
@@ -676,58 +746,98 @@ def run_practice(name, spec, metrics, fork_dates, args):
     # The event-time curves are exported so the main-text Figure 3 can draw the license panel
     # without repeating the matching, which is the slow part and the part that must not drift
     # between the two renderings.
-    pd.DataFrame({
-        "month": months,
-        "treated": mean_t, "treated_lo": ci_t[0], "treated_hi": ci_t[1],
-        "control": mean_c, "control_lo": ci_c[0], "control_hi": ci_c[1],
-        "diff": diff, "diff_lo": ci_d[0], "diff_hi": ci_d[1],
-    }).to_csv(out_dir / f"matched_did_curves_{name}.csv", index=False)
+    pd.DataFrame(
+        {
+            "month": months,
+            "treated": mean_t,
+            "treated_lo": ci_t[0],
+            "treated_hi": ci_t[1],
+            "control": mean_c,
+            "control_lo": ci_c[0],
+            "control_hi": ci_c[1],
+            "diff": diff,
+            "diff_lo": ci_d[0],
+            "diff_hi": ci_d[1],
+        }
+    ).to_csv(out_dir / f"matched_did_curves_{name}.csv", index=False)
 
     meta = {
-        "practice": name, "label": spec["label"],
+        "practice": name,
+        "label": spec["label"],
         "joss_criterion": spec.get("joss_criterion"),
         "joss_share": joss_weights().get(spec.get("joss_criterion"), 0.0),
-        "n_treated": len(frame), "n_pairs": int(np.sum(match_counts)),
+        "n_treated": len(frame),
+        "n_pairs": int(np.sum(match_counts)),
         "n_distinct_controls": len(used),
-        "treated_pre": frame.treated_pre.mean(), "control_pre": frame.control_pre.mean(),
+        "treated_pre": frame.treated_pre.mean(),
+        "control_pre": frame.control_pre.mean(),
         "smd_pre": float(smd),
         "treated_delta": frame.treated_delta.mean(),
         "control_delta": frame.control_delta.mean(),
-        "did": frame.did.mean(), "did_lo": float(did_lo), "did_hi": float(did_hi),
-        "did_median": med, "did_median_lo": float(med_lo), "did_median_hi": float(med_hi),
-        "top_contributor": frame.repo.iloc[worst], "top_share": top_share,
-        "did_drop_one": drop_one, "mean_fragile": bool(fragile),
-        "did_p": w.pvalue, "share_positive": float((frame.did > 0).mean()),
-        "did_log2": frame.did_log2.mean(), "did_log2_p": wl.pvalue,
-        "pre_gap": float(np.nanmean(pre_diff)), "post_gap": float(np.nanmean(post_diff)),
-        "pre_slope": float(slope), "pre_slope_lo": float(slope_lo),
-        "pre_slope_hi": float(slope_hi), "parallel_trends": bool(parallel),
-        "jump": float(jump), "jump_lo": float(jump_lo), "jump_hi": float(jump_hi),
+        "did": frame.did.mean(),
+        "did_lo": float(did_lo),
+        "did_hi": float(did_hi),
+        "did_median": med,
+        "did_median_lo": float(med_lo),
+        "did_median_hi": float(med_hi),
+        "top_contributor": frame.repo.iloc[worst],
+        "top_share": top_share,
+        "did_drop_one": drop_one,
+        "mean_fragile": bool(fragile),
+        "did_p": w.pvalue,
+        "share_positive": float((frame.did > 0).mean()),
+        "did_log2": frame.did_log2.mean(),
+        "did_log2_p": wl.pvalue,
+        "pre_gap": float(np.nanmean(pre_diff)),
+        "post_gap": float(np.nanmean(post_diff)),
+        "pre_slope": float(slope),
+        "pre_slope_lo": float(slope_lo),
+        "pre_slope_hi": float(slope_hi),
+        "parallel_trends": bool(parallel),
+        "jump": float(jump),
+        "jump_lo": float(jump_lo),
+        "jump_hi": float(jump_hi),
         "pre_months_above": int(np.sum(ci_d[0, :WINDOW] > 0)),
         "pre_months_below": int(np.sum(ci_d[1, :WINDOW] < 0)),
     }
     pd.DataFrame([meta]).to_csv(out_dir / f"matched_did_curves_{name}_meta.csv", index=False)
 
     fig, ax = plt.subplots(figsize=(7.0, 4.2), dpi=600)
-    draw_rate_panel(ax, months, mean_t, ci_t, mean_c, ci_c, len(frame),
-                    int(np.sum(match_counts)), spec)
-    fig.text(0.5, -0.04,
-             "Shaded bands are 95% intervals from 2,000 cluster bootstrap resamples of "
-             "treated repositories. Controls are repositories failing the same check at "
-             "assessment, matched within 25% on log age at the event date and within 0.35 "
-             "log2 units on the pre-event fork rate, with zero-fork baselines matched only "
-             "to zero-fork baselines. Months outside a repository's observed lifetime are "
-             "excluded rather than counted as zero.",
-             ha="center", va="top", fontsize=6, color="#555555", wrap=True)
+    draw_rate_panel(
+        ax, months, mean_t, ci_t, mean_c, ci_c, len(frame), int(np.sum(match_counts)), spec
+    )
+    fig.text(
+        0.5,
+        -0.04,
+        "Shaded bands are 95% intervals from 2,000 cluster bootstrap resamples of "
+        "treated repositories. Controls are repositories failing the same check at "
+        "assessment, matched within 25% on log age at the event date and within 0.35 "
+        "log2 units on the pre-event fork rate, with zero-fork baselines matched only "
+        "to zero-fork baselines. Months outside a repository's observed lifetime are "
+        "excluded rather than counted as zero.",
+        ha="center",
+        va="top",
+        fontsize=6,
+        color="#555555",
+        wrap=True,
+    )
     fig_dir = REPO_ROOT / args.fig_dir
     for ext in ("png", "pdf"):
         fig.savefig(fig_dir / f"fig_did_{name}.{ext}", dpi=600, bbox_inches="tight")
     plt.close(fig)
     print(f"[{name}] wrote matched_did_{name}.csv, curves, summary and fig_did_{name}.png")
 
-    return {"meta": meta, "spec": spec, "months": months, "frame": frame,
-            "mean_t": mean_t, "ci_t": ci_t, "mean_c": mean_c, "ci_c": ci_c,
-            "n_pairs": int(np.sum(match_counts))}
+    return {
+        "meta": meta,
+        "spec": spec,
+        "months": months,
+        "frame": frame,
+        "mean_t": mean_t,
+        "ci_t": ci_t,
+        "mean_c": mean_c,
+        "ci_c": ci_c,
+        "n_pairs": int(np.sum(match_counts)),
+    }
 
 
 def co_adoption(results, args):
@@ -753,8 +863,14 @@ def co_adoption(results, args):
                 rows.append({"practice": a, "other": b, "n_shared": 0, "within_30d": np.nan})
                 continue
             gap = (dates[a][shared] - dates[b][shared]).abs().dt.days
-            rows.append({"practice": a, "other": b, "n_shared": len(shared),
-                         "within_30d": float((gap <= 30).mean())})
+            rows.append(
+                {
+                    "practice": a,
+                    "other": b,
+                    "n_shared": len(shared),
+                    "within_30d": float((gap <= 30).mean()),
+                }
+            )
     frame = pd.DataFrame(rows)
     frame.to_csv(REPO_ROOT / args.out_dir / "matched_did_co_adoption.csv", index=False)
     return frame
@@ -803,18 +919,35 @@ def draw_estimates(ax, order, xlabel="Forks per month, treated minus matched con
     for k, row in enumerate(order.itertuples()):
         # Circle: the mean difference in differences. Filled where the pre-event gap was flat,
         # open where it was already rising and the estimate absorbs part of that trajectory.
-        ax.errorbar(row.did, k + 0.17,
-                    xerr=[[row.did - row.did_lo], [row.did_hi - row.did]],
-                    fmt="o", color=TREATED, ecolor=TREATED, elinewidth=1.4, capsize=2.5,
-                    markersize=6, zorder=3,
-                    markerfacecolor=TREATED if row.parallel_trends else "white",
-                    markeredgecolor=TREATED, markeredgewidth=1.4)
+        ax.errorbar(
+            row.did,
+            k + 0.17,
+            xerr=[[row.did - row.did_lo], [row.did_hi - row.did]],
+            fmt="o",
+            color=TREATED,
+            ecolor=TREATED,
+            elinewidth=1.4,
+            capsize=2.5,
+            markersize=6,
+            zorder=3,
+            markerfacecolor=TREATED if row.parallel_trends else "white",
+            markeredgecolor=TREATED,
+            markeredgewidth=1.4,
+        )
         # Diamond: the jump at the adoption month net of the fitted pre-event trend, which is
         # the quantity that still means something when the gap was not flat.
-        ax.errorbar(row.jump, k - 0.17,
-                    xerr=[[max(row.jump - row.jump_lo, 0)], [max(row.jump_hi - row.jump, 0)]],
-                    fmt="D", color=JUMP, ecolor=JUMP, elinewidth=1.2, capsize=2.5,
-                    markersize=5, zorder=3)
+        ax.errorbar(
+            row.jump,
+            k - 0.17,
+            xerr=[[max(row.jump - row.jump_lo, 0)], [max(row.jump_hi - row.jump, 0)]],
+            fmt="D",
+            color=JUMP,
+            ecolor=JUMP,
+            elinewidth=1.2,
+            capsize=2.5,
+            markersize=5,
+            zorder=3,
+        )
         if k:
             ax.axhline(k - 0.5, color="0.9", linewidth=0.6, zorder=0)
 
@@ -861,23 +994,55 @@ def draw_columns(ax, order, columns):
     blend = ax.get_yaxis_transform()
     header_y = len(order) - 0.42
     for x, header, value_of, align in columns:
-        ax.text(x, header_y, header, transform=blend, ha=align, va="bottom",
-                fontsize=FS_LABEL - 0.5, fontweight="bold")
+        ax.text(
+            x,
+            header_y,
+            header,
+            transform=blend,
+            ha=align,
+            va="bottom",
+            fontsize=FS_LABEL - 0.5,
+            fontweight="bold",
+        )
         for k, row in enumerate(order.itertuples()):
-            ax.text(x, k, value_of(row), transform=blend, ha=align, va="center",
-                    fontsize=FS_LABEL - 0.5)
+            ax.text(
+                x, k, value_of(row), transform=blend, ha=align, va="center", fontsize=FS_LABEL - 0.5
+            )
 
 
 def estimate_handles():
     """Legend entries for what draw_estimates puts on an axes."""
     return [
-        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor=TREATED, linestyle="",
-                   markersize=6, label="mean DiD, pre-event trend flat"),
-        plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor="white",
-                   markeredgewidth=1.4, linestyle="", markersize=6,
-                   label="mean DiD, pre-event gap already rising"),
-        plt.Line2D([], [], marker="D", color=JUMP, linestyle="", markersize=5,
-                   label="jump at adoption, net of the pre-event trend"),
+        plt.Line2D(
+            [],
+            [],
+            marker="o",
+            color=TREATED,
+            markerfacecolor=TREATED,
+            linestyle="",
+            markersize=6,
+            label="mean DiD, pre-event trend flat",
+        ),
+        plt.Line2D(
+            [],
+            [],
+            marker="o",
+            color=TREATED,
+            markerfacecolor="white",
+            markeredgewidth=1.4,
+            linestyle="",
+            markersize=6,
+            label="mean DiD, pre-event gap already rising",
+        ),
+        plt.Line2D(
+            [],
+            [],
+            marker="D",
+            color=JUMP,
+            linestyle="",
+            markersize=5,
+            label="jump at adoption, net of the pre-event trend",
+        ),
     ]
 
 
@@ -890,9 +1055,15 @@ def draw_forest(ax, table, legend_y=-0.20):
     order = reverse_rows(table)
     draw_estimates(ax, order)
     draw_columns(ax, order, FOREST_COLUMNS)
-    ax.legend(handles=estimate_handles(), loc="upper left",
-              bbox_to_anchor=(-0.34, legend_y), ncol=1, fontsize=FS_LABEL - 0.5,
-              frameon=False, handletextpad=0.6)
+    ax.legend(
+        handles=estimate_handles(),
+        loc="upper left",
+        bbox_to_anchor=(-0.34, legend_y),
+        ncol=1,
+        fontsize=FS_LABEL - 0.5,
+        frameon=False,
+        handletextpad=0.6,
+    )
 
 
 def cross_practice_outputs(results, args):
@@ -903,52 +1074,70 @@ def cross_practice_outputs(results, args):
     # Ordered by each practice's share of the variance in the JOSS score, then by effect size
     # within a tie, so the two practices the composite does not score fall to the bottom
     # together rather than being interleaved by effect size.
-    table = pd.DataFrame([r["meta"] for r in results.values()]).sort_values(
-        ["joss_share", "did"], ascending=[False, False]).reset_index(drop=True)
+    table = (
+        pd.DataFrame([r["meta"] for r in results.values()])
+        .sort_values(["joss_share", "did"], ascending=[False, False])
+        .reset_index(drop=True)
+    )
     table.to_csv(out_dir / "matched_did_all_practices.csv", index=False)
 
-    lines = ["MATCHED DIFFERENCE-IN-DIFFERENCES ACROSS SUSTAINABILITY PRACTICES", "",
-             "Ordered by each practice's share of the variance in the JOSS score, the "
-             "strongest predictor of adoption.", "",
-             f"{'practice':<24}{'JOSS':>7}{'n':>6}{'DiD':>9}{'95% CI':>20}{'median':>9}"
-             f"{'p':>11}{'>0':>7}{'pre-slope':>11}{'trends':>9}{'jump':>9}{'top':>6}"]
+    lines = [
+        "MATCHED DIFFERENCE-IN-DIFFERENCES ACROSS SUSTAINABILITY PRACTICES",
+        "",
+        "Ordered by each practice's share of the variance in the JOSS score, the "
+        "strongest predictor of adoption.",
+        "",
+        f"{'practice':<24}{'JOSS':>7}{'n':>6}{'DiD':>9}{'95% CI':>20}{'median':>9}"
+        f"{'p':>11}{'>0':>7}{'pre-slope':>11}{'trends':>9}{'jump':>9}{'top':>6}",
+    ]
     for row in table.itertuples():
         share = f"{100 * row.joss_share:.0f}%" if isinstance(row.joss_criterion, str) else "n/a"
-        lines.append(f"{row.label:<24}{share:>7}{row.n_treated:>6}{row.did:>+9.4f}"
-                     f"{f'[{row.did_lo:+.3f}, {row.did_hi:+.3f}]':>20}"
-                     f"{row.did_median:>+9.4f}"
-                     f"{row.did_p:>11.2g}{100 * row.share_positive:>6.0f}%"
-                     f"{row.pre_slope:>+11.5f}"
-                     f"{'flat' if row.parallel_trends else 'RISING':>9}"
-                     f"{row.jump:>+9.4f}{100 * row.top_share:>5.0f}%")
-    lines += ["",
-              "JOSS is the share of the variance in the JOSS score carried by the criterion "
-              "this practice decides; n/a means the composite does not score the practice.",
-              "DiD is the treated change in forks per month minus the matched control change.",
-              "pre-slope is the fitted trend in the treated-minus-control gap over the 12 "
-              "pre-event months.",
-              "trends is flat when that slope's bootstrap interval includes zero, which is the "
-              "parallel-trends assumption the DiD relies on.",
-              "jump is the month-0 gap net of the pre-event trend extrapolated forward, and is "
-              "the quantity to report where the trend is not flat.",
-              "top is the share of the mean contributed by its single largest repository; a "
-              "large value means the mean is carried by one project and the median is the "
-              "estimate to report."]
+        lines.append(
+            f"{row.label:<24}{share:>7}{row.n_treated:>6}{row.did:>+9.4f}"
+            f"{f'[{row.did_lo:+.3f}, {row.did_hi:+.3f}]':>20}"
+            f"{row.did_median:>+9.4f}"
+            f"{row.did_p:>11.2g}{100 * row.share_positive:>6.0f}%"
+            f"{row.pre_slope:>+11.5f}"
+            f"{'flat' if row.parallel_trends else 'RISING':>9}"
+            f"{row.jump:>+9.4f}{100 * row.top_share:>5.0f}%"
+        )
+    lines += [
+        "",
+        "JOSS is the share of the variance in the JOSS score carried by the criterion "
+        "this practice decides; n/a means the composite does not score the practice.",
+        "DiD is the treated change in forks per month minus the matched control change.",
+        "pre-slope is the fitted trend in the treated-minus-control gap over the 12 "
+        "pre-event months.",
+        "trends is flat when that slope's bootstrap interval includes zero, which is the "
+        "parallel-trends assumption the DiD relies on.",
+        "jump is the month-0 gap net of the pre-event trend extrapolated forward, and is "
+        "the quantity to report where the trend is not flat.",
+        "top is the share of the mean contributed by its single largest repository; a "
+        "large value means the mean is carried by one project and the median is the "
+        "estimate to report.",
+    ]
     heavy = table[table["mean_fragile"]]
     if len(heavy):
-        lines += ["",
-                  "Practices whose mean rests on one repository: "
-                  + ", ".join(f"{r.label} ({r.top_contributor}, {100 * r.top_share:.0f}%, "
-                              f"mean {r.did:+.3f} to {r.did_drop_one:+.3f} without it)"
-                              for r in heavy.itertuples()) + "."]
+        lines += [
+            "",
+            "Practices whose mean rests on one repository: "
+            + ", ".join(
+                f"{r.label} ({r.top_contributor}, {100 * r.top_share:.0f}%, "
+                f"mean {r.did:+.3f} to {r.did_drop_one:+.3f} without it)"
+                for r in heavy.itertuples()
+            )
+            + ".",
+        ]
     rising = table[~table["parallel_trends"]]
     if len(rising):
-        lines += ["",
-                  "Practices whose pre-event gap was already rising, so their DiD absorbs part "
-                  "of an existing trajectory: " + ", ".join(rising["label"]) + ".",
-                  "For these, adoption coincides with an acceleration already under way rather "
-                  "than starting one, and only the trend-adjusted jump supports a precedence "
-                  "reading."]
+        lines += [
+            "",
+            "Practices whose pre-event gap was already rising, so their DiD absorbs part "
+            "of an existing trajectory: " + ", ".join(rising["label"]) + ".",
+            "For these, adoption coincides with an acceleration already under way rather "
+            "than starting one, and only the trend-adjusted jump supports a precedence "
+            "reading.",
+        ]
     report = "\n".join(lines)
     print("\n" + report)
     (out_dir / "matched_did_all_practices_summary.txt").write_text(report + "\n")
@@ -964,11 +1153,23 @@ def cross_practice_outputs(results, args):
     ax = fig.add_axes([0.245, bottom_in / fig_h, 0.335, row_in * n_rows / fig_h])
     draw_forest(ax, table, legend_y=-footer_in / (row_in * n_rows))
 
-    fig.suptitle("Fork accrual after adopting a sustainability practice, against matched "
-                 "never-adopting controls", fontsize=FS_TITLE, x=0.02, ha="left",
-                 y=1 - 0.18 / fig_h)
-    fig.text(0.60, (bottom_in - footer_in) / fig_h, FOREST_FOOTNOTE,
-             ha="left", va="top", fontsize=6, color="#555555")
+    fig.suptitle(
+        "Fork accrual after adopting a sustainability practice, against matched "
+        "never-adopting controls",
+        fontsize=FS_TITLE,
+        x=0.02,
+        ha="left",
+        y=1 - 0.18 / fig_h,
+    )
+    fig.text(
+        0.60,
+        (bottom_in - footer_in) / fig_h,
+        FOREST_FOOTNOTE,
+        ha="left",
+        va="top",
+        fontsize=6,
+        color="#555555",
+    )
 
     for ext in ("png", "pdf"):
         fig.savefig(fig_dir / f"fig_did_forest.{ext}", dpi=600, bbox_inches="tight")
@@ -978,15 +1179,27 @@ def cross_practice_outputs(results, args):
     names = list(table["practice"])
     ncol = 2 if len(names) <= 4 else 3
     nrow = int(np.ceil(len(names) / ncol))
-    fig, axes = plt.subplots(nrow, ncol, figsize=(5.2 * ncol, 3.6 * nrow), dpi=600,
-                             squeeze=False)
+    fig, axes = plt.subplots(nrow, ncol, figsize=(5.2 * ncol, 3.6 * nrow), dpi=600, squeeze=False)
     for k, name in enumerate(names):
         res = results[name]
         ax = axes[k // ncol][k % ncol]
-        draw_rate_panel(ax, res["months"], res["mean_t"], res["ci_t"], res["mean_c"],
-                        res["ci_c"], res["meta"]["n_treated"], res["n_pairs"], res["spec"])
-        ax.set_title(f"{chr(97 + k)}  {res['spec']['label']}", fontsize=FS_TITLE,
-                     loc="left", fontweight="bold")
+        draw_rate_panel(
+            ax,
+            res["months"],
+            res["mean_t"],
+            res["ci_t"],
+            res["mean_c"],
+            res["ci_c"],
+            res["meta"]["n_treated"],
+            res["n_pairs"],
+            res["spec"],
+        )
+        ax.set_title(
+            f"{chr(97 + k)}  {res['spec']['label']}",
+            fontsize=FS_TITLE,
+            loc="left",
+            fontweight="bold",
+        )
     for k in range(len(names), nrow * ncol):
         axes[k // ncol][k % ncol].axis("off")
     fig.tight_layout()
@@ -1001,18 +1214,25 @@ def cross_practice_outputs(results, args):
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--practices", default="all",
-                    help=f"comma-separated subset of {', '.join(PRACTICES)}, or all")
+    ap.add_argument(
+        "--practices",
+        default="all",
+        help=f"comma-separated subset of {', '.join(PRACTICES)}, or all",
+    )
     ap.add_argument("--fork_dir", default=f"{REV}/fork_history")
     ap.add_argument("--forks_csv", default="data/final_results/recent_forks_controls.csv")
-    ap.add_argument("--metrics_csv",
-                    default="data/final_results/combined_almanack_with_source_flags.csv")
+    ap.add_argument(
+        "--metrics_csv", default="data/final_results/combined_almanack_with_source_flags.csv"
+    )
     ap.add_argument("--out_dir", default=REV)
     ap.add_argument("--fig_dir", default="docs/manuscript_drafts/figures")
     args = ap.parse_args()
 
-    names = list(PRACTICES) if args.practices == "all" else \
-        [n.strip() for n in args.practices.split(",") if n.strip()]
+    names = (
+        list(PRACTICES)
+        if args.practices == "all"
+        else [n.strip() for n in args.practices.split(",") if n.strip()]
+    )
     unknown = [n for n in names if n not in PRACTICES]
     if unknown:
         ap.error(f"no such practice(s): {', '.join(unknown)}")

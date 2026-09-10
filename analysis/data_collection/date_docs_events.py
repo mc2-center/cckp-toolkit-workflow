@@ -30,16 +30,23 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # The extensions file_exists_in_repo tries, and the docsite entry points find_file tries.
 DOC_EXTS = ("", ".md", ".txt", ".rtf")
 COMMON_DOCS = (
-    "docs/mkdocs.yml", "docs/conf.py", "docs/index.md", "docs/index.rst", "docs/index.html",
-    "docs/readme.md", "docs/source/readme.md", "docs/source/index.rst",
-    "docs/source/index.md", "docs/src/readme.md", "docs/src/index.rst", "docs/src/index.md",
+    "docs/mkdocs.yml",
+    "docs/conf.py",
+    "docs/index.md",
+    "docs/index.rst",
+    "docs/index.html",
+    "docs/readme.md",
+    "docs/source/readme.md",
+    "docs/source/index.rst",
+    "docs/source/index.md",
+    "docs/src/readme.md",
+    "docs/src/index.rst",
+    "docs/src/index.md",
 )
 # find_file appends its extension list to the path it is given, so a docsite path also
 # qualifies with one of these appended. Improbable in practice, kept for fidelity.
 FIND_FILE_EXTS = ("", ".md", ".txt", ".rtf", ".rst")
-COMMON_DOCS_PATHS = frozenset(
-    f"{path}{ext}" for path in COMMON_DOCS for ext in FIND_FILE_EXTS
-)
+COMMON_DOCS_PATHS = frozenset(f"{path}{ext}" for path in COMMON_DOCS for ext in FIND_FILE_EXTS)
 
 # Narrow what git has to walk. glob magic keeps * from crossing a directory separator, so
 # these do not sweep in unrelated files, and icase mirrors the check's case-insensitivity.
@@ -57,8 +64,9 @@ CLONE_TIMEOUT, LOG_TIMEOUT = 300, 240
 
 
 def run(args, cwd=None, timeout=60):
-    return subprocess.run(args, cwd=cwd, capture_output=True, text=True,
-                          timeout=timeout, env=GIT_ENV)
+    return subprocess.run(
+        args, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=GIT_ENV
+    )
 
 
 def classify(path: str) -> list[str]:
@@ -86,8 +94,18 @@ def earliest(slug: str, clone_root: Path) -> dict:
     target = clone_root / slug.replace("/", "__")
     out = {"owner_repo": slug, "cloned": False}
     try:
-        clone = run(["git", "clone", "--filter=blob:none", "--no-checkout", "--quiet",
-                     f"https://github.com/{slug}.git", str(target)], timeout=CLONE_TIMEOUT)
+        clone = run(
+            [
+                "git",
+                "clone",
+                "--filter=blob:none",
+                "--no-checkout",
+                "--quiet",
+                f"https://github.com/{slug}.git",
+                str(target),
+            ],
+            timeout=CLONE_TIMEOUT,
+        )
         if clone.returncode != 0:
             out["error"] = clone.stderr.strip()[:150]
             return out
@@ -96,9 +114,22 @@ def earliest(slug: str, clone_root: Path) -> dict:
         # --reverse walks oldest first, so the first date seen for a practice is its event.
         # A merge commit repeats its parents' additions, so --no-merges avoids double counting;
         # it cannot hide an addition, since the addition itself is on a parent.
-        log = run(["git", "log", "--reverse", "--no-merges", "--diff-filter=A",
-                   "--name-only", "--format=%x00%ad", "--date=short", "--"] + PATHSPECS,
-                  cwd=target, timeout=LOG_TIMEOUT)
+        log = run(
+            [
+                "git",
+                "log",
+                "--reverse",
+                "--no-merges",
+                "--diff-filter=A",
+                "--name-only",
+                "--format=%x00%ad",
+                "--date=short",
+                "--",
+            ]
+            + PATHSPECS,
+            cwd=target,
+            timeout=LOG_TIMEOUT,
+        )
 
         found = {}
         date = None
@@ -125,8 +156,9 @@ def earliest(slug: str, clone_root: Path) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--metrics_csv",
-                    default="data/final_results/combined_almanack_with_source_flags.csv")
+    ap.add_argument(
+        "--metrics_csv", default="data/final_results/combined_almanack_with_source_flags.csv"
+    )
     ap.add_argument("--output", default="data/final_results/revision/docs_events.jsonl")
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--limit", type=int, default=0)
@@ -156,8 +188,11 @@ def main() -> None:
     todo = [s for s in slugs if s not in seen]
     if args.limit:
         todo = todo[: args.limit]
-    print(f"\nrepositories passing at least one: {len(slugs)}; already done: {len(seen)}; "
-          f"to process: {len(todo)}", flush=True)
+    print(
+        f"\nrepositories passing at least one: {len(slugs)}; already done: {len(seen)}; "
+        f"to process: {len(todo)}",
+        flush=True,
+    )
 
     clone_root = Path(tempfile.mkdtemp(prefix="docs_events_"))
     done = 0

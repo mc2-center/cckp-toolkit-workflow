@@ -22,7 +22,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 CITATION_PATHS = ["CITATION.cff", "codemeta.json"]
 
 
@@ -69,22 +68,27 @@ def main():
     ap.add_argument("--candidates", default="data/final_results/revision/event_candidates.csv")
     ap.add_argument("--output_dir", default="data/final_results/revision")
     ap.add_argument("--fork_dir", default="data/final_results/revision/fork_history")
-    ap.add_argument("--require_forks", action="store_true",
-                    help="only date tools that have a non-empty reconstructed fork history "
-                         "(zero-fork tools cannot enter the event study anyway)")
+    ap.add_argument(
+        "--require_forks",
+        action="store_true",
+        help="only date tools that have a non-empty reconstructed fork history "
+        "(zero-fork tools cannot enter the event study anyway)",
+    )
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args()
 
     cand = pd.read_csv(args.candidates)
     if args.require_forks:
         fdir = Path(args.fork_dir)
+
         def has_forks(repo):
             p = fdir / f"{repo.replace('/', '__')}.csv"
             if not p.exists():
                 return False
             with p.open() as fh:
-                next(fh, None)          # header
+                next(fh, None)  # header
                 return next(fh, None) is not None  # at least one data row
+
         cand = cand[cand["owner_repo"].astype(str).map(has_forks)]
     if args.limit:
         cand = cand.head(args.limit)
@@ -107,7 +111,9 @@ def main():
             rec = {
                 "owner_repo": repo,
                 "tool_name": getattr(row, "tool_name", None),
-                "first_commit": first_commit_from_range(getattr(row, "repo_commit_time_range", None)),
+                "first_commit": first_commit_from_range(
+                    getattr(row, "repo_commit_time_range", None)
+                ),
                 "created_at": None,
                 "license_path": None,
                 "license_add": None,

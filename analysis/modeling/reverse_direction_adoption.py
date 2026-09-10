@@ -75,8 +75,7 @@ def repo_panel(forks, birth_s, adopt_s):
     if last_observed < MIN_BASELINE_MONTHS + RECENT:
         return None
 
-    first_at_risk = max(MIN_BASELINE_MONTHS + RECENT,
-                        int(np.ceil(MIN_GAP_DAYS / DAYS_PER_MONTH)))
+    first_at_risk = max(MIN_BASELINE_MONTHS + RECENT, int(np.ceil(MIN_GAP_DAYS / DAYS_PER_MONTH)))
 
     if adopt_s is None:
         last_at_risk, event_month = last_observed, None
@@ -121,17 +120,20 @@ def repo_panel(forks, birth_s, adopt_s):
         "base_log": log2_rate(base_rate),
         "cum_log": np.log2(1.0 + cumulative[months]),
         "age_log": np.log(np.maximum(months * DAYS_PER_MONTH, 1.0)),
-        "year": pd.to_datetime(birth_s + months * SECONDS_PER_MONTH, unit="s",
-                               utc=True).year.to_numpy(),
+        "year": pd.to_datetime(
+            birth_s + months * SECONDS_PER_MONTH, unit="s", utc=True
+        ).year.to_numpy(),
     }
 
 
 def build_panel(adopters, never, metrics, fork_dates):
     """The at-risk panel for one practice, over adopters and never-adopters together."""
     birth = metrics.set_index("canonical_repo")["birth"]
-    rows, repos, dropped = [], [], {"no datable first commit": 0,
-                                    "no usable fork history": 0,
-                                    "no at-risk month": 0}
+    rows, repos, dropped = (
+        [],
+        [],
+        {"no datable first commit": 0, "no usable fork history": 0, "no at-risk month": 0},
+    )
     for slug, adopt in list(adopters.items()) + [(s, None) for s in never]:
         b = birth.get(slug)
         if b is None or pd.isna(b):
@@ -141,8 +143,7 @@ def build_panel(adopters, never, metrics, fork_dates):
         if forks is None:
             dropped["no usable fork history"] += 1
             continue
-        panel = repo_panel(forks, b.timestamp(),
-                           None if adopt is None else adopt.timestamp())
+        panel = repo_panel(forks, b.timestamp(), None if adopt is None else adopt.timestamp())
         if panel is None:
             dropped["no at-risk month"] += 1
             continue
@@ -204,11 +205,14 @@ def mantel_haenszel(panel):
     threshold, is the estimate over the whole panel.
     """
     surge = (panel["recent"] >= SURGE_MIN_FORKS) & (panel["accel"] >= SURGE_MIN_DOUBLINGS)
-    strata = pd.DataFrame({
-        "age": pd.qcut(panel["age_log"], N_STRATA, labels=False, duplicates="drop"),
-        "size": pd.qcut(panel["cum_log"].rank(method="first"), N_STRATA, labels=False,
-                        duplicates="drop"),
-    })
+    strata = pd.DataFrame(
+        {
+            "age": pd.qcut(panel["age_log"], N_STRATA, labels=False, duplicates="drop"),
+            "size": pd.qcut(
+                panel["cum_log"].rank(method="first"), N_STRATA, labels=False, duplicates="drop"
+            ),
+        }
+    )
     num = den = 0.0
     events_s = months_s = events_o = months_o = 0
     n_strata = n_used = 0
@@ -286,8 +290,7 @@ def run_practice(name, spec, metrics, fork_dates):
     if events is None:
         print(f"[{name}] skipped: no dated events at {spec['events']}")
         return None
-    adopters = {row.owner_repo: row.t0 for row in events.itertuples()
-                if row.owner_repo in passing}
+    adopters = {row.owner_repo: row.t0 for row in events.itertuples() if row.owner_repo in passing}
 
     panel, repos, dropped = build_panel(adopters, never, metrics, fork_dates)
     if panel is None or panel["y"].sum() < 30:
@@ -295,8 +298,10 @@ def run_practice(name, spec, metrics, fork_dates):
         return None
 
     n_adopt = int(panel["y"].sum())
-    print(f"[{name}] {len(panel):,} at-risk repo-months over {len(repos):,} repositories, "
-          f"{n_adopt:,} adoptions")
+    print(
+        f"[{name}] {len(panel):,} at-risk repo-months over {len(repos):,} repositories, "
+        f"{n_adopt:,} adoptions"
+    )
     for reason, count in dropped.items():
         if count:
             print(f"    dropped, {reason}: {count:,}")
@@ -309,8 +314,7 @@ def run_practice(name, spec, metrics, fork_dates):
     years = pd.get_dummies(panel["year"], prefix="y", drop_first=True).to_numpy(float)
     design = np.column_stack([design, years])
 
-    beta, se = logit_cluster(design, panel["y"].to_numpy(float),
-                             panel["repo"].to_numpy())
+    beta, se = logit_cluster(design, panel["y"].to_numpy(float), panel["repo"].to_numpy())
     # Index 0 is the intercept, so the covariate of interest is at 1.
     coef, error = beta[1], se[1]
     z = coef / error if error > 0 else np.nan
@@ -336,18 +340,25 @@ def run_practice(name, spec, metrics, fork_dates):
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--practices", default="all",
-                    help=f"comma-separated subset of {', '.join(PRACTICES)}, or all")
+    ap.add_argument(
+        "--practices",
+        default="all",
+        help=f"comma-separated subset of {', '.join(PRACTICES)}, or all",
+    )
     ap.add_argument("--fork_dir", default=f"{REV}/fork_history")
     ap.add_argument("--forks_csv", default="data/final_results/recent_forks_controls.csv")
-    ap.add_argument("--metrics_csv",
-                    default="data/final_results/combined_almanack_with_source_flags.csv")
+    ap.add_argument(
+        "--metrics_csv", default="data/final_results/combined_almanack_with_source_flags.csv"
+    )
     ap.add_argument("--forward", default=f"{REV}/matched_did_all_practices.csv")
     ap.add_argument("--out_dir", default=REV)
     args = ap.parse_args()
 
-    names = list(PRACTICES) if args.practices == "all" else \
-        [n.strip() for n in args.practices.split(",") if n.strip()]
+    names = (
+        list(PRACTICES)
+        if args.practices == "all"
+        else [n.strip() for n in args.practices.split(",") if n.strip()]
+    )
     unknown = [n for n in names if n not in PRACTICES]
     if unknown:
         ap.error(f"no such practice(s): {', '.join(unknown)}")
@@ -356,8 +367,11 @@ def main() -> None:
     fork_dates = load_fork_dates(args.fork_dir, args.forks_csv)
     print()
 
-    rows = [r for r in (run_practice(n, PRACTICES[n], metrics, fork_dates) for n in names)
-            if r is not None]
+    rows = [
+        r
+        for r in (run_practice(n, PRACTICES[n], metrics, fork_dates) for n in names)
+        if r is not None
+    ]
     if not rows:
         print("no practice produced an estimate")
         return
@@ -366,66 +380,98 @@ def main() -> None:
     forward_path = REPO_ROOT / args.forward
     if forward_path.exists():
         forward = pd.read_csv(forward_path)[
-            ["practice", "did", "did_log2", "did_log2_p", "jump", "parallel_trends"]]
+            ["practice", "did", "did_log2", "did_log2_p", "jump", "parallel_trends"]
+        ]
         table = table.merge(forward, on="practice", how="left")
 
     out_dir = REPO_ROOT / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
     table.to_csv(out_dir / "reverse_direction_adoption.csv", index=False)
 
-    lines = ["", "=" * 78,
-             "REVERSE DIRECTION: does a fork surge predict adopting the practice?", "=" * 78,
-             "",
-             "Discrete-time hazard on at-risk repository-months. The effect is the odds ratio",
-             "on the monthly adoption hazard per doubling of the recent fork rate above the",
-             "repository's own trailing baseline, holding baseline rate, cumulative forks, age",
-             "and calendar year fixed. Standard errors are clustered by repository.",
-             ""]
-    header = (f"{'practice':22} {'months':>10} {'events':>7} {'OR/doubling':>12} "
-              f"{'95% CI':>18} {'p':>9}")
+    lines = [
+        "",
+        "=" * 78,
+        "REVERSE DIRECTION: does a fork surge predict adopting the practice?",
+        "=" * 78,
+        "",
+        "Discrete-time hazard on at-risk repository-months. The effect is the odds ratio",
+        "on the monthly adoption hazard per doubling of the recent fork rate above the",
+        "repository's own trailing baseline, holding baseline rate, cumulative forks, age",
+        "and calendar year fixed. Standard errors are clustered by repository.",
+        "",
+    ]
+    header = (
+        f"{'practice':22} {'months':>10} {'events':>7} {'OR/doubling':>12} "
+        f"{'95% CI':>18} {'p':>9}"
+    )
     lines += [header, "-" * len(header)]
     for row in table.itertuples():
-        lines.append(f"{row.label:22} {row.n_months:>10,} {row.n_adoptions:>7,} "
-                     f"{row.or_per_doubling:>12.3f} "
-                     f"{f'[{row.or_lo:.3f}, {row.or_hi:.3f}]':>18} {row.p:>9.2g}")
+        lines.append(
+            f"{row.label:22} {row.n_months:>10,} {row.n_adoptions:>7,} "
+            f"{row.or_per_doubling:>12.3f} "
+            f"{f'[{row.or_lo:.3f}, {row.or_hi:.3f}]':>18} {row.p:>9.2g}"
+        )
 
-    lines += ["", "MODEL-FREE CHECK: adoptions per 1,000 at-risk months",
-              "A surge is at least 3 forks in the recent 3 months at twice the baseline rate",
-              "or better. Pooled over terciles of age and of cumulative forks. Repositories at",
-              "zero or one cumulative fork cannot surge, so their strata carry no comparison",
-              "and drop out; the last column is the share of all adoptions still covered.", ""]
-    header = (f"{'practice':22} {'surge':>9} {'ordinary':>9} {'rate ratio':>11} "
-              f"{'95% CI':>18} {'covered':>8}")
+    lines += [
+        "",
+        "MODEL-FREE CHECK: adoptions per 1,000 at-risk months",
+        "A surge is at least 3 forks in the recent 3 months at twice the baseline rate",
+        "or better. Pooled over terciles of age and of cumulative forks. Repositories at",
+        "zero or one cumulative fork cannot surge, so their strata carry no comparison",
+        "and drop out; the last column is the share of all adoptions still covered.",
+        "",
+    ]
+    header = (
+        f"{'practice':22} {'surge':>9} {'ordinary':>9} {'rate ratio':>11} "
+        f"{'95% CI':>18} {'covered':>8}"
+    )
     lines += [header, "-" * len(header)]
     for row in table.itertuples():
-        lines.append(f"{row.label:22} {row.rate_surge_per_1000:>9.2f} "
-                     f"{row.rate_ordinary_per_1000:>9.2f} {row.mh_rate_ratio:>11.2f} "
-                     f"{f'[{row.mh_lo:.2f}, {row.mh_hi:.2f}]':>18} "
-                     f"{100 * row.mh_share_adoptions_covered:>7.0f}%")
+        lines.append(
+            f"{row.label:22} {row.rate_surge_per_1000:>9.2f} "
+            f"{row.rate_ordinary_per_1000:>9.2f} {row.mh_rate_ratio:>11.2f} "
+            f"{f'[{row.mh_lo:.2f}, {row.mh_hi:.2f}]':>18} "
+            f"{100 * row.mh_share_adoptions_covered:>7.0f}%"
+        )
 
-    lines += ["", "BUNDLING: lag from the last pre-adoption surge to the adoption itself",
-              "A mass at zero to three months means the surge and the adoption are one",
-              "episode, which neither direction of the analysis can take apart.", ""]
-    header = (f"{'practice':22} {'adopters':>9} {'with surge':>11} {'median lag':>11} "
-              f"{'within 3m':>10}")
+    lines += [
+        "",
+        "BUNDLING: lag from the last pre-adoption surge to the adoption itself",
+        "A mass at zero to three months means the surge and the adoption are one",
+        "episode, which neither direction of the analysis can take apart.",
+        "",
+    ]
+    header = (
+        f"{'practice':22} {'adopters':>9} {'with surge':>11} {'median lag':>11} "
+        f"{'within 3m':>10}"
+    )
     lines += [header, "-" * len(header)]
     for row in table.itertuples():
-        lines.append(f"{row.label:22} {row.adopters_in_panel:>9,} "
-                     f"{100 * row.share_with_prior_surge:>10.0f}% {row.lag_median:>11.0f} "
-                     f"{100 * row.share_surge_within_3m:>9.0f}%")
+        lines.append(
+            f"{row.label:22} {row.adopters_in_panel:>9,} "
+            f"{100 * row.share_with_prior_surge:>10.0f}% {row.lag_median:>11.0f} "
+            f"{100 * row.share_surge_within_3m:>9.0f}%"
+        )
 
     if "did_log2" in table.columns:
-        lines += ["", "BOTH DIRECTIONS, on the log2 scale",
-                  "Forward is doublings of fork rate attributable to adopting the practice.",
-                  "Reverse is the log odds of adopting per doubling of recent fork rate.",
-                  "Not the same estimand: compare sign and magnitude, not like for like.", ""]
-        header = (f"{'practice':22} {'forward (log2)':>15} {'reverse (log odds)':>19} "
-                  f"{'parallel trends':>16}")
+        lines += [
+            "",
+            "BOTH DIRECTIONS, on the log2 scale",
+            "Forward is doublings of fork rate attributable to adopting the practice.",
+            "Reverse is the log odds of adopting per doubling of recent fork rate.",
+            "Not the same estimand: compare sign and magnitude, not like for like.",
+            "",
+        ]
+        header = (
+            f"{'practice':22} {'forward (log2)':>15} {'reverse (log odds)':>19} "
+            f"{'parallel trends':>16}"
+        )
         lines += [header, "-" * len(header)]
         for row in table.itertuples():
             trends = "flat" if row.parallel_trends else "RISING"
-            lines.append(f"{row.label:22} {row.did_log2:>+15.3f} {row.coef:>+19.3f} "
-                         f"{trends:>16}")
+            lines.append(
+                f"{row.label:22} {row.did_log2:>+15.3f} {row.coef:>+19.3f} " f"{trends:>16}"
+            )
 
     text = "\n".join(lines)
     print(text)

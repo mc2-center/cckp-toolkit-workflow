@@ -20,16 +20,17 @@ import random
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-MIN_GAP_DAYS = 90       # practice must be added at least this long after first commit
-W_DAYS = 365            # event window half-width
-MIN_DUR_DAYS = 90       # require at least this much observation on each side
-EPS = 0.1               # forks/month floor so ratios are finite
+MIN_GAP_DAYS = 90  # practice must be added at least this long after first commit
+W_DAYS = 365  # event window half-width
+MIN_DUR_DAYS = 90  # require at least this much observation on each side
+EPS = 0.1  # forks/month floor so ratios are finite
 DAYS_PER_MONTH = 30.44
 
 
@@ -98,7 +99,7 @@ def main():
         n_total += 1
         forks = load_forks(fork_dir, repo)
         if forks is None or len(forks) == 0:
-            n_no_forks += 1          # includes zero-fork tools (no accrual to measure)
+            n_no_forks += 1  # includes zero-fork tools (no accrual to measure)
             continue
         ev = events_by_repo.get(repo)
         add_raw = ev.get(add_field) if ev else None
@@ -112,7 +113,7 @@ def main():
             n_no_event += 1
             continue
         if (t0 - fc).days < MIN_GAP_DAYS:
-            n_at_creation += 1        # practice present ~at creation: no informative "before"
+            n_at_creation += 1  # practice present ~at creation: no informative "before"
             continue
         obs_start = fc
         obs_end = forks.max()
@@ -137,13 +138,21 @@ def main():
                 placebo_effect = np.log2((pa + EPS) / (pb + EPS))
                 placebo_t0 = pt0.date().isoformat()
 
-        rows.append({
-            "owner_repo": repo, "tool_name": ev.get("tool_name"),
-            "t0": t0.date().isoformat(), "first_commit": fc.date().isoformat(),
-            "gap_days": (t0 - fc).days, "n_forks": int(len(forks)),
-            "rate_before": rb, "rate_after": ra, "effect_log2": effect,
-            "placebo_effect_log2": placebo_effect, "placebo_t0": placebo_t0,
-        })
+        rows.append(
+            {
+                "owner_repo": repo,
+                "tool_name": ev.get("tool_name"),
+                "t0": t0.date().isoformat(),
+                "first_commit": fc.date().isoformat(),
+                "gap_days": (t0 - fc).days,
+                "n_forks": int(len(forks)),
+                "rate_before": rb,
+                "rate_after": ra,
+                "effect_log2": effect,
+                "placebo_effect_log2": placebo_effect,
+                "placebo_t0": placebo_t0,
+            }
+        )
 
     res = pd.DataFrame(rows)
     res.to_csv(out / f"event_study_results_{args.practice}.csv", index=False)
@@ -152,27 +161,42 @@ def main():
     lines.append(f"denominator: tools in star cohort with this practice = {n_total}")
     lines.append(f"  excluded - no/zero fork history (no accrual to measure): {n_no_forks}")
     lines.append(f"  excluded - no datable {args.practice} file: {n_no_event}")
-    lines.append(f"  excluded - practice present at creation (<{MIN_GAP_DAYS}d after first commit): {n_at_creation}")
-    lines.append(f"  excluded - observation window too short (<{MIN_DUR_DAYS}d each side): {n_short_window}")
+    lines.append(
+        f"  excluded - practice present at creation (<{MIN_GAP_DAYS}d after first commit): {n_at_creation}"
+    )
+    lines.append(
+        f"  excluded - observation window too short (<{MIN_DUR_DAYS}d each side): {n_short_window}"
+    )
     lines.append(f"  INCLUDED (informative mid-life adopters): {len(res)}")
     if len(res):
-        rb = res["rate_before"].to_numpy(); ra = res["rate_after"].to_numpy()
+        rb = res["rate_before"].to_numpy()
+        ra = res["rate_after"].to_numpy()
         eff = res["effect_log2"].to_numpy()
         w = stats.wilcoxon(ra, rb, zero_method="wilcox") if len(res) > 5 else None
         boot = [np.median(rng.choices(eff.tolist(), k=len(eff))) for _ in range(2000)]
         ci = (np.percentile(boot, 2.5), np.percentile(boot, 97.5))
         lines.append("")
-        lines.append(f"median rate_before = {np.median(rb):.3f} forks/mo; median rate_after = {np.median(ra):.3f} forks/mo")
-        lines.append(f"median effect (log2 after/before) = {np.median(eff):.3f}  (x{2**np.median(eff):.2f}); 95% CI [{ci[0]:.3f}, {ci[1]:.3f}]")
+        lines.append(
+            f"median rate_before = {np.median(rb):.3f} forks/mo; median rate_after = {np.median(ra):.3f} forks/mo"
+        )
+        lines.append(
+            f"median effect (log2 after/before) = {np.median(eff):.3f}  (x{2**np.median(eff):.2f}); 95% CI [{ci[0]:.3f}, {ci[1]:.3f}]"
+        )
         lines.append(f"share accelerating (effect>0) = {(eff > 0).mean():.1%}")
         if w is not None:
-            lines.append(f"Wilcoxon signed-rank (after vs before): W={w.statistic:.1f}, p={w.pvalue:.2e}")
+            lines.append(
+                f"Wilcoxon signed-rank (after vs before): W={w.statistic:.1f}, p={w.pvalue:.2e}"
+            )
         pl = res["placebo_effect_log2"].dropna().to_numpy()
         if len(pl):
             lines.append("")
-            lines.append(f"PLACEBO median effect = {np.median(pl):.3f} (x{2**np.median(pl):.2f}); share>0 = {(pl>0).mean():.1%}")
+            lines.append(
+                f"PLACEBO median effect = {np.median(pl):.3f} (x{2**np.median(pl):.2f}); share>0 = {(pl>0).mean():.1%}"
+            )
             mw = stats.mannwhitneyu(eff, pl, alternative="greater")
-            lines.append(f"real > placebo (Mann-Whitney, one-sided): U={mw.statistic:.1f}, p={mw.pvalue:.2e}")
+            lines.append(
+                f"real > placebo (Mann-Whitney, one-sided): U={mw.statistic:.1f}, p={mw.pvalue:.2e}"
+            )
     summary = "\n".join(lines)
     (out / f"event_study_summary_{args.practice}.txt").write_text(summary + "\n")
     print(summary)
@@ -182,7 +206,8 @@ def main():
     # picture is not dominated by a few large repos. Real events are centered on the
     # practice-addition date; the placebo curve centers each tool on its random date.
     if len(res) >= 5:
-        fig_dir = Path(args.fig_dir); fig_dir.mkdir(parents=True, exist_ok=True)
+        fig_dir = Path(args.fig_dir)
+        fig_dir.mkdir(parents=True, exist_ok=True)
         grid = np.arange(-12, 13, 1)
 
         def norm_curves(center_field):
@@ -193,26 +218,35 @@ def main():
                     continue
                 center = pd.to_datetime(c, utc=True)
                 forks = load_forks(fork_dir, ev["owner_repo"])
-                win = forks[(forks >= center - pd.Timedelta(days=W_DAYS)) &
-                            (forks <= center + pd.Timedelta(days=W_DAYS))]
+                win = forks[
+                    (forks >= center - pd.Timedelta(days=W_DAYS))
+                    & (forks <= center + pd.Timedelta(days=W_DAYS))
+                ]
                 if len(win) == 0:
                     continue
                 months = (win - center).dt.total_seconds() / (DAYS_PER_MONTH * 86400)
                 cum = np.array([(months <= g).sum() for g in grid], dtype=float)
                 if cum[-1] == 0:
                     continue
-                curves.append(cum / cum[-1])           # share of window forks by month g
+                curves.append(cum / cum[-1])  # share of window forks by month g
             return np.array(curves)
 
         real = norm_curves("t0")
         placebo = norm_curves("placebo_t0")
         zero_idx = list(grid).index(0)
         plt.figure(figsize=(7, 4.5))
-        plt.plot(grid, real.mean(axis=0), color="C0", lw=2.5,
-                 label=f"license added (n={len(real)})")
+        plt.plot(
+            grid, real.mean(axis=0), color="C0", lw=2.5, label=f"license added (n={len(real)})"
+        )
         if len(placebo):
-            plt.plot(grid, placebo.mean(axis=0), color="0.5", lw=2, ls="--",
-                     label=f"placebo date (n={len(placebo)})")
+            plt.plot(
+                grid,
+                placebo.mean(axis=0),
+                color="0.5",
+                lw=2,
+                ls="--",
+                label=f"placebo date (n={len(placebo)})",
+            )
         plt.axvline(0, color="C3", ls=":", lw=1)
         plt.axhline(0.5, color="0.85", lw=0.8, zorder=0)
         plt.text(0.3, 0.52, "half of window's forks", color="0.5", fontsize=8)
@@ -228,7 +262,9 @@ def main():
         share_before_real = real.mean(axis=0)[zero_idx]
         share_before_plac = placebo.mean(axis=0)[zero_idx] if len(placebo) else float("nan")
         print(f"Saved figure to {fig_dir}/fig_practice_event_study_{args.practice}.png")
-        print(f"  share of window forks arriving BEFORE event: real={share_before_real:.2f}, placebo={share_before_plac:.2f}")
+        print(
+            f"  share of window forks arriving BEFORE event: real={share_before_real:.2f}, placebo={share_before_plac:.2f}"
+        )
 
 
 if __name__ == "__main__":

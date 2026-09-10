@@ -44,8 +44,9 @@ CLONE_TIMEOUT, LOG_TIMEOUT = 300, 180
 
 
 def run(args, cwd=None, timeout=60):
-    return subprocess.run(args, cwd=cwd, capture_output=True, text=True,
-                          timeout=timeout, env=GIT_ENV)
+    return subprocess.run(
+        args, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=GIT_ENV
+    )
 
 
 def earliest(slug: str, clone_root: Path) -> dict:
@@ -53,31 +54,62 @@ def earliest(slug: str, clone_root: Path) -> dict:
     target = clone_root / slug.replace("/", "__")
     out = {"owner_repo": slug, "cloned": False}
     try:
-        clone = run(["git", "clone", "--filter=blob:none", "--no-checkout", "--quiet",
-                     f"https://github.com/{slug}.git", str(target)], timeout=CLONE_TIMEOUT)
+        clone = run(
+            [
+                "git",
+                "clone",
+                "--filter=blob:none",
+                "--no-checkout",
+                "--quiet",
+                f"https://github.com/{slug}.git",
+                str(target),
+            ],
+            timeout=CLONE_TIMEOUT,
+        )
         if clone.returncode != 0:
             out["error"] = clone.stderr.strip()[:150]
             return out
         out["cloned"] = True
 
-        file_hit = run(["git", "log", "--diff-filter=A", "--reverse",
-                        "--format=%ad", "--date=short", "--"] + CITATION_FILES,
-                       cwd=target, timeout=LOG_TIMEOUT)
+        file_hit = run(
+            ["git", "log", "--diff-filter=A", "--reverse", "--format=%ad", "--date=short", "--"]
+            + CITATION_FILES,
+            cwd=target,
+            timeout=LOG_TIMEOUT,
+        )
         file_date = file_hit.stdout.split("\n")[0].strip() or None
 
-        readme_hit = run(["git", "log", "-G", README_MARKER, "--reverse",
-                          "--format=%ad", "--date=short", "--", "README*", "*/README*"],
-                         cwd=target, timeout=LOG_TIMEOUT)
+        readme_hit = run(
+            [
+                "git",
+                "log",
+                "-G",
+                README_MARKER,
+                "--reverse",
+                "--format=%ad",
+                "--date=short",
+                "--",
+                "README*",
+                "*/README*",
+            ],
+            cwd=target,
+            timeout=LOG_TIMEOUT,
+        )
         readme_date = readme_hit.stdout.split("\n")[0].strip() or None
 
         dates = [d for d in (file_date, readme_date) if d]
-        out.update({
-            "citation_file_add": file_date,
-            "readme_marker_add": readme_date,
-            "citable_add": min(dates) if dates else None,
-            "route": ("file" if file_date and file_date == min(dates)
-                      else "readme" if readme_date else None),
-        })
+        out.update(
+            {
+                "citation_file_add": file_date,
+                "readme_marker_add": readme_date,
+                "citable_add": min(dates) if dates else None,
+                "route": (
+                    "file"
+                    if file_date and file_date == min(dates)
+                    else "readme" if readme_date else None
+                ),
+            }
+        )
     except subprocess.TimeoutExpired:
         out["error"] = "timeout"
     except Exception as exc:
@@ -89,10 +121,10 @@ def earliest(slug: str, clone_root: Path) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--metrics_csv",
-                    default="data/final_results/combined_almanack_joss_static_tests.csv")
-    ap.add_argument("--output",
-                    default="data/final_results/revision/citability_events.jsonl")
+    ap.add_argument(
+        "--metrics_csv", default="data/final_results/combined_almanack_joss_static_tests.csv"
+    )
+    ap.add_argument("--output", default="data/final_results/revision/citability_events.jsonl")
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args()
@@ -113,8 +145,11 @@ def main() -> None:
     todo = [s for s in slugs if s not in seen]
     if args.limit:
         todo = todo[: args.limit]
-    print(f"citable repositories: {len(slugs)}; already done: {len(seen)}; "
-          f"to process: {len(todo)}", flush=True)
+    print(
+        f"citable repositories: {len(slugs)}; already done: {len(seen)}; "
+        f"to process: {len(todo)}",
+        flush=True,
+    )
 
     clone_root = Path(tempfile.mkdtemp(prefix="citability_"))
     done = 0

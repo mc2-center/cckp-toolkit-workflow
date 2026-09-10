@@ -46,10 +46,19 @@ PRACTICES = ("test_dir", "test_file", "runner_config")
 PATHSPECS = (
     [f":(icase,glob)**/{name}/**" for name in sorted(TEST_DIR_NAMES)]
     + [f":(icase,glob)**/{name}" for name in sorted(RUNNER_CONFIGS)]
-    + [f":(icase,glob){pattern}" for pattern in (
-        "**/test_*", "**/test-*", "**/*_test.*", "**/*.test.*",
-        "**/*.spec.*", "**/*_spec.*", "**/*Test.java", "**/*.t",
-    )]
+    + [
+        f":(icase,glob){pattern}"
+        for pattern in (
+            "**/test_*",
+            "**/test-*",
+            "**/*_test.*",
+            "**/*.test.*",
+            "**/*.spec.*",
+            "**/*_spec.*",
+            "**/*Test.java",
+            "**/*.t",
+        )
+    ]
 )
 
 GIT_ENV = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
@@ -57,8 +66,9 @@ CLONE_TIMEOUT, LOG_TIMEOUT = 300, 300
 
 
 def run(args, cwd=None, timeout=60):
-    return subprocess.run(args, cwd=cwd, capture_output=True, text=True,
-                          timeout=timeout, env=GIT_ENV)
+    return subprocess.run(
+        args, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=GIT_ENV
+    )
 
 
 def classify(path: str) -> list[str]:
@@ -88,8 +98,18 @@ def earliest(slug: str, clone_root: Path) -> dict:
     target = clone_root / slug.replace("/", "__")
     out = {"owner_repo": slug, "cloned": False}
     try:
-        clone = run(["git", "clone", "--filter=blob:none", "--no-checkout", "--quiet",
-                     f"https://github.com/{slug}.git", str(target)], timeout=CLONE_TIMEOUT)
+        clone = run(
+            [
+                "git",
+                "clone",
+                "--filter=blob:none",
+                "--no-checkout",
+                "--quiet",
+                f"https://github.com/{slug}.git",
+                str(target),
+            ],
+            timeout=CLONE_TIMEOUT,
+        )
         if clone.returncode != 0:
             out["error"] = clone.stderr.strip()[:150]
             return out
@@ -98,9 +118,22 @@ def earliest(slug: str, clone_root: Path) -> dict:
         # --reverse walks oldest first, so the first date seen for a component is its event.
         # A merge commit repeats its parents' additions, so --no-merges avoids double
         # counting; it cannot hide an addition, which is itself on a parent.
-        log = run(["git", "log", "--reverse", "--no-merges", "--diff-filter=A",
-                   "--name-only", "--format=%x00%ad", "--date=short", "--"] + PATHSPECS,
-                  cwd=target, timeout=LOG_TIMEOUT)
+        log = run(
+            [
+                "git",
+                "log",
+                "--reverse",
+                "--no-merges",
+                "--diff-filter=A",
+                "--name-only",
+                "--format=%x00%ad",
+                "--date=short",
+                "--",
+            ]
+            + PATHSPECS,
+            cwd=target,
+            timeout=LOG_TIMEOUT,
+        )
 
         found = {}
         date = None
