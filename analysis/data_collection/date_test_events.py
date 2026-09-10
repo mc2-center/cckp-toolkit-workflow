@@ -170,7 +170,7 @@ def main() -> None:
     args = ap.parse_args()
 
     frame = pd.read_csv(REPO_ROOT / args.evidence_csv, low_memory=False)
-    as01 = {True: 1, False: 0, "True": 1, "False": 0, 1: 1, 0: 0}
+    as01 = {True: 1, False: 0, "True": 1, "False": 0}
     # Only repositories the detector scored as having a suite are dated, so the treated set
     # here is exactly the passing set the matched design will use.
     have = frame[frame["has_tests"].map(as01) == 1]
@@ -205,7 +205,7 @@ def main() -> None:
     finally:
         shutil.rmtree(clone_root, ignore_errors=True)
 
-    rows = [json.loads(l) for l in out_path.read_text().splitlines() if l.strip()]
+    rows = [json.loads(line) for line in out_path.read_text().splitlines() if line.strip()]
     result = pd.DataFrame(rows)
     print(f"\nprocessed {len(result)}; cloned {int(result['cloned'].sum())}")
     for component in PRACTICES + ("tests",):

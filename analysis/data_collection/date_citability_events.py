@@ -165,7 +165,7 @@ def main() -> None:
     finally:
         shutil.rmtree(clone_root, ignore_errors=True)
 
-    rows = [json.loads(l) for l in out_path.read_text().splitlines()]
+    rows = [json.loads(line) for line in out_path.read_text().splitlines()]
     frame = pd.DataFrame(rows)
     dated = frame[frame["citable_add"].notna()] if "citable_add" in frame else frame.iloc[0:0]
     print(f"\nprocessed {len(frame)}; dated {len(dated)}")

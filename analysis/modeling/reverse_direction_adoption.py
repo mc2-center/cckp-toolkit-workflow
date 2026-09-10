@@ -278,7 +278,7 @@ def surge_lag(panel):
 
 
 def run_practice(name, spec, metrics, fork_dates):
-    as01 = {True: 1, False: 0, "True": 1, "False": 0, 1: 1, 0: 0}
+    as01 = {True: 1, False: 0, "True": 1, "False": 0}
     if spec["check"] not in metrics.columns:
         print(f"[{name}] skipped: no column {spec['check']}")
         return None

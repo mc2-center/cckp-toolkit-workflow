@@ -80,10 +80,10 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
 
     events_by_repo = {}
-    for l in Path(args.events).read_text().splitlines():
-        if l.strip():
-            r = json.loads(l)
-            events_by_repo[r["owner_repo"]] = r
+    for line in Path(args.events).read_text().splitlines():
+        if line.strip():
+            record = json.loads(line)
+            events_by_repo[record["owner_repo"]] = record
     add_field = "license_add" if args.practice == "license" else "citation_add"
     practice_col = "repo_includes_license" if args.practice == "license" else "repo_is_citable"
 

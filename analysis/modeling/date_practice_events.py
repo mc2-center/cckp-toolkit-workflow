@@ -47,7 +47,7 @@ def oldest_commit_for_path(owner_repo, path):
     )
     if not out:
         return None
-    dates = [l.strip() for l in out.splitlines() if l.strip()]
+    dates = [line.strip() for line in out.splitlines() if line.strip()]
     return dates[-1] if dates else None  # last line = oldest commit touching the path
 
 

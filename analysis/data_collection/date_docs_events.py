@@ -165,7 +165,7 @@ def main() -> None:
     args = ap.parse_args()
 
     frame = pd.read_csv(REPO_ROOT / args.metrics_csv, low_memory=False)
-    as01 = {True: 1, False: 0, "True": 1, "False": 0, 1: 1, 0: 0}
+    as01 = {True: 1, False: 0, "True": 1, "False": 0}
 
     # A repository passing any one of the three is worth cloning, since one clone dates all
     # three and the three sets overlap heavily.
@@ -208,7 +208,7 @@ def main() -> None:
     finally:
         shutil.rmtree(clone_root, ignore_errors=True)
 
-    rows = [json.loads(l) for l in out_path.read_text().splitlines() if l.strip()]
+    rows = [json.loads(line) for line in out_path.read_text().splitlines() if line.strip()]
     result = pd.DataFrame(rows)
     print(f"\nprocessed {len(result)}; cloned {int(result['cloned'].sum())}")
     for practice in PRACTICES:

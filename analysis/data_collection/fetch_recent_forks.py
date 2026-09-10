@@ -138,7 +138,7 @@ def main() -> None:
         missing = [c for c in checks if c not in frame.columns]
         if missing:
             parser.error(f"no such column(s): {', '.join(missing)}")
-        as01 = {True: 1, False: 0, "True": 1, "False": 0, 1: 1, 0: 0}
+        as01 = {True: 1, False: 0, "True": 1, "False": 0}
         lacks_any = pd.Series(False, index=frame.index)
         for check in checks:
             lacks_any |= frame[check].map(as01) == 0

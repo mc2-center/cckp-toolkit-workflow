@@ -203,6 +203,23 @@ def window_rate(forks, centre_s, birth_s, side):
     return counts[mask].mean(), int(mask.sum())
 
 
+def _log_rate(rate: np.ndarray | float) -> np.ndarray | float:
+    """Put a fork rate on a log2 scale for matching and for the effect size.
+
+    Matching on the raw rate would let a control differing by one fork per month stand in
+    for a treated unit at any baseline, so the caliper is applied on a ratio scale instead.
+    The offset is one fork per year, the smallest non-zero rate the monthly windows can
+    resolve, which keeps rates of zero finite.
+
+    Args:
+        rate: Forks per month, as a scalar or an array.
+
+    Returns:
+        log2 of the rate plus one twelfth, elementwise.
+    """
+    return np.log2(rate + 1.0 / 12.0)
+
+
 def load_metrics(metrics_csv):
     metrics = pd.read_csv(REPO_ROOT / metrics_csv, low_memory=False)
     metrics["birth"] = pd.to_datetime(
@@ -414,7 +431,7 @@ def draw_rate_panel(ax, months, mean_t, ci_t, mean_c, ci_c, n_treated, n_pairs, 
 
 def run_practice(name, spec, metrics, fork_dates, args):
     """Match, estimate and report one practice. Returns None when too few units survive."""
-    as01 = {True: 1, False: 0, "True": 1, "False": 0, 1: 1, 0: 0}
+    as01 = {True: 1, False: 0, "True": 1, "False": 0}
     check = spec["check"]
     if check not in metrics.columns:
         print(f"[{name}] skipped: no column {check}")
@@ -464,8 +481,6 @@ def run_practice(name, spec, metrics, fork_dates, args):
             if n_obs >= 3:  # too few observed months to characterise a baseline
                 c_pre[j, i] = rate
 
-    log_rate = lambda r: np.log2(r + 1.0 / 12.0)
-
     records, curves_t, curves_c, match_counts, control_use = [], [], [], [], []
 
     for i, unit in enumerate(treated):
@@ -489,7 +504,7 @@ def run_practice(name, spec, metrics, fork_dates, args):
         # they are never matched to each other regardless of how close the rates look.
         zero_t = pre == 0
         zero_c = c_pre[:, i] == 0
-        rate_ok = np.abs(log_rate(c_pre[:, i]) - log_rate(pre)) <= RATE_CALIPER
+        rate_ok = np.abs(_log_rate(c_pre[:, i]) - _log_rate(pre)) <= RATE_CALIPER
         eligible &= (zero_c == zero_t) & (rate_ok | (zero_c & zero_t))
         if not eligible.any():
             reasons["no control in rate caliper"] += 1
@@ -499,7 +514,7 @@ def run_practice(name, spec, metrics, fork_dates, args):
         # first and age second, since the baseline is what drives the regression to the mean
         # this design exists to neutralise.
         idx = np.flatnonzero(eligible)
-        distance = np.abs(log_rate(c_pre[idx, i]) - log_rate(pre)) * 3.0 + np.abs(
+        distance = np.abs(_log_rate(c_pre[idx, i]) - _log_rate(pre)) * 3.0 + np.abs(
             np.log(np.maximum(c_age[idx, i], 1)) - np.log(max(unit["age_days"], 1))
         )
         chosen = idx[np.argsort(distance)[:N_CONTROLS]]
@@ -543,10 +558,10 @@ def run_practice(name, spec, metrics, fork_dates, args):
                 "treated_delta": post - pre,
                 "control_delta": c_post_m - c_pre_m,
                 "did": (post - pre) - (c_post_m - c_pre_m),
-                "treated_log2": log_rate(post) - log_rate(pre),
-                "control_log2": log_rate(c_post_m) - log_rate(c_pre_m),
-                "did_log2": (log_rate(post) - log_rate(pre))
-                - (log_rate(c_post_m) - log_rate(c_pre_m)),
+                "treated_log2": _log_rate(post) - _log_rate(pre),
+                "control_log2": _log_rate(c_post_m) - _log_rate(c_pre_m),
+                "did_log2": (_log_rate(post) - _log_rate(pre))
+                - (_log_rate(c_post_m) - _log_rate(c_pre_m)),
             }
         )
 
