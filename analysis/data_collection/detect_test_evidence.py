@@ -30,6 +30,11 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# A full run writes the table the dating and difference-in-differences steps read. A run
+# narrowed by --slugs or --limit writes somewhere else, so a spot check cannot destroy it.
+COHORT_OUTPUT = "data/final_results/test_evidence_static.csv"
+SPOT_CHECK_OUTPUT = "data/final_results/test_evidence_spot_check.csv"
+
 SCORE_GOOD, SCORE_OK, SCORE_MANUAL, SCORE_NONE = 1.0, 0.7, 0.3, 0.0
 
 # Directories that hold tests by convention, in any language.
@@ -248,11 +253,33 @@ def score_one(slug: str, clone_root: Path) -> dict:
     return result
 
 
+def _resolve_output(output: str | None, partial: bool) -> str:
+    """Choose where to write, keeping partial runs away from the cohort table.
+
+    This script rewrites its output rather than appending, so a run over a handful of
+    repositories writing to the cohort default silently destroys the full table.
+
+    Args:
+        output: The path given on the command line, or None if it was not given.
+        partial: Whether the run covers a subset of the cohort (--slugs or --limit).
+
+    Returns:
+        A repository-relative path to write to.
+    """
+    if output is not None:
+        return output
+    if partial:
+        return str(SPOT_CHECK_OUTPUT)
+    return str(COHORT_OUTPUT)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--metrics_csv",
                         default="data/final_results/combined_almanack_with_joss_backfill.csv")
-    parser.add_argument("--output", default="data/final_results/test_evidence_static.csv")
+    parser.add_argument("--output", default=None,
+                        help=f"Defaults to {COHORT_OUTPUT} for a full run and "
+                             f"{SPOT_CHECK_OUTPUT} when --slugs or --limit narrows it")
     parser.add_argument("--workers", type=int, default=12)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--slugs", default=None,
@@ -266,6 +293,8 @@ def main() -> None:
         slugs = sorted(frame["canonical_repo"].dropna().unique())
         if args.limit:
             slugs = slugs[: args.limit]
+
+    args.output = _resolve_output(args.output, partial=bool(args.slugs or args.limit))
 
     print(f"detecting test evidence for {len(slugs)} repositories, {args.workers} workers")
 
