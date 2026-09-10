@@ -38,6 +38,9 @@ Key files:
 | `aggregated_data_llm_classified.csv` | `tool_name`, `domain` (LLM-classified) |
 | `weights_logistic_refit.csv` | nf-core-calibrated logistic weights per check |
 | `nf_core_almanack_metrics.csv` | Almanack metrics for nf-core pipelines |
+| `revision/event_candidates.csv` | The cohort the fork accrual chain iterates over |
+| `revision/fork_history/<owner>__<repo>.csv` | One fork `created_at` per row, ascending |
+| `revision/*_events.jsonl` | Practice adoption dates, one JSON record per repository |
 
 Some code consumes **raw inputs that are not in the data bundle** because they are large or regenerable: the per-repo Almanack JSON directory (CCT pipeline output) consumed by `build_almanack_metrics_table.py`.
 All data needed for the figures is in the released tables.
@@ -55,7 +58,7 @@ flowchart TD
     dc --> cct --> dp --> md --> vis
 ```
 
-## Which code produces which result
+## Results by code that produced them
 
 Described by output content rather than manuscript figure numbers, which can change as the manuscript is revised.
 
@@ -68,6 +71,48 @@ Described by output content rather than manuscript figure numbers, which can cha
 | Longitudinal evolution, grading | `visualization/benchmark_analysis.py` |
 | Domain ANOVA + residuals | `modeling/stars_domain_analysis.py`, `data_processing/apply_logistic_weights_and_domain_anova.py`, `modeling/weighted_scores_statistical_analysis.py` |
 | Score distributions (supplementary) | `visualization/plot_almanack_score_distributions.py` |
+| Fork accrual after practice adoption, both directions | `modeling/matched_did_practice_forks.py`, `modeling/reverse_direction_adoption.py` |
+
+## Fork accrual around practice adoption
+
+The cross-sectional models above say practices and adoption coincide, not which comes first.
+This chain addresses precedence, using fork accrual as the time-resolved adoption proxy: GitHub
+does not expose historical star counts, but the forks endpoint returns a `created_at` per fork,
+so a cumulative series can be reconstructed for any repository.
+
+Run order, from the repository root:
+
+```bash
+# 1. Fork history, one resumable cache file per repository
+uv run --project analysis python analysis/modeling/reconstruct_fork_history.py
+
+# 2. Date each practice's adoption. Four collectors, one per evidence type
+uv run --project analysis python analysis/modeling/date_practice_events.py          # license, citation files
+uv run --project analysis python analysis/data_collection/date_citability_events.py # citability, all routes
+uv run --project analysis python analysis/data_collection/date_test_events.py       # test suite
+uv run --project analysis python analysis/data_collection/date_docs_events.py       # docs, contributing, code of conduct
+
+# 3. Matched difference-in-differences, all six practices
+uv run --project analysis python analysis/modeling/matched_did_practice_forks.py
+
+# 4. The reverse direction: does forking predict adoption?
+uv run --project analysis python analysis/modeling/reverse_direction_adoption.py
+```
+
+Every collector is resumable, appending one record per repository and skipping those already
+present, so a run can be stopped and grown incrementally.
+
+Two things to know before rerunning:
+
+- `modeling/practice_event_study.py` is retired as an analysis, but step 3 reads the license
+  practice's event dates from its output, so it has to run between steps 2 and 3. It filters
+  3,568 dated license additions to 614 first, which makes the license row's treated pool
+  narrower than the other five practices'. Its docstring records what the estimate does when
+  that filter is dropped.
+- `event_candidates.csv`, the cohort steps 1 and 2 iterate over, has no generator in this
+  repository. It is a subset of the metrics table (`tool_name`, `owner_repo`, fork and star
+  counts, license and citability flags, commit time range, source URL) and ships in the data
+  bundle.
 
 ## Reproducing the headline results
 

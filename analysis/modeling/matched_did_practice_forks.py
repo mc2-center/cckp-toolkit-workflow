@@ -835,21 +835,27 @@ FOREST_FOOTNOTE = (
 )
 
 
-def draw_forest(ax, table, legend_y=-0.20):
-    """Draw the cross-practice forest into one axes, in axes-relative coordinates.
+def reverse_rows(table):
+    """Row order for a forest: the table's first row at the top, so plotting runs bottom-up.
 
-    Two estimates per practice rather than one, with the diagnostics as text columns. The mean
-    difference in differences is only the whole story where the pre-event gap was flat and no
-    single repository dominates the mean, and both conditions fail for some practices, so
-    putting the estimates and their caveats in one figure keeps a reader from taking a point
-    estimate without its qualification.
-
-    Everything is positioned relative to the axes rather than the figure, so the same drawing
-    serves the standalone supplementary figure and panel b of Figure 3.
+    Both the estimates and the text columns are drawn from this, so they cannot disagree about
+    which row is which.
     """
-    order = table.iloc[::-1].reset_index(drop=True)
-    n_rows = len(order)
+    return table.iloc[::-1].reset_index(drop=True)
 
+
+def draw_estimates(ax, order, xlabel="Forks per month, treated minus matched controls"):
+    """The two estimates per practice, and the axis furniture around them.
+
+    Two estimates rather than one. The mean difference in differences is only the whole story
+    where the pre-event gap was flat and no single repository dominates the mean, and both
+    conditions fail for some practices, so the qualification travels with the estimate instead
+    of being left to a caption.
+
+    Kept separate from the text columns because the marker geometry is what must not drift
+    between figures, while the column layout depends on how wide a given figure's axes are.
+    """
+    n_rows = len(order)
     for k, row in enumerate(order.itertuples()):
         # Circle: the mean difference in differences. Filled where the pre-event gap was flat,
         # open where it was already rising and the estimate absorbs part of that trajectory.
@@ -872,39 +878,55 @@ def draw_forest(ax, table, legend_y=-0.20):
     ax.set_yticks(np.arange(n_rows))
     ax.set_yticklabels([])
     ax.set_ylim(-0.6, n_rows - 0.4)
-    ax.set_xlabel("Forks per month, treated minus matched controls", fontsize=FS_AXIS)
+    ax.set_xlabel(xlabel, fontsize=FS_AXIS)
     ax.tick_params(labelsize=FS_TICK, left=False)
     ax.grid(axis="x", linestyle="--", alpha=0.3, linewidth=0.5)
     for spine in ("top", "right", "left"):
         ax.spines[spine].set_visible(False)
 
+
+def joss_cell(row):
+    """The share-of-JOSS cell for one row.
+
+    A practice the composite does not score is labelled as such rather than 0%, since zero
+    weight and no criterion are different statements. Tested for a string rather than for
+    truth: read back from CSV the missing criterion is NaN, which is truthy.
+    """
+    scored = isinstance(row.joss_criterion, str) and row.joss_criterion
+    return f"{100 * row.joss_share:.0f}%" if scored else "not scored"
+
+
+# Text columns for the standalone forest, as (x in axes fraction, header, cell, alignment).
+# x is an axes fraction because the columns sit outside the axes and must hold their place
+# when the number of rows changes; a figure whose axes are a different width needs its own
+# positions, which is why these are a value rather than baked into the drawing.
+FOREST_COLUMNS = (
+    (-0.045, "Practice", lambda r: f"{r.label}\n(n = {r.n_treated:,})", "right"),
+    (1.05, "Share of\nJOSS score", joss_cell, "center"),
+    (1.28, "Median", lambda r: f"{r.did_median:+.3f}", "center"),
+    (1.44, "% up", lambda r: f"{100 * r.share_positive:.0f}%", "center"),
+    (1.58, "p", lambda r: f"{r.did_p:.1g}", "center"),
+    (1.78, "Pre-event\ntrend", lambda r: "flat" if r.parallel_trends else "rising", "center"),
+    (2.02, "Mean from\ntop repo", lambda r: f"{100 * r.top_share:.0f}%", "center"),
+)
+
+
+def draw_columns(ax, order, columns):
+    """Text columns beside a forest, positioned against the rows rather than the figure."""
     # x in axes fraction, y in data coordinates, so a column keeps its place against the rows.
     blend = ax.get_yaxis_transform()
-    header_y = n_rows - 0.42
-
-    def column(x, header, value_of, align="center"):
+    header_y = len(order) - 0.42
+    for x, header, value_of, align in columns:
         ax.text(x, header_y, header, transform=blend, ha=align, va="bottom",
                 fontsize=FS_LABEL - 0.5, fontweight="bold")
         for k, row in enumerate(order.itertuples()):
             ax.text(x, k, value_of(row), transform=blend, ha=align, va="center",
                     fontsize=FS_LABEL - 0.5)
 
-    def joss_cell(row):
-        # A practice the composite does not score is labelled as such rather than 0%, since
-        # zero weight and no criterion are different statements. Tested for a string rather
-        # than for truth: read back from CSV the missing criterion is NaN, which is truthy.
-        scored = isinstance(row.joss_criterion, str) and row.joss_criterion
-        return f"{100 * row.joss_share:.0f}%" if scored else "not scored"
 
-    column(-0.045, "Practice", lambda r: f"{r.label}\n(n = {r.n_treated:,})", align="right")
-    column(1.05, "Share of\nJOSS score", joss_cell)
-    column(1.28, "Median", lambda r: f"{r.did_median:+.3f}")
-    column(1.44, "% up", lambda r: f"{100 * r.share_positive:.0f}%")
-    column(1.58, "p", lambda r: f"{r.did_p:.1g}")
-    column(1.78, "Pre-event\ntrend", lambda r: "flat" if r.parallel_trends else "rising")
-    column(2.02, "Mean from\ntop repo", lambda r: f"{100 * r.top_share:.0f}%")
-
-    handles = [
+def estimate_handles():
+    """Legend entries for what draw_estimates puts on an axes."""
+    return [
         plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor=TREATED, linestyle="",
                    markersize=6, label="mean DiD, pre-event trend flat"),
         plt.Line2D([], [], marker="o", color=TREATED, markerfacecolor="white",
@@ -913,8 +935,20 @@ def draw_forest(ax, table, legend_y=-0.20):
         plt.Line2D([], [], marker="D", color=JUMP, linestyle="", markersize=5,
                    label="jump at adoption, net of the pre-event trend"),
     ]
-    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(-0.34, legend_y),
-              ncol=1, fontsize=FS_LABEL - 0.5, frameon=False, handletextpad=0.6)
+
+
+def draw_forest(ax, table, legend_y=-0.20):
+    """The standalone cross-practice forest: estimates, all seven text columns, legend.
+
+    Everything is positioned relative to the axes rather than the figure, so this composition
+    can be dropped into a larger figure unchanged.
+    """
+    order = reverse_rows(table)
+    draw_estimates(ax, order)
+    draw_columns(ax, order, FOREST_COLUMNS)
+    ax.legend(handles=estimate_handles(), loc="upper left",
+              bbox_to_anchor=(-0.34, legend_y), ncol=1, fontsize=FS_LABEL - 0.5,
+              frameon=False, handletextpad=0.6)
 
 
 def cross_practice_outputs(results, args):
