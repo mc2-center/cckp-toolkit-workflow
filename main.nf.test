@@ -4,22 +4,46 @@ nextflow_pipeline {
     name "CCKP Toolkit"
     script "main.nf"
 
+    // AnalyzeJOSSCriteria carries errorStrategy 'ignore', so a crashed or skipped stage
+    // leaves workflow.success true and emits nothing. Asserting the trace alone therefore
+    // cannot tell a working JOSS analysis from a broken one; the report has to be read.
+    // A null overall_score is the module's fallback for a failed analysis.
+    def readJossReport = { dir, repo ->
+        def report = new File("${dir}/joss_report_${repo}.json")
+        assert report.exists() : "no JOSS report written for ${repo}"
+        def parsed = new groovy.json.JsonSlurper().parseText(report.text)
+        assert parsed.error == null : "JOSS analysis failed: ${parsed.error}"
+        assert parsed.overall_score != null
+        assert parsed.criteria.keySet() == ["Statement of Need", "Installation Instructions",
+                                            "Example Usage", "Community Guidelines", "Tests"] as Set
+        return parsed
+    }
+
     test("Should process a single repository URL") {
         when {
             params {
                 repo_url = "https://github.com/PythonOT/POT.git"
-                output_dir = "test_results"
-                synapse_agent_id = "LOWYSX3QSQ"
+                output_dir = "$outputDir"
             }
         }
 
         then {
             assert workflow.success
-            assert workflow.trace.tasks().size() > 0
-            assert workflow.trace.succeeded().size() > 0
-            assert workflow.trace.tasks().collect { it.name }.any { it.startsWith("ProcessRepo") }
-            assert workflow.trace.tasks().collect { it.name }.any { it.startsWith("RunAlmanack") }
-            assert workflow.trace.tasks().collect { it.name }.any { it.startsWith("TestExecutor") }
+            def stages = workflow.trace.tasks().collect { it.name }
+            ["ProcessRepo", "RunAlmanack", "TestExecutor", "AnalyzeJOSSCriteria"].each { stage ->
+                assert stages.any { it.startsWith(stage) } : "${stage} did not run"
+            }
+            assert workflow.trace.succeeded().size() == stages.size()
+
+            // POT keeps a test suite and runs it under GitHub Actions, which is the top
+            // Tests tier. This is what distinguishes static scoring from the executed
+            // scoring it replaced: execution scored POT 0.0 whenever its suite would not
+            // install inside the container.
+            def report = readJossReport(params.output_dir, "POT")
+            assert report.test_evidence.has_tests
+            assert report.test_evidence.automated_check_in_ci
+            assert report.criteria["Tests"].score == 1.0
+            assert report.criteria["Tests"].status == "good"
         }
     }
 
@@ -27,19 +51,24 @@ nextflow_pipeline {
         when {
             params {
                 sample_sheet = "${projectDir}/tests/fixtures/example-input.csv"
-                output_dir = "test_results"
-                synapse_agent_id = "LOWYSX3QSQ"
+                output_dir = "$outputDir"
             }
         }
 
         then {
             assert workflow.success
-            assert workflow.trace.tasks().size() > 0
-            assert workflow.trace.succeeded().size() > 0
             def processCounts = workflow.trace.tasks().collect { it.name.split(" ")[0] }.countBy { it }
             assert processCounts["ProcessRepo"] == 2
             assert processCounts["RunAlmanack"] == 2
             assert processCounts["TestExecutor"] == 2
+            assert processCounts["AnalyzeJOSSCriteria"] == 2
+
+            // TARGet has no test suite and no CI, the bottom tier. Scoring both repositories
+            // in one run is what catches a criterion wired to a constant.
+            assert readJossReport(params.output_dir, "POT").criteria["Tests"].score == 1.0
+            def target = readJossReport(params.output_dir, "TARGet")
+            assert !target.test_evidence.has_tests
+            assert target.criteria["Tests"].score < 1.0
         }
     }
 
@@ -47,8 +76,7 @@ nextflow_pipeline {
         when {
             params {
                 repo_url = "invalid-url"
-                output_dir = "error_test_results"
-                synapse_agent_id = "LOWYSX3QSQ"
+                output_dir = "$outputDir"
             }
         }
 
@@ -62,8 +90,7 @@ nextflow_pipeline {
         when {
             params {
                 sample_sheet = "${projectDir}/tests/fixtures/invalid-sample-sheet.csv"
-                output_dir = "error_test_results"
-                synapse_agent_id = "LOWYSX3QSQ"
+                output_dir = "$outputDir"
             }
         }
 
@@ -76,8 +103,7 @@ nextflow_pipeline {
     test("Should fail when neither sample_sheet nor repo_url is provided") {
         when {
             params {
-                output_dir = "error_test_results"
-                synapse_agent_id = "LOWYSX3QSQ"
+                output_dir = "$outputDir"
             }
         }
 
@@ -86,4 +112,4 @@ nextflow_pipeline {
             assert workflow.stdout.any { it.contains("Provide either a sample_sheet or repo_url parameter") }
         }
     }
-} 
+}

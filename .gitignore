@@ -4,6 +4,7 @@ work/
 .nextflow.log*
 results/
 .nf-test/
+.nf-test.log*
 .DS_Store
 
 # analysis outputs
