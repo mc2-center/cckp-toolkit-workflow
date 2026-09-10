@@ -27,6 +27,8 @@ data-collection = [
     "requests>=2.31",      # GitHub API (repo discovery, README fetch)
     "boto3>=1.34",         # S3 access for prepare_joss_rerun.py and classify_domains_other.py (Bedrock)
     "duckdb>=0.10",        # reading the CZI Software Mentions parquet
+    "pyarrow>=15.0",       # pandas read_parquet/to_parquet engine (docs_and_readme.parquet,
+                           # the disambiguated CZI links, the PubMed link table)
     "anthropic>=0.40",     # classify_domains_primary.py, primary domain classifier (ANTHROPIC_API_KEY)
     "python-dotenv>=1.0",  # load API keys from a .env file (see .env.template)
 ]
