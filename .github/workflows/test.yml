@@ -11,34 +11,31 @@ jobs:
     name: Run nf-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Nextflow
-        run: |
-          curl -s https://get.nextflow.io | bash
-          mv nextflow /usr/local/bin/
-          nextflow -version
-      
-      - name: Install nf-test
-        run: |
-          curl -fsSL https://get.nf-test.com | bash
-          mv nf-test /usr/local/bin/
-          nf-test version
-      
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
-      
-      - name: Run tests
-        run: |
-          nf-test test main.nf.test
-      
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
+      - uses: actions/checkout@v4
+
+      # The nf-test and Nextflow installer scripts both download release assets from
+      # GitHub unauthenticated, which the runner's shared IP gets 403'd on. These actions
+      # pass the job's token and cache the install, so the version is pinned and the step
+      # does not depend on a rate limit.
+      - uses: nf-core/setup-nextflow@v3
         with:
-          name: test-results
+          version: "24.04.3"
+
+      - uses: nf-core/setup-nf-test@v2
+        with:
+          version: "0.9.2"
+
+      - name: Run tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: nf-test test main.nf.test
+
+      - name: Upload test logs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-logs
           path: |
-            work/
-            .nextflow/
             .nextflow.log
-          retention-days: 7 
+            .nf-test/
+          retention-days: 7

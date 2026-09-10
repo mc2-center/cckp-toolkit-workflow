@@ -30,8 +30,8 @@ authors:
 title: "Cancer Complexity Toolkit: Software Sustainability as a Driver of Scientific Impact"
 version: 1.0.0
 date-released: 2026-06-05
-url: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
-repository-code: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
+url: "https://github.com/mc2-center/cckp-toolkit-workflow"
+repository-code: "https://github.com/mc2-center/cckp-toolkit-workflow"
 # DOI placeholders. Uncomment and fill in each value as it is minted
 # doi: <journal article DOI, once published>
 # identifiers:

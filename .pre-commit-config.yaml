@@ -1,0 +1,31 @@
+# Install once per clone: pre-commit install
+# Run over everything, not just staged files: pre-commit run --all-files
+#
+# Settings for black and ruff are in the root pyproject.toml, so the hooks and a manual
+# `ruff check` cannot disagree.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        # The manuscript figures are committed as PNG and PDF, and some render large.
+        args: ["--maxkb=2048"]
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.1
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+        # Formatting is black's job here; ruff-format only checks it agrees.
+        stages: [manual]
+
+  - repo: https://github.com/psf/black
+    rev: 25.9.0
+    hooks:
+      - id: black

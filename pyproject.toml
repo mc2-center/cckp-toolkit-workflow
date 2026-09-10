@@ -1,0 +1,36 @@
+# Tool configuration only. This repository is a Nextflow workflow plus a collection of
+# analysis scripts, not an installable package, so there is deliberately no [project] or
+# [build-system] table here. Runtime dependencies for the analysis live in
+# analysis/pyproject.toml; each workflow process installs its own inside its container.
+#
+# This file sits at the root rather than under analysis/ so that one configuration covers
+# both the analysis scripts and the pipeline's bin/ scripts.
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["analysis/.venv", "analysis/archive", "work", ".nf-test"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, isort, pyupgrade, flake8-bugbear.
+select = ["E", "F", "W", "I", "UP", "B"]
+
+# Black owns line length. Everything it can wrap, it wraps; what is left over is a single
+# unsplittable token, almost always a long message or prompt string. Flagging those again
+# here would only ask for hand-wrapping that black would not have chosen.
+ignore = ["E501"]
+
+# Not yet enforced, because the code does not currently pass them. Enable each once the
+# corresponding cleanup lands, rather than silencing it permanently:
+#   "D"    pydocstyle, google convention. 12 of 87 functions carry an Args:/Returns:
+#          section today, so turning this on now would fail on almost every file.
+#   "ANN"  flake8-annotations. 54% of functions annotate their parameters and 44% their
+#          return type.
+#   "C901" mccabe complexity. 27 functions run over 40 lines.
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
