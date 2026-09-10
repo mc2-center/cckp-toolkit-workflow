@@ -38,6 +38,7 @@ Key files:
 | `aggregated_data_llm_classified.csv` | `tool_name`, `domain` (LLM-classified) |
 | `weights_logistic_refit.csv` | nf-core-calibrated logistic weights per check |
 | `nf_core_almanack_metrics.csv` | Almanack metrics for nf-core pipelines |
+| `test_evidence_static.csv` | Per-repository test evidence flags and the static JOSS Tests score |
 | `revision/event_candidates.csv` | The cohort the fork accrual chain iterates over |
 | `revision/fork_history/<owner>__<repo>.csv` | One fork `created_at` per row, ascending |
 | `revision/*_events.jsonl` | Practice adoption dates, one JSON record per repository |
@@ -86,7 +87,11 @@ Run order, from the repository root:
 # 1. Fork history, one resumable cache file per repository
 uv run --project analysis python analysis/modeling/reconstruct_fork_history.py
 
-# 2. Date each practice's adoption. Four collectors, one per evidence type
+# 2. Score the Tests criterion from repository contents. Steps 2b and 3 read the table it
+#    writes to decide which repositories count as having a test suite
+uv run --project analysis python analysis/data_collection/detect_test_evidence.py
+
+# 2b. Date each practice's adoption. Four collectors, one per evidence type
 uv run --project analysis python analysis/modeling/date_practice_events.py          # license, citation files
 uv run --project analysis python analysis/data_collection/date_citability_events.py # citability, all routes
 uv run --project analysis python analysis/data_collection/date_test_events.py       # test suite
@@ -105,7 +110,7 @@ present, so a run can be stopped and grown incrementally.
 Two things to know before rerunning:
 
 - `modeling/practice_event_study.py` is retired as an analysis, but step 3 reads the license
-  practice's event dates from its output, so it has to run between steps 2 and 3. It filters
+  practice's event dates from its output, so it has to run between steps 2b and 3. It filters
   3,568 dated license additions to 614 first, which makes the license row's treated pool
   narrower than the other five practices'. Its docstring records what the estimate does when
   that filter is dropped.
