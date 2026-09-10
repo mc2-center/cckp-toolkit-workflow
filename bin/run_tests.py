@@ -7,36 +7,59 @@ import sys
 import re
 from typing import Dict, Any
 
-def install_dependencies(repo_dir: str) -> bool:
+# Seconds allowed per dependency source. A resolution that has not finished in this long is
+# not going to, and the task shares a wall clock with the rest of the run.
+DEPENDENCY_INSTALL_TIMEOUT = 900
+
+
+def install_dependencies(repo_dir: str) -> Dict[str, Any]:
     """
-    Install project dependencies before running tests.
-    
+    Install project dependencies from every manifest the repository declares.
+
     Args:
         repo_dir (str): Path to the repository directory
-        
+
     Returns:
-        bool: True if dependencies were installed successfully, False otherwise
-        
+        Dict[str, Any]: `attempted` sources, `failed` sources, and a human-readable `summary`
+
     Note:
-        Attempts to install dependencies from requirements.txt and setup.py if they exist
+        Best effort: every source present is attempted even if an earlier one fails, and
+        failures are reported rather than raised, since a partial environment still runs
+        the tests that do not need the missing package.
     """
-    try:
-        # Try to install requirements.txt if it exists
-        req_file = os.path.join(repo_dir, 'requirements.txt')
-        if os.path.exists(req_file):
-            subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', req_file], 
-                         cwd=repo_dir, check=True, capture_output=True)
-        
-        # Try to install setup.py if it exists
-        setup_file = os.path.join(repo_dir, 'setup.py')
-        if os.path.exists(setup_file):
-            subprocess.run([sys.executable, '-m', 'pip', 'install', '-e', '.'], 
-                         cwd=repo_dir, check=True, capture_output=True)
-        
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Error installing dependencies: {e.stderr.decode()}", file=sys.stderr)
-        return False
+    sources = [
+        ('requirements.txt', [sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt']),
+        ('pyproject.toml', [sys.executable, '-m', 'pip', 'install', '.']),
+        ('setup.py', [sys.executable, '-m', 'pip', 'install', '-e', '.']),
+    ]
+
+    attempted, failed = [], []
+    for filename, cmd in sources:
+        if not os.path.exists(os.path.join(repo_dir, filename)):
+            continue
+        # pip reads pyproject.toml in preference, so a project carrying both it and
+        # setup.py is installed once rather than built twice.
+        if filename == 'setup.py' and 'pyproject.toml' in attempted:
+            continue
+        attempted.append(filename)
+        try:
+            subprocess.run(cmd, cwd=repo_dir, check=True, capture_output=True,
+                           timeout=DEPENDENCY_INSTALL_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            failed.append(f"{filename} (timed out after {DEPENDENCY_INSTALL_TIMEOUT}s)")
+        except subprocess.CalledProcessError as e:
+            stderr = (e.stderr or b'').decode(errors='replace').strip()
+            print(f"Could not fully install from {filename}: {stderr}", file=sys.stderr)
+            failed.append(filename)
+
+    if not attempted:
+        summary = "No dependency manifest found"
+    elif failed:
+        summary = f"Installed from {', '.join(attempted)}; failures: {', '.join(failed)}"
+    else:
+        summary = f"Installed from {', '.join(attempted)}"
+
+    return {"attempted": attempted, "failed": failed, "summary": summary}
 
 def detect_project_type(repo_dir: str) -> str:
     """
@@ -86,6 +109,7 @@ def run_python_tests(repo_dir: str) -> Dict[str, Any]:
             - failed: Number of failed tests
             - output: Test output
             - error: Error message if any
+            - dependencies: What was installed before the suite ran
     """
     results = {
         "framework": "unknown",
@@ -97,14 +121,14 @@ def run_python_tests(repo_dir: str) -> Dict[str, Any]:
         "xfailed": 0,
         "xpassed": 0,
         "output": "",
-        "error": ""
+        "error": "",
+        "dependencies": ""
     }
     
     try:
-        # Install dependencies first
-        if not install_dependencies(repo_dir):
-            results["error"] = "Failed to install dependencies"
-            return results
+        # Install what the manifests allow, then run the suite regardless of the outcome.
+        install = install_dependencies(repo_dir)
+        results["dependencies"] = install["summary"]
 
         # Try pytest first
         if os.path.exists(os.path.join(repo_dir, 'pytest.ini')) or \
@@ -196,6 +220,7 @@ def run_node_tests(repo_dir: str) -> Dict[str, Any]:
             - failed: Number of failed tests
             - output: Test output
             - error: Error message if any
+            - dependencies: What was installed before the suite ran
     """
     results = {
         "framework": "unknown",
@@ -204,9 +229,10 @@ def run_node_tests(repo_dir: str) -> Dict[str, Any]:
         "passed": 0,
         "failed": 0,
         "output": "",
-        "error": ""
+        "error": "",
+        "dependencies": ""
     }
-    
+
     try:
         # Check for package.json
         package_json = os.path.join(repo_dir, 'package.json')
@@ -214,9 +240,15 @@ def run_node_tests(repo_dir: str) -> Dict[str, Any]:
             results["error"] = "No package.json found"
             return results
         
-        # Install dependencies
-        subprocess.run(["npm", "install"], cwd=repo_dir, check=True, capture_output=True)
-        
+        # Install dependencies, best effort, then run `npm test` either way.
+        try:
+            subprocess.run(["npm", "install"], cwd=repo_dir, check=True, capture_output=True,
+                           timeout=DEPENDENCY_INSTALL_TIMEOUT)
+            results["dependencies"] = "Installed from package.json"
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+            print(f"Could not fully install from package.json: {e}", file=sys.stderr)
+            results["dependencies"] = "npm install failed"
+
         # Try npm test
         process = subprocess.run(
             ["npm", "test"],
@@ -278,7 +310,8 @@ def execute_tests(repo_dir: str) -> Dict[str, Any]:
             "passed": 0,
             "failed": 0,
             "output": "",
-            "error": f"Unsupported project type: {project_type}"
+            "error": f"Unsupported project type: {project_type}",
+            "dependencies": ""
         }
 
 if __name__ == "__main__":

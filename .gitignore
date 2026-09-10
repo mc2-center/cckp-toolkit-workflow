@@ -29,6 +29,9 @@ Job-*.csv
 
 # Secrets (keep .env out of git; .env.template is committed)
 .env
+*.token
+.github_token
+secrets/
 
 # OS and IDE
 .vscode/
@@ -48,3 +51,4 @@ __pycache__/
 *.csv.gz
 *.json.gz
 *.tar.gz
+*.zip

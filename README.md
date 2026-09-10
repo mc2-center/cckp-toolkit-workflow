@@ -29,9 +29,19 @@ The Cancer Complexity Toolkit Workflow is a scalable infrastructure framework to
 - **Docker** (required for containerized execution): Install from [Docker's official website](https://www.docker.com/get-started).
 - **Python 3.8+**: Install from [Python's official website](https://www.python.org/downloads/).
 - **Git**
+- **A GitHub personal access token**: export it as `GITHUB_TOKEN` before launching.
 
 > [!IMPORTANT]
 > Docker is required to run this workflow. The toolkit uses containerized processes to ensure consistent execution environments across different systems.
+
+> [!IMPORTANT]
+> The Almanack analysis reads `GITHUB_TOKEN` to authenticate the GitHub API calls behind its
+> remote metrics (stars, forks, subscribers, issue counts). Authenticated requests are limited
+> to 5,000 an hour against 60 unauthenticated, so without a token those metrics come back empty
+> for most repositories in any run larger than a handful. The workflow still runs without one.
+> A classic token with the `public_repo` scope is enough; create one at
+> [github.com/settings/tokens](https://github.com/settings/tokens). On the Seqera Platform, add
+> it as a workspace secret named `GITHUB_TOKEN` instead. Never commit the token.
 
 ### Optional Dependencies
 For Synapse integration:
@@ -136,15 +146,14 @@ The workflow generates several output files in the `results` directory:
 > The AI Analysis and Test Executor components are currently in beta. Results may vary and the interface is subject to change.
 
 > [!WARNING]
-> The Test Executor is the least reliable component and its output should not be read as a
-> measure of a project's testing. It runs a repository's suite inside the workflow container,
-> where third-party dependencies are usually absent, so imports fail before any test is
-> collected. A project with a full suite and passing CI is therefore scored the same as a
-> project with no tests at all: across a 10,217-repository evaluation, the JOSS Tests criterion
-> came out 0.0 for 10,100 of them. Until dependency installation is added, score the criterion
-> from repository contents instead, as `analysis/data_collection/detect_test_evidence.py` does
-> (a suite plus CI, a suite alone, sample inputs only, or no evidence). The manuscript analysis
-> uses that static scoring, not the executor's.
+> The Test Executor's output is reported but does not set the JOSS Tests criterion. Whether a
+> suite runs inside the workflow container depends on the project's dependencies resolving
+> there, and on the executor supporting its language at all (Python and Node only, though the
+> project-type detector recognises R, Maven, Gradle, Rust and Go). A project with a full suite
+> and passing CI cannot reliably be told apart from a project with no tests. The criterion is
+> instead read from the repository's contents: a suite wired to continuous integration, a
+> suite alone, sample inputs a reviewer could run by hand, or no evidence. Execution results
+> still appear in the criterion's details, since a suite that runs and fails is worth seeing.
 
 > [!IMPORTANT]
 > Synapse integration requires proper authentication and permissions setup.
