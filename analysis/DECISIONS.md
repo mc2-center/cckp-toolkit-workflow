@@ -1,6 +1,6 @@
 # Analysis decisions
 
-Why the analyses are specified the way they are, and what each one cannot establish.
+This document describes why the analyses are specified the way they are, and what each one cannot establish.
 
 Module docstrings say what a script reads, writes and computes. The reasoning behind a design,
 the alternatives rejected, and the limitations a reader should hold against a result live here,
