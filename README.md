@@ -31,7 +31,7 @@ The Cancer Complexity Toolkit Workflow is a scalable infrastructure framework to
 > Docker is required to run this workflow. The toolkit uses containerized processes to ensure consistent execution environments across different systems.
 
 > [!IMPORTANT]
-> The Almanack analysis reads `GITHUB_TOKEN` to authenticate the GitHub API calls behind its
+> The Almanack analysis reads the `GITHUB_TOKEN` environment variable to authenticate the GitHub API calls behind its
 > remote metrics (stars, forks, subscribers, issue counts). Authenticated requests are limited
 > to 5,000 an hour against 60 unauthenticated, so without a token those metrics come back empty
 > for most repositories in any run larger than a handful. The workflow still runs without one.
