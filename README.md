@@ -25,7 +25,7 @@ The Cancer Complexity Toolkit Workflow is a scalable infrastructure framework to
 - **Java 11 or later**, which Nextflow itself runs on.
 - **Docker** (required for containerized execution): Install from [Docker's official website](https://www.docker.com/get-started).
 - **Git**
-- **A GitHub personal access token**: export it as `GITHUB_TOKEN` before launching.
+- **A GitHub personal access token**: export it as an environment variable labeled `GITHUB_TOKEN` before launching.
 
 > [!IMPORTANT]
 > Docker is required to run this workflow. The toolkit uses containerized processes to ensure consistent execution environments across different systems.
