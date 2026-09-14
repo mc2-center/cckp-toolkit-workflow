@@ -31,15 +31,30 @@ PAGE = 100
 
 
 def build_query(slugs: list[str]) -> str:
+    """One GraphQL query asking each repository for its newest forks.
+
+    Args:
+        slugs: owner/name strings, at most BATCH of them.
+
+    Returns:
+        A query whose aliases are r0, r1, ... in the order the slugs were given, so a
+        response entry can be mapped back to the slug that was requested. Owner and name
+        go through json.dumps rather than being interpolated bare, so a slug containing a
+        quote cannot terminate the string argument early.
+    """
     parts = []
     for i, slug in enumerate(slugs):
-        owner, name = slug.split("/", 1)
-        parts.append(
-            f"r{i}: repository(owner: {json.dumps(owner)}, name: {json.dumps(name)}) {{ "
-            f"nameWithOwner forkCount "
-            f"forks(first: {PAGE}, orderBy: {{field: CREATED_AT, direction: DESC}}) "
-            f"{{ nodes {{ createdAt }} }} }}"
-        )
+        # json.dumps quotes and escapes, so a slug containing a quote cannot terminate the
+        # GraphQL string argument early. Doubled braces below are f-string escapes: each
+        # pair is one literal brace in the query that goes over the wire.
+        owner, name = (json.dumps(part) for part in slug.split("/", 1))
+        parts.append(f"""  r{i}: repository(owner: {owner}, name: {name}) {{
+    nameWithOwner
+    forkCount
+    forks(first: {PAGE}, orderBy: {{field: CREATED_AT, direction: DESC}}) {{
+      nodes {{ createdAt }}
+    }}
+  }}""")
     return "query {\n" + "\n".join(parts) + "\n}"
 
 
