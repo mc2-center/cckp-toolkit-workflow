@@ -3,11 +3,13 @@
 Merge classified domain labels back into the combined cohort datasets.
 Creates versioned final publishable datasets.
 """
+
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
 
 RESULTS_DIR = Path("data/final_results")
+
 
 def merge_rerun_classifications():
     """Merge rerun classifications into combined_almanack_with_rerun.csv."""
@@ -20,24 +22,24 @@ def merge_rerun_classifications():
     print(f"Rerun classifications: {len(rerun_classified)} tools")
 
     combined = combined.merge(
-        rerun_classified[['tool_name', 'domain']],
-        on='tool_name',
-        how='left',
-        suffixes=('', '_rerun')
+        rerun_classified[["tool_name", "domain"]],
+        on="tool_name",
+        how="left",
+        suffixes=("", "_rerun"),
     )
-    combined['domain'] = combined['domain'].fillna(combined['domain_rerun'])
-    combined = combined.drop(columns=['domain_rerun'])
+    combined["domain"] = combined["domain"].fillna(combined["domain_rerun"])
+    combined = combined.drop(columns=["domain_rerun"])
 
     out_path = RESULTS_DIR / "combined_almanack_with_rerun_classified.csv"
     combined.to_csv(out_path, index=False)
     print(f"Wrote {len(combined)} tools to {out_path.name}")
 
-    rerun_subset = combined[combined['cohort'] == 'toolkit_rerun_may']
+    rerun_subset = combined[combined["cohort"] == "toolkit_rerun_may"]
     print(f"\nRerun cohort domain coverage:")
     print(f"  Total rerun tools: {len(rerun_subset)}")
     print(f"  With domain labels: {rerun_subset['domain'].notna().sum()}")
     print(f"  Domain distribution:")
-    print(rerun_subset['domain'].value_counts().to_string())
+    print(rerun_subset["domain"].value_counts().to_string())
 
     return combined
 
@@ -50,21 +52,21 @@ def merge_reclassified_others(combined):
     print(f"Reclassified Others: {len(others_reclassified)} tools")
 
     combined = combined.merge(
-        others_reclassified[['tool_name', 'domain']],
-        on='tool_name',
-        how='left',
-        suffixes=('', '_reclassified')
+        others_reclassified[["tool_name", "domain"]],
+        on="tool_name",
+        how="left",
+        suffixes=("", "_reclassified"),
     )
-    mask = combined['domain_reclassified'].notna()
-    combined.loc[mask, 'domain'] = combined.loc[mask, 'domain_reclassified']
-    combined = combined.drop(columns=['domain_reclassified'])
+    mask = combined["domain_reclassified"].notna()
+    combined.loc[mask, "domain"] = combined.loc[mask, "domain_reclassified"]
+    combined = combined.drop(columns=["domain_reclassified"])
 
     out_path = RESULTS_DIR / "combined_almanack_full_classified.csv"
     combined.to_csv(out_path, index=False)
     print(f"Wrote {len(combined)} tools to {out_path.name}")
 
     print(f"\nFull cohort domain distribution:")
-    print(combined['domain'].value_counts().to_string())
+    print(combined["domain"].value_counts().to_string())
     print(f"\nTools with domains: {combined['domain'].notna().sum()} / {len(combined)}")
 
     return combined
@@ -77,14 +79,14 @@ def update_master_cohort(combined):
     master = pd.read_csv(RESULTS_DIR / "master_cohort_score_domain.csv")
     print(f"Existing master cohort: {len(master)} tools")
 
-    cols_to_update = ['tool_name', 'domain', 'cohort']
-    if 'almanack_score' in combined.columns:
-        cols_to_update.insert(1, 'almanack_score')
+    cols_to_update = ["tool_name", "domain", "cohort"]
+    if "almanack_score" in combined.columns:
+        cols_to_update.insert(1, "almanack_score")
     update_df = combined[cols_to_update].copy()
 
-    drop_cols = [c for c in ['domain', 'almanack_score', 'cohort'] if c in master.columns]
-    master = master.drop(columns=drop_cols, errors='ignore')
-    master = master.merge(update_df, on='tool_name', how='outer')
+    drop_cols = [c for c in ["domain", "almanack_score", "cohort"] if c in master.columns]
+    master = master.drop(columns=drop_cols, errors="ignore")
+    master = master.merge(update_df, on="tool_name", how="outer")
 
     out_path = RESULTS_DIR / "master_cohort_score_domain.csv"
     master.to_csv(out_path, index=False)
@@ -109,21 +111,19 @@ def create_publishable_datasets():
     print(f"  1. Full cohort: {full_path.name} ({len(combined)} tools)")
 
     # Dataset 2: classified non-Other cohort (domain analysis)
-    classified = combined[
-        combined['domain'].notna() & (combined['domain'] != 'Other')
-    ].copy()
+    classified = combined[combined["domain"].notna() & (combined["domain"] != "Other")].copy()
     classified_path = publish_dir / f"classified_cohort_non_other_{timestamp}.csv"
     classified.to_csv(classified_path, index=False)
     print(f"  2. Classified non-Other: {classified_path.name} ({len(classified)} tools)")
 
     # Dataset 3: starred cohort (regression analysis)
-    starred = combined[combined['repo_stargazers_count'].notna()].copy()
+    starred = combined[combined["repo_stargazers_count"].notna()].copy()
     starred_path = publish_dir / f"starred_cohort_{timestamp}.csv"
     starred.to_csv(starred_path, index=False)
     print(f"  3. Starred cohort: {starred_path.name} ({len(starred)} tools)")
 
     readme_path = publish_dir / "README.md"
-    with open(readme_path, 'w') as f:
+    with open(readme_path, "w") as f:
         f.write(f"""# Final Publishable Datasets
 
 Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
@@ -134,9 +134,9 @@ Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 **File:** `full_cohort_with_domains_{timestamp}.csv`
 **Rows:** {len(combined):,} tools
 **Description:** Complete cohort with all Almanack sustainability metrics (100+ fields) and LLM-classified biological domains. Includes three sub-cohorts:
-- main: Original cohort (n={len(combined[combined['cohort']=='main']):,})
-- czi_extended: CZI mentions cohort (n={len(combined[combined['cohort']=='czi_extended']):,})
-- toolkit_rerun_may: May 2026 rerun batch (n={len(combined[combined['cohort']=='toolkit_rerun_may']):,})
+- main: Original cohort (n={len(combined[combined["cohort"] == "main"]):,})
+- czi_extended: CZI mentions cohort (n={len(combined[combined["cohort"] == "czi_extended"]):,})
+- toolkit_rerun_may: May 2026 rerun batch (n={len(combined[combined["cohort"] == "toolkit_rerun_may"]):,})
 
 ### 2. Classified Non-Other Cohort
 **File:** `classified_cohort_non_other_{timestamp}.csv`

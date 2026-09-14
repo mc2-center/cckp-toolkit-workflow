@@ -15,7 +15,9 @@ import seaborn as sns
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Plot weighted/unweighted Almanack score distributions")
+    parser = argparse.ArgumentParser(
+        description="Plot weighted/unweighted Almanack score distributions"
+    )
     parser.add_argument(
         "--logistic_scores_csv",
         type=str,
@@ -50,14 +52,12 @@ def main():
 
     # Restrict to tools with stars (and non-negative)
     star_tools = metrics[
-        metrics["repo_stargazers_count"].notna()
-        & (metrics["repo_stargazers_count"] >= 0)
+        metrics["repo_stargazers_count"].notna() & (metrics["repo_stargazers_count"] >= 0)
     ][["tool_name"]].drop_duplicates()
 
-    merged = (
-        scores.merge(agg[["tool_name", "domain", "almanack_score_norm"]], on="tool_name", how="inner")
-        .merge(star_tools, on="tool_name", how="inner")
-    )
+    merged = scores.merge(
+        agg[["tool_name", "domain", "almanack_score_norm"]], on="tool_name", how="inner"
+    ).merge(star_tools, on="tool_name", how="inner")
     merged = merged[merged["domain"].notna()].copy()
     print(f"Tools with stars + domain + logistic score: {len(merged)}")
 
@@ -82,12 +82,7 @@ def main():
     domain_counts = merged["domain"].value_counts()
     valid_domains = domain_counts[domain_counts >= 3].index.tolist()
     sub = merged[merged["domain"].isin(valid_domains)].copy()
-    order = (
-        sub.groupby("domain")["almanack_score_norm"]
-        .mean()
-        .sort_values(ascending=False)
-        .index
-    )
+    order = sub.groupby("domain")["almanack_score_norm"].mean().sort_values(ascending=False).index
 
     fig, ax = plt.subplots(figsize=(12, 5))
     sns.boxplot(
@@ -104,7 +99,9 @@ def main():
     )
     ax.set_xlabel("Domain")
     ax.set_ylabel("Almanack score (normalized)")
-    ax.set_title("Almanack score (unweighted) by domain\n(tools with stars & domain, n≥3 per domain)")
+    ax.set_title(
+        "Almanack score (unweighted) by domain\n(tools with stars & domain, n≥3 per domain)"
+    )
     ax.tick_params(axis="x", rotation=45)
     plt.tight_layout()
     box_path = out_dir / "domain_boxplot_almanack_score_stars.png"
@@ -115,4 +112,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

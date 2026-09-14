@@ -17,7 +17,9 @@ import shap
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SHAP variable importance for stars ~ Almanack metrics")
+    parser = argparse.ArgumentParser(
+        description="SHAP variable importance for stars ~ Almanack metrics"
+    )
     parser.add_argument(
         "--metrics_csv",
         type=str,
@@ -31,7 +33,9 @@ def main():
         help="CSV with tool_name, domain to merge (use domain as feature). Set to empty to skip.",
     )
     parser.add_argument("--output_dir", type=str, default="data/final_results")
-    parser.add_argument("--target", type=str, default="log_stars", help="log_stars or repo_stargazers_count")
+    parser.add_argument(
+        "--target", type=str, default="log_stars", help="log_stars or repo_stargazers_count"
+    )
     parser.add_argument("--test_size", type=float, default=0.2)
     parser.add_argument("--random_state", type=int, default=42)
     parser.add_argument(
@@ -61,13 +65,20 @@ def main():
         df["domain_enc"] = le.fit_transform(df["domain"].astype(str).fillna("Unknown"))
         print(f"Domain available for {df['domain'].notna().sum()}/{len(df)} tools")
 
-    exclude = {"tool_name", "repo_stargazers_count", "log_stars", "repo_path", "almanack_table_datetime", "almanack_version"}
+    exclude = {
+        "tool_name",
+        "repo_stargazers_count",
+        "log_stars",
+        "repo_path",
+        "almanack_table_datetime",
+        "almanack_version",
+    }
     if "domain" in df.columns:
         exclude.add("domain")
     feature_cols = [
-        c for c in df.columns
-        if c not in exclude and c != "domain_enc"
-        and df[c].dtype.kind in "iufb"
+        c
+        for c in df.columns
+        if c not in exclude and c != "domain_enc" and df[c].dtype.kind in "iufb"
     ]
 
     if args.sustainability_only:
@@ -105,11 +116,17 @@ def main():
     r2 = model.score(X_test, y_test)
     print(f"R² (test): {r2:.4f}  N = {len(df)}  features = {len(feature_cols)}")
 
-    imp_gini = pd.DataFrame({
-        "feature": feature_cols,
-        "importance": model.feature_importances_,
-    }).sort_values("importance", ascending=False)
-    gini_path = out_dir / ("feature_importance_gini_sust.csv" if args.sustainability_only else "feature_importance_gini.csv")
+    imp_gini = pd.DataFrame(
+        {
+            "feature": feature_cols,
+            "importance": model.feature_importances_,
+        }
+    ).sort_values("importance", ascending=False)
+    gini_path = out_dir / (
+        "feature_importance_gini_sust.csv"
+        if args.sustainability_only
+        else "feature_importance_gini.csv"
+    )
     imp_gini.to_csv(gini_path, index=False)
     print("Top 15 (Gini importance):")
     print(imp_gini.head(15).to_string(index=False))
@@ -120,12 +137,16 @@ def main():
         shap_values = shap_values[0]
     mean_abs = np.abs(shap_values).mean(axis=0)
     mean_shap = shap_values.mean(axis=0)
-    imp = pd.DataFrame({
-        "feature": feature_cols,
-        "mean_abs_shap": mean_abs,
-        "mean_shap": mean_shap,
-    }).sort_values("mean_abs_shap", ascending=False)
-    shap_path = out_dir / ("shap_importance_sust.csv" if args.sustainability_only else "shap_importance.csv")
+    imp = pd.DataFrame(
+        {
+            "feature": feature_cols,
+            "mean_abs_shap": mean_abs,
+            "mean_shap": mean_shap,
+        }
+    ).sort_values("mean_abs_shap", ascending=False)
+    shap_path = out_dir / (
+        "shap_importance_sust.csv" if args.sustainability_only else "shap_importance.csv"
+    )
     imp.to_csv(shap_path, index=False)
     print("Top 15 by |SHAP|:")
     print(imp.head(15).to_string(index=False))
@@ -133,7 +154,9 @@ def main():
     shap.summary_plot(shap_values, X_test, feature_names=feature_cols, show=False, max_display=20)
     fig = plt.gcf()
     fig.tight_layout()
-    summary_path = out_dir / ("shap_summary_sust.png" if args.sustainability_only else "shap_summary.png")
+    summary_path = out_dir / (
+        "shap_summary_sust.png" if args.sustainability_only else "shap_summary.png"
+    )
     fig.savefig(summary_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"Saved {summary_path}")
@@ -143,10 +166,16 @@ def main():
     plt.barh(imp_sorted["feature"], imp_sorted["mean_abs_shap"])
     plt.gca().invert_yaxis()
     plt.xlabel("Mean |SHAP value| (impact on log(stars))")
-    title = "Sustainability checks: mean |SHAP|" if args.sustainability_only else "Feature importance (mean |SHAP|)"
+    title = (
+        "Sustainability checks: mean |SHAP|"
+        if args.sustainability_only
+        else "Feature importance (mean |SHAP|)"
+    )
     plt.title(title)
     plt.tight_layout()
-    bar_path = out_dir / ("shap_mean_abs_bar_sust.png" if args.sustainability_only else "shap_mean_abs_bar.png")
+    bar_path = out_dir / (
+        "shap_mean_abs_bar_sust.png" if args.sustainability_only else "shap_mean_abs_bar.png"
+    )
     plt.savefig(bar_path, dpi=150)
     plt.close()
     print(f"Saved {bar_path}")

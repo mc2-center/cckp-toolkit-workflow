@@ -180,7 +180,7 @@ def main():
             f"median rate_before = {np.median(rb):.3f} forks/mo; median rate_after = {np.median(ra):.3f} forks/mo"
         )
         lines.append(
-            f"median effect (log2 after/before) = {np.median(eff):.3f}  (x{2**np.median(eff):.2f}); 95% CI [{ci[0]:.3f}, {ci[1]:.3f}]"
+            f"median effect (log2 after/before) = {np.median(eff):.3f}  (x{2 ** np.median(eff):.2f}); 95% CI [{ci[0]:.3f}, {ci[1]:.3f}]"
         )
         lines.append(f"share accelerating (effect>0) = {(eff > 0).mean():.1%}")
         if w is not None:
@@ -191,7 +191,7 @@ def main():
         if len(pl):
             lines.append("")
             lines.append(
-                f"PLACEBO median effect = {np.median(pl):.3f} (x{2**np.median(pl):.2f}); share>0 = {(pl>0).mean():.1%}"
+                f"PLACEBO median effect = {np.median(pl):.3f} (x{2 ** np.median(pl):.2f}); share>0 = {(pl > 0).mean():.1%}"
             )
             mw = stats.mannwhitneyu(eff, pl, alternative="greater")
             lines.append(

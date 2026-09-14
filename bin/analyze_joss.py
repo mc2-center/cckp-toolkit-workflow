@@ -371,7 +371,9 @@ def analyze_dependencies(repo_dir: str) -> dict[str, Any]:
                 "status": (
                     "good"
                     if len(issues) == 0
-                    else "ok" if len(issues) < len(deps) else "needs improvement"
+                    else "ok"
+                    if len(issues) < len(deps)
+                    else "needs improvement"
                 ),
             }
         except Exception as e:
@@ -408,7 +410,9 @@ def analyze_dependencies(repo_dir: str) -> dict[str, Any]:
                 "status": (
                     "good"
                     if len(issues) == 0
-                    else "ok" if len(issues) < len(deps) else "needs improvement"
+                    else "ok"
+                    if len(issues) < len(deps)
+                    else "needs improvement"
                 ),
             }
         except Exception as e:
@@ -680,15 +684,15 @@ def analyze_almanack_results(
             if readme_content["statement_of_need"]:
                 criteria[Criteria.STATEMENT_OF_NEED.value]["status"] = Status.GOOD.value
                 criteria[Criteria.STATEMENT_OF_NEED.value]["score"] = SCORE_GOOD
-                criteria[Criteria.STATEMENT_OF_NEED.value][
-                    "details"
-                ] = Details.FOUND_COMPREHENSIVE_NEED.value
+                criteria[Criteria.STATEMENT_OF_NEED.value]["details"] = (
+                    Details.FOUND_COMPREHENSIVE_NEED.value
+                )
             else:
                 criteria[Criteria.STATEMENT_OF_NEED.value]["status"] = Status.OK.value
                 criteria[Criteria.STATEMENT_OF_NEED.value]["score"] = SCORE_OK
-                criteria[Criteria.STATEMENT_OF_NEED.value][
-                    "details"
-                ] = Details.FOUND_NEED_IMPROVEMENT.value
+                criteria[Criteria.STATEMENT_OF_NEED.value]["details"] = (
+                    Details.FOUND_NEED_IMPROVEMENT.value
+                )
         else:
             criteria[Criteria.STATEMENT_OF_NEED.value]["status"] = Status.NEEDS_IMPROVEMENT.value
             criteria[Criteria.STATEMENT_OF_NEED.value]["score"] = SCORE_NEEDS_IMPROVEMENT
@@ -702,23 +706,23 @@ def analyze_almanack_results(
             if readme_content["installation"]:
                 criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["status"] = Status.GOOD.value
                 criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["score"] = SCORE_GOOD
-                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value][
-                    "details"
-                ] = Details.FOUND_COMPREHENSIVE_INSTALL.value
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["details"] = (
+                    Details.FOUND_COMPREHENSIVE_INSTALL.value
+                )
             else:
                 criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["status"] = Status.OK.value
                 criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["score"] = SCORE_OK
-                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value][
-                    "details"
-                ] = Details.FOUND_INSTALL_IMPROVEMENT.value
+                criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["details"] = (
+                    Details.FOUND_INSTALL_IMPROVEMENT.value
+                )
         else:
-            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value][
-                "status"
-            ] = Status.NEEDS_IMPROVEMENT.value
+            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["status"] = (
+                Status.NEEDS_IMPROVEMENT.value
+            )
             criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["score"] = SCORE_NEEDS_IMPROVEMENT
-            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value][
-                "details"
-            ] = Details.MISSING_INSTALL.value
+            criteria[Criteria.INSTALLATION_INSTRUCTIONS.value]["details"] = (
+                Details.MISSING_INSTALL.value
+            )
 
         # Check for example usage, read from the README for the same reason as installation
         # instructions above.
@@ -727,15 +731,15 @@ def analyze_almanack_results(
             if readme_content["example_usage"]:
                 criteria[Criteria.EXAMPLE_USAGE.value]["status"] = Status.GOOD.value
                 criteria[Criteria.EXAMPLE_USAGE.value]["score"] = SCORE_GOOD
-                criteria[Criteria.EXAMPLE_USAGE.value][
-                    "details"
-                ] = Details.FOUND_COMPREHENSIVE_USAGE.value
+                criteria[Criteria.EXAMPLE_USAGE.value]["details"] = (
+                    Details.FOUND_COMPREHENSIVE_USAGE.value
+                )
             else:
                 criteria[Criteria.EXAMPLE_USAGE.value]["status"] = Status.OK.value
                 criteria[Criteria.EXAMPLE_USAGE.value]["score"] = SCORE_OK
-                criteria[Criteria.EXAMPLE_USAGE.value][
-                    "details"
-                ] = Details.FOUND_USAGE_IMPROVEMENT.value
+                criteria[Criteria.EXAMPLE_USAGE.value]["details"] = (
+                    Details.FOUND_USAGE_IMPROVEMENT.value
+                )
         else:
             criteria[Criteria.EXAMPLE_USAGE.value]["status"] = Status.NEEDS_IMPROVEMENT.value
             criteria[Criteria.EXAMPLE_USAGE.value]["score"] = SCORE_NEEDS_IMPROVEMENT
@@ -745,21 +749,21 @@ def analyze_almanack_results(
         if has_contributing and has_code_of_conduct:
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["status"] = Status.GOOD.value
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["score"] = SCORE_GOOD
-            criteria[Criteria.COMMUNITY_GUIDELINES.value][
-                "details"
-            ] = Details.FOUND_BOTH_GUIDELINES.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["details"] = (
+                Details.FOUND_BOTH_GUIDELINES.value
+            )
         elif has_contributing or has_code_of_conduct:
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["status"] = Status.OK.value
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["score"] = SCORE_OK
-            criteria[Criteria.COMMUNITY_GUIDELINES.value][
-                "details"
-            ] = Details.FOUND_PARTIAL_GUIDELINES.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["details"] = (
+                Details.FOUND_PARTIAL_GUIDELINES.value
+            )
         else:
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["status"] = Status.NEEDS_IMPROVEMENT.value
             criteria[Criteria.COMMUNITY_GUIDELINES.value]["score"] = SCORE_NEEDS_IMPROVEMENT
-            criteria[Criteria.COMMUNITY_GUIDELINES.value][
-                "details"
-            ] = Details.MISSING_GUIDELINES.value
+            criteria[Criteria.COMMUNITY_GUIDELINES.value]["details"] = (
+                Details.MISSING_GUIDELINES.value
+            )
 
     return criteria
 

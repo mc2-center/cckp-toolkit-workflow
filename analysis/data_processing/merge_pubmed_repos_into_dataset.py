@@ -30,12 +30,16 @@ def to_canonical(url: str) -> str:
     if s.endswith(".git"):
         s = s[:-4]
     if s.startswith("http://github.com/"):
-        s = "https://github.com/" + s[len("http://github.com/"):]
+        s = "https://github.com/" + s[len("http://github.com/") :]
     elif not s.startswith("https://github.com/"):
         # Rebuild from the path after "github.com/" so the domain is preserved
         # (e.g. www.github.com/... or a scheme-less github.com/... still canonicalize
         # to https://github.com/...; without this they'd collapse to a domain-less URL).
-        s = "" if "github.com/" not in s else ("https://github.com/" + s.split("github.com/", 1)[-1].lstrip("/"))
+        s = (
+            ""
+            if "github.com/" not in s
+            else ("https://github.com/" + s.split("github.com/", 1)[-1].lstrip("/"))
+        )
     return s if "github.com/" in s else ""
 
 
@@ -56,6 +60,7 @@ def load_pubmed_links(path: str) -> pd.DataFrame:
         return pd.read_csv(path)
     try:
         import pyarrow.parquet as pq
+
         return pq.read_table(path).to_pandas()
     except Exception:
         return pd.read_parquet(path)

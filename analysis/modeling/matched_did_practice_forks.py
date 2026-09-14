@@ -693,11 +693,8 @@ def run_practice(name, spec, metrics, fork_dates, args):
         f"  difference in differences {frame.did.mean():+8.4f} forks/month "
         f"[{did_lo:+.4f}, {did_hi:+.4f}]"
     )
-    add(f"  median per-repository DiD  {med:+8.4f} forks/month " f"[{med_lo:+.4f}, {med_hi:+.4f}]")
-    add(
-        f"  Wilcoxon signed-rank on the per-repository DiD: W={w.statistic:.0f}, "
-        f"p={w.pvalue:.3g}"
-    )
+    add(f"  median per-repository DiD  {med:+8.4f} forks/month [{med_lo:+.4f}, {med_hi:+.4f}]")
+    add(f"  Wilcoxon signed-rank on the per-repository DiD: W={w.statistic:.0f}, p={w.pvalue:.3g}")
     add(f"  share of repositories with DiD > 0: {100 * (frame.did > 0).mean():.1f}%")
     add(f"  on the log2 scale: {frame.did_log2.mean():+.3f} doublings, p={wl.pvalue:.3g}")
     add(
@@ -730,11 +727,11 @@ def run_practice(name, spec, metrics, fork_dates, args):
     )
     add(
         f"  gap in the final pre-event quarter (-3 to -1): "
-        f"{np.nanmean(diff[WINDOW - 3:WINDOW]):+.4f}"
+        f"{np.nanmean(diff[WINDOW - 3 : WINDOW]):+.4f}"
     )
     add(
         f"  gap in the event quarter (0 to +2):            "
-        f"{np.nanmean(diff[WINDOW:WINDOW + 3]):+.4f}"
+        f"{np.nanmean(diff[WINDOW : WINDOW + 3]):+.4f}"
     )
     if not parallel:
         add("  The gap was already moving before the event, so the difference in differences")

@@ -124,7 +124,7 @@ def main() -> None:
         (CONFOUNDERS, "adjusted for age, commits and contributors"),
         (
             CONFOUNDERS_WITH_STARS,
-            "sensitivity: the same plus stars, which is downstream of the " "practices",
+            "sensitivity: the same plus stars, which is downstream of the practices",
         ),
     ):
         print(f"\n{label}:")

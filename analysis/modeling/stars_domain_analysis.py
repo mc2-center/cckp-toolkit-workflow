@@ -66,10 +66,7 @@ def main():
         "almanack_version",
         "domain",
     }
-    feature_cols = [
-        c for c in df.columns
-        if c not in exclude and df[c].dtype.kind in "iufb"
-    ]
+    feature_cols = [c for c in df.columns if c not in exclude and df[c].dtype.kind in "iufb"]
 
     X = df[feature_cols].copy()
     for c in X.columns:
@@ -80,9 +77,7 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=args.test_size, random_state=args.random_state
     )
-    model = GradientBoostingRegressor(
-        n_estimators=100, max_depth=4, random_state=args.random_state
-    )
+    model = GradientBoostingRegressor(n_estimators=100, max_depth=4, random_state=args.random_state)
     model.fit(X_train, y_train)
     r2 = model.score(X_test, y_test)
     print(f"Domain model R² (test): {r2:.4f}  N = {len(df)}  features = {len(feature_cols)}")
@@ -127,4 +122,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -33,7 +33,7 @@ def to_owner_repo(value: str) -> str:
     s = re.sub(r"^https?://", "", s)
     s = re.sub(r"^git@github\.com:", "github.com/", s)
     if s.startswith("github.com/"):
-        s = s[len("github.com/"):]
+        s = s[len("github.com/") :]
     parts = s.split("/")
     if len(parts) < 2:
         return ""
@@ -53,7 +53,9 @@ def main() -> None:
     parser.add_argument(
         "--czi_parquet",
         type=Path,
-        default=REPO_ROOT / "combined_datasets" / "czi_software_mentions_disambiguated_gh_links.parquet",
+        default=REPO_ROOT
+        / "combined_datasets"
+        / "czi_software_mentions_disambiguated_gh_links.parquet",
     )
     parser.add_argument(
         "--out_csv",

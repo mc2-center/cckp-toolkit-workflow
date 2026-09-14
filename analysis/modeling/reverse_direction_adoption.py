@@ -401,8 +401,7 @@ def main() -> None:
         "",
     ]
     header = (
-        f"{'practice':22} {'months':>10} {'events':>7} {'OR/doubling':>12} "
-        f"{'95% CI':>18} {'p':>9}"
+        f"{'practice':22} {'months':>10} {'events':>7} {'OR/doubling':>12} {'95% CI':>18} {'p':>9}"
     )
     lines += [header, "-" * len(header)]
     for row in table.itertuples():
@@ -442,8 +441,7 @@ def main() -> None:
         "",
     ]
     header = (
-        f"{'practice':22} {'adopters':>9} {'with surge':>11} {'median lag':>11} "
-        f"{'within 3m':>10}"
+        f"{'practice':22} {'adopters':>9} {'with surge':>11} {'median lag':>11} {'within 3m':>10}"
     )
     lines += [header, "-" * len(header)]
     for row in table.itertuples():
@@ -469,9 +467,7 @@ def main() -> None:
         lines += [header, "-" * len(header)]
         for row in table.itertuples():
             trends = "flat" if row.parallel_trends else "RISING"
-            lines.append(
-                f"{row.label:22} {row.did_log2:>+15.3f} {row.coef:>+19.3f} " f"{trends:>16}"
-            )
+            lines.append(f"{row.label:22} {row.did_log2:>+15.3f} {row.coef:>+19.3f} {trends:>16}")
 
     text = "\n".join(lines)
     print(text)

@@ -106,7 +106,9 @@ def earliest(slug: str, clone_root: Path) -> dict:
                 "route": (
                     "file"
                     if file_date and file_date == min(dates)
-                    else "readme" if readme_date else None
+                    else "readme"
+                    if readme_date
+                    else None
                 ),
             }
         )
@@ -146,8 +148,7 @@ def main() -> None:
     if args.limit:
         todo = todo[: args.limit]
     print(
-        f"citable repositories: {len(slugs)}; already done: {len(seen)}; "
-        f"to process: {len(todo)}",
+        f"citable repositories: {len(slugs)}; already done: {len(seen)}; to process: {len(todo)}",
         flush=True,
     )
 

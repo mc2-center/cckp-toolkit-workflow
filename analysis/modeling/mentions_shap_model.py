@@ -51,7 +51,9 @@ def main() -> None:
 
     df = pd.read_csv(args.metrics_csv, low_memory=False)
     if "czi_mention_count" not in df.columns:
-        raise SystemExit("metrics_csv must contain czi_mention_count (run add_czi_mentions.py first)")
+        raise SystemExit(
+            "metrics_csv must contain czi_mention_count (run add_czi_mentions.py first)"
+        )
 
     df["czi_mention_count"] = pd.to_numeric(df["czi_mention_count"], errors="coerce").fillna(0)
     if args.min_mentions > 0:
@@ -85,9 +87,9 @@ def main() -> None:
     if "domain" in df.columns:
         exclude.add("domain")
     feature_cols = [
-        c for c in df.columns
-        if c not in exclude and c != "domain_enc"
-        and df[c].dtype.kind in "iufb"
+        c
+        for c in df.columns
+        if c not in exclude and c != "domain_enc" and df[c].dtype.kind in "iufb"
     ]
 
     if args.sustainability_only:
@@ -125,10 +127,12 @@ def main() -> None:
     r2 = model.score(X_test, y_test)
     print(f"R² (test): {r2:.4f}  N = {len(df)}  features = {len(feature_cols)}")
 
-    imp_gini = pd.DataFrame({
-        "feature": feature_cols,
-        "importance": model.feature_importances_,
-    }).sort_values("importance", ascending=False)
+    imp_gini = pd.DataFrame(
+        {
+            "feature": feature_cols,
+            "importance": model.feature_importances_,
+        }
+    ).sort_values("importance", ascending=False)
     suffix = "_sust" if args.sustainability_only else ""
     imp_gini.to_csv(out_dir / f"feature_importance_gini{suffix}.csv", index=False)
     print("Top 15 (Gini):")
@@ -140,11 +144,13 @@ def main() -> None:
         shap_values = shap_values[0]
     mean_abs = np.abs(shap_values).mean(axis=0)
     mean_shap = shap_values.mean(axis=0)
-    imp = pd.DataFrame({
-        "feature": feature_cols,
-        "mean_abs_shap": mean_abs,
-        "mean_shap": mean_shap,
-    }).sort_values("mean_abs_shap", ascending=False)
+    imp = pd.DataFrame(
+        {
+            "feature": feature_cols,
+            "mean_abs_shap": mean_abs,
+            "mean_shap": mean_shap,
+        }
+    ).sort_values("mean_abs_shap", ascending=False)
     imp.to_csv(out_dir / f"shap_importance{suffix}.csv", index=False)
     print("Top 15 by |SHAP|:")
     print(imp.head(15).to_string(index=False))
@@ -160,7 +166,11 @@ def main() -> None:
     plt.barh(imp_sorted["feature"], imp_sorted["mean_abs_shap"])
     plt.gca().invert_yaxis()
     plt.xlabel("Mean |SHAP value| (impact on log(CZI mentions))")
-    title = "Sustainability checks: mean |SHAP| (mentions)" if args.sustainability_only else "Mean |SHAP| (mentions)"
+    title = (
+        "Sustainability checks: mean |SHAP| (mentions)"
+        if args.sustainability_only
+        else "Mean |SHAP| (mentions)"
+    )
     plt.title(title)
     plt.tight_layout()
     plt.savefig(out_dir / f"shap_mean_abs_bar{suffix}.png", dpi=150)
