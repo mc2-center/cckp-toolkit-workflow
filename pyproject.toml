@@ -6,10 +6,6 @@
 # This file sits at the root rather than under analysis/ so that one configuration covers
 # both the analysis scripts and the pipeline's bin/ scripts.
 
-[tool.black]
-line-length = 100
-target-version = ["py311"]
-
 [tool.ruff]
 line-length = 100
 target-version = "py311"
@@ -19,9 +15,9 @@ extend-exclude = ["analysis/.venv", "analysis/archive", "work", ".nf-test"]
 # pycodestyle, pyflakes, isort, pyupgrade, flake8-bugbear.
 select = ["E", "F", "W", "I", "UP", "B"]
 
-# Black owns line length. Everything it can wrap, it wraps; what is left over is a single
-# unsplittable token, almost always a long message or prompt string. Flagging those again
-# here would only ask for hand-wrapping that black would not have chosen.
+# The formatter owns line length. Everything it can wrap, it wraps; what is left over is a
+# single unsplittable token, almost always a long message or prompt string. Flagging those
+# again here would only ask for hand-wrapping that the formatter would not have chosen.
 ignore = ["E501"]
 
 # Not yet enforced, because the code does not currently pass them. Enable each once the

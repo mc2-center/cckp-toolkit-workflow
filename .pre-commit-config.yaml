@@ -1,8 +1,12 @@
 # Install once per clone: pre-commit install
 # Run over everything, not just staged files: pre-commit run --all-files
 #
-# Settings for black and ruff are in the root pyproject.toml, so the hooks and a manual
-# `ruff check` cannot disagree.
+# Settings for ruff are in the root pyproject.toml, so the hooks and a manual `ruff check`
+# or `ruff format` cannot disagree.
+#
+# Ruff both lints and formats, so it is the only Python hook here. Running a second
+# formatter alongside it does not work: black 25.9.0 and ruff format disagree on 13 of the
+# 36 tracked scripts, so whichever ran last would win and the two would fight every commit.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -17,15 +21,10 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.1
+    rev: v0.16.7
     hooks:
-      - id: ruff
+      # Lint first so the formatter has the last word on layout: a rule fix can leave a line
+      # the formatter would wrap differently.
+      - id: ruff-check
         args: ["--fix"]
       - id: ruff-format
-        # Formatting is black's job here; ruff-format only checks it agrees.
-        stages: [manual]
-
-  - repo: https://github.com/psf/black
-    rev: 25.9.0
-    hooks:
-      - id: black
