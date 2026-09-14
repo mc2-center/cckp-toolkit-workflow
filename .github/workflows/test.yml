@@ -11,7 +11,7 @@ jobs:
     name: Run nf-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The nf-test and Nextflow installer scripts both download release assets from
       # GitHub unauthenticated, which the runner's shared IP gets 403'd on. These actions
@@ -31,7 +31,7 @@ jobs:
         run: nf-test test main.nf.test
 
       - name: Upload test logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: test-logs
