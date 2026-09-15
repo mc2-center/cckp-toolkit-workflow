@@ -182,3 +182,5 @@ instead of exporting them.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+The Software Sustainability Toolkit (SST) builds on prior work of the Cancer Complexity Toolkit developed by the MC2 Center. 
