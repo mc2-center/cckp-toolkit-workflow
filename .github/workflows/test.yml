@@ -1,4 +1,4 @@
-name: Test CCKP Toolkit Workflow
+name: Test Software Sustainability Toolkit
 
 on:
   push:

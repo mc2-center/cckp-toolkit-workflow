@@ -1,10 +1,10 @@
-# Cancer Complexity Toolkit Workflow
+# Software Sustainability Toolkit
 
-![CCT Logo](cct-logo.png)
+![Software Sustainability Toolkit logo](sst-logo.png)
 
 ## Description
 
-The Cancer Complexity Toolkit Workflow is a scalable infrastructure framework to promote sustainable tool development. It performs multiple levels of analysis:
+The Software Sustainability Toolkit is a scalable infrastructure framework to promote sustainable tool development. It performs multiple levels of analysis:
 
 1. **Basic Repository Checks**
    - Repository cloning and validation
@@ -181,4 +181,4 @@ instead of exporting them.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

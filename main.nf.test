@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 nextflow_pipeline {
-    name "CCKP Toolkit"
+    name "Software Sustainability Toolkit"
     script "main.nf"
 
     // AnalyzeJOSSCriteria carries errorStrategy 'ignore', so a crashed or skipped stage

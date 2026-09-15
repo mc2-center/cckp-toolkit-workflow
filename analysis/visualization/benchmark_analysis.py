@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 """
-Benchmarking and grading analysis for the CCKP Toolkit: percentile-based grades,
+Benchmarking and grading analysis for the Software Sustainability Toolkit: percentile-based grades,
 stratified/statistical analysis, and individual + ecosystem reports.
 """
 
-import os
-import json
-import csv
 import argparse
+import csv
+import json
+import os
 import subprocess
 from pathlib import Path
-from typing import Dict, Optional
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from scipy import stats
-
 
 GRADE_TOOLTIPS = {
     "Foundational": "Early-stage sustainability with opportunities for contributions",
@@ -25,7 +23,7 @@ GRADE_TOOLTIPS = {
 }
 
 
-def download_s3_results(s3_path: str, local_dir: str, aws_env: Dict[str, str]) -> None:
+def download_s3_results(s3_path: str, local_dir: str, aws_env: dict[str, str]) -> None:
     """Download all results from S3 to local directory."""
     print(f"Downloading results from {s3_path} to {local_dir}...")
 
@@ -42,10 +40,10 @@ def download_s3_results(s3_path: str, local_dir: str, aws_env: Dict[str, str]) -
         print(f"Downloaded results to {local_dir}")
 
 
-def parse_almanack_results(almanack_file_path: Path) -> Optional[Dict]:
+def parse_almanack_results(almanack_file_path: Path) -> dict | None:
     """Parse Almanack results JSON file."""
     try:
-        with open(almanack_file_path, "r") as f:
+        with open(almanack_file_path) as f:
             data = json.load(f)
 
         result = {}
@@ -79,10 +77,10 @@ def parse_almanack_results(almanack_file_path: Path) -> Optional[Dict]:
         return None
 
 
-def parse_joss_report(joss_file_path: Path) -> Optional[Dict]:
+def parse_joss_report(joss_file_path: Path) -> dict | None:
     """Parse JOSS report JSON file."""
     try:
-        with open(joss_file_path, "r") as f:
+        with open(joss_file_path) as f:
             data = json.load(f)
 
         result = {
@@ -95,13 +93,13 @@ def parse_joss_report(joss_file_path: Path) -> Optional[Dict]:
         return None
 
 
-def parse_status_file(status_file_path: Path) -> Optional[Dict]:
+def parse_status_file(status_file_path: Path) -> dict | None:
     """Parse status file to extract validation checks.
 
     Format: tool_name,CLONE_STATUS,README_STATUS,DEPS_STATUS,TESTS_STATUS
     """
     try:
-        with open(status_file_path, "r") as f:
+        with open(status_file_path) as f:
             line = f.read().strip()
 
         parts = line.split(",")
@@ -136,7 +134,7 @@ def load_allowed_tools(repos_csv: str) -> dict:
         return allowed_tools
 
     print(f"Loading allowed tools from {repos_csv}...")
-    with open(repos_csv, "r") as f:
+    with open(repos_csv) as f:
         reader = csv.DictReader(f)
         for row in reader:
             repo_url = row.get("repo_url", "").strip()
@@ -184,7 +182,7 @@ def is_tool_allowed(tool_name: str, allowed_tools: dict) -> bool:
 
 
 def aggregate_results(
-    results_dir: str, csv_file: Optional[str] = None, repos_csv: Optional[str] = None
+    results_dir: str, csv_file: str | None = None, repos_csv: str | None = None
 ) -> pd.DataFrame:
     """Aggregate all results from local directory and CSV, filtered by repos CSV."""
     print("Aggregating results...")
@@ -194,7 +192,7 @@ def aggregate_results(
 
     csv_data = {}
     if csv_file and Path(csv_file).exists():
-        with open(csv_file, "r") as f:
+        with open(csv_file) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 tool_name = row.get("toolName", "").strip()
@@ -317,7 +315,7 @@ def assign_grade(percentile_rank: float) -> str:
         return "Stable"
 
 
-def calculate_percentiles(scores: pd.Series) -> Dict[float, float]:
+def calculate_percentiles(scores: pd.Series) -> dict[float, float]:
     """Calculate percentile values for a series of scores."""
     valid_scores = scores.dropna()
     if len(valid_scores) == 0:
@@ -487,7 +485,7 @@ def infer_domain(tool_name: str) -> str:
         return "Other"
 
 
-def infer_language(tool_name: str, repo_path: Optional[str] = None) -> str:
+def infer_language(tool_name: str, repo_path: str | None = None) -> str:
     """Infer programming language from the tool name via keyword heuristics."""
     tool_lower = tool_name.lower()
 
@@ -557,7 +555,7 @@ def infer_language(tool_name: str, repo_path: Optional[str] = None) -> str:
     return "Unknown"
 
 
-def infer_maturity(days_of_dev: Optional[int], commits: Optional[int]) -> str:
+def infer_maturity(days_of_dev: int | None, commits: int | None) -> str:
     """Infer maturity from development history (3+ yr & 100+ commits -> Mature, etc.)."""
     if days_of_dev is None or commits is None:
         return "Unknown"
@@ -570,7 +568,7 @@ def infer_maturity(days_of_dev: Optional[int], commits: Optional[int]) -> str:
         return "Early"
 
 
-def perform_benchmarking_analysis(df: pd.DataFrame) -> Dict:
+def perform_benchmarking_analysis(df: pd.DataFrame) -> dict:
     """Perform comprehensive benchmarking analysis."""
     print("Performing benchmarking analysis...")
 
@@ -654,7 +652,7 @@ def perform_benchmarking_analysis(df: pd.DataFrame) -> Dict:
 
 
 def generate_individual_report(
-    tool_name: str, tool_data: pd.Series, analysis_results: Dict, output_dir: Path
+    tool_name: str, tool_data: pd.Series, analysis_results: dict, output_dir: Path
 ) -> None:
     """Generate individual tool report."""
     grade = tool_data.get("almanack_grade", "N/A")
@@ -720,12 +718,12 @@ def generate_individual_report(
     (output_dir / f"{tool_name}_report.md").write_text(report)
 
 
-def generate_ecosystem_report(analysis_results: Dict, output_dir: Path) -> None:
+def generate_ecosystem_report(analysis_results: dict, output_dir: Path) -> None:
     """Generate ecosystem-level report."""
     df = analysis_results["dataframe"]
     s = analysis_results["statistics"]
 
-    report = f"""# CCKP Toolkit Ecosystem Benchmarking Report
+    report = f"""# Software Sustainability Toolkit Ecosystem Benchmarking Report
 
 ## Overview
 
@@ -752,10 +750,13 @@ Tools with JOSS scores: {s["joss"]["count"]}
     report += "\n## Stratified Analysis\n\n"
     for stratum, values in analysis_results["stratified_statistics"].items():
         report += f"### By {stratum.capitalize()}\n\n"
-        for value, stats in sorted(
+        for value, value_stats in sorted(
             values.items(), key=lambda x: x[1]["mean_almanack"], reverse=True
         ):
-            report += f"- **{value}:** {stats['count']} tools, Mean: {stats['mean_almanack']:.3f}\n"
+            report += (
+                f"- **{value}:** {value_stats['count']} tools, "
+                f"Mean: {value_stats['mean_almanack']:.3f}\n"
+            )
         report += "\n"
 
     report += "## Top Performers\n\n| Tool | Almanack Score | Grade |\n|------|----------------|-------|\n"
@@ -772,7 +773,7 @@ Tools with JOSS scores: {s["joss"]["count"]}
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Comprehensive benchmarking and grading analysis for CCKP Toolkit"
+        description="Comprehensive benchmarking and grading analysis for the Software Sustainability Toolkit"
     )
     parser.add_argument("--s3_path", type=str, help="S3 path to results (e.g., s3://bucket/path)")
     parser.add_argument(

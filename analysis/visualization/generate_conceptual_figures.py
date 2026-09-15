@@ -9,7 +9,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "docs" / "manuscript_drafts" / "figures"
@@ -197,7 +197,7 @@ def fig5_landscape_vs_impact():
     )
 
     # Plot points
-    for label, pass_rate, shap, group in points:
+    for _label, pass_rate, shap, group in points:
         color = color_for_group[group]
         ax.scatter(
             pass_rate,
@@ -225,7 +225,7 @@ def fig5_landscape_vs_impact():
         "README": "right",
         "Uses issues": "right",
     }
-    for label, pass_rate, shap, group in points:
+    for label, pass_rate, shap, _group in points:
         dx, dy = offsets[label]
         ha = label_ha.get(label, "left")
         ax.text(pass_rate + dx, shap + dy, label, fontsize=9, color="#1A1A1A", ha=ha, va="center")
@@ -263,7 +263,7 @@ def fig1_framework():
         hub_w,
         hub_h,
         "Measurement",
-        "Cancer Complexity Toolkit\n(per repository):\nAlmanack sustainability checks,\nJOSS-style review score,\nAI-written summary report",
+        "Software Sustainability Toolkit\n(per repository):\nAlmanack sustainability checks,\nJOSS-style review score,\nAI-written summary report",
         COLOR_MEASURE,
     )
 
@@ -423,7 +423,9 @@ def fig2_cohort_funnel():
         "PubMed PMIDs and / or\nCZI mentions. Used in §4.3\nrobustness and §4.4 deadness.",
     ]
     cohort_colors = [COLOR_MEASURE, COLOR_FINDING, COLOR_INTERVENE]
-    for cx, title, body, color in zip(cohort_xs, cohort_titles, cohort_bodies, cohort_colors):
+    for cx, title, body, color in zip(
+        cohort_xs, cohort_titles, cohort_bodies, cohort_colors, strict=True
+    ):
         add_box(ax, cx, cohort_y, cohort_w, cohort_h, title, body, color)
 
     # Arrows from full dataset to each cohort

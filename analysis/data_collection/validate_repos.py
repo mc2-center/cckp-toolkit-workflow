@@ -47,7 +47,7 @@ def validate_csv(input_file: str, output_file: str = None) -> dict:
     print("=" * 80)
 
     try:
-        with open(input_file, "r") as f:
+        with open(input_file) as f:
             reader = csv.DictReader(f)
 
             if not reader.fieldnames:
@@ -110,7 +110,7 @@ def validate_csv(input_file: str, output_file: str = None) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Validate repository URLs in CSV file for CCKP Toolkit workflow"
+        description="Validate repository URLs in CSV file for the Software Sustainability Toolkit"
     )
     parser.add_argument("--input", required=True, help="Input CSV file with repo_url column")
     parser.add_argument(

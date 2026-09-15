@@ -1,7 +1,7 @@
 # Analysis code
 
 Reproducible analysis for the accompanying manuscript.
-It consumes the per-repository measurements produced by the Cancer Complexity Toolkit (CCT) Nextflow pipeline (in the repository root) and produces the statistics and figures in the paper.
+It consumes the per-repository measurements produced by the Software Sustainability Toolkit's Nextflow pipeline (in the repository root) and produces the statistics and figures in the paper.
 
 ## Setup
 
@@ -40,7 +40,7 @@ Key files:
 
 | File | Contents |
 |---|---|
-| `almanack_metrics.csv` | One row per tool, all Almanack metrics (built from the CCT JSON outputs) |
+| `almanack_metrics.csv` | One row per tool, all Almanack metrics (built from the pipeline's JSON outputs) |
 | `combined_almanack_full_classified_with_joss.csv` | Full joined table: Almanack checks + JOSS scores + CZI mentions + domain labels (the canonical analysis table) |
 | `aggregated_data_llm_classified.csv` | `tool_name`, `domain` (LLM-classified) |
 | `weights_logistic_refit.csv` | nf-core-calibrated logistic weights per check |
@@ -51,7 +51,7 @@ Key files:
 | `revision/fork_history/<owner>__<repo>.csv` | One fork `created_at` per row, ascending |
 | `revision/*_events.jsonl` | Practice adoption dates, one JSON record per repository |
 
-Some code consumes **raw inputs that are not in the data bundle** because they are large or regenerable: the per-repo Almanack JSON directory (CCT pipeline output) consumed by `build_almanack_metrics_table.py`.
+Some code consumes **raw inputs that are not in the data bundle** because they are large or regenerable: the per-repo Almanack JSON directory (pipeline output) consumed by `build_almanack_metrics_table.py`.
 All data needed for the figures is in the released tables.
 
 ## Pipeline (run order)
@@ -59,12 +59,12 @@ All data needed for the figures is in the released tables.
 ```mermaid
 flowchart TD
     dc["<b>data_collection/</b><br/>discover repos, link CZI/PubMed, classify domains"]
-    cct[["CCT Nextflow pipeline runs each repo<br/>&rarr; Almanack + JOSS JSONs"]]
+    toolkit[["Toolkit Nextflow pipeline runs each repo<br/>&rarr; Almanack + JOSS JSONs"]]
     dp["<b>data_processing/</b><br/>build feature table, add literature signals, merge, weight, verify"]
     md["<b>modeling/</b><br/>gradient-boosting + SHAP (adoption predictors), domain analysis"]
     vis["<b>visualization/</b><br/>manuscript figures"]
 
-    dc --> cct --> dp --> md --> vis
+    dc --> toolkit --> dp --> md --> vis
 ```
 
 ## Results by code that produced them
