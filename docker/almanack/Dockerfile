@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bullseye
+FROM python:3.13-slim-bullseye
 
 RUN apt-get -y update \
     && apt-get install -y git procps \
