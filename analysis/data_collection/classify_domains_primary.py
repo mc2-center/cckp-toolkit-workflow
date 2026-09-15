@@ -140,7 +140,9 @@ def fetch_readme_from_github(repo_url: str, github_token: Optional[str] = None) 
                 if alt.status_code == 200 and isinstance(alt.json(), dict):
                     d = alt.json()
                     if "content" in d and "encoding" in d:
-                        return base64.b64decode(d["content"]).decode("utf-8", errors="ignore")[:8000]
+                        return base64.b64decode(d["content"]).decode("utf-8", errors="ignore")[
+                            :8000
+                        ]
     except Exception:
         pass
     return None
@@ -173,7 +175,12 @@ def extract_readme(
         results_path = Path(results_dir)
         for tool_dir in [results_path / tool_name, results_path / f"{tool_name}_repo"]:
             if tool_dir.exists():
-                for name in ["repo/README.md", "repo/readme.md", "repo/README.txt", "repo/README.rst"]:
+                for name in [
+                    "repo/README.md",
+                    "repo/readme.md",
+                    "repo/README.txt",
+                    "repo/README.rst",
+                ]:
                     p = tool_dir / name
                     if p.exists():
                         try:
@@ -230,11 +237,11 @@ def classify_with_claude(
     for block in msg.content:
         if hasattr(block, "text"):
             text += block.text
-    classification = text.strip().strip('"\'')
+    classification = text.strip().strip("\"'")
     if classification.startswith("```"):
         lines = classification.split("\n")
         classification = "\n".join(l for l in lines if not l.strip().startswith("```")).strip()
-    classification = classification.strip('"\'')
+    classification = classification.strip("\"'")
     if classification in DOMAIN_CATEGORIES:
         return classification
     classification_lower = classification.lower()
@@ -276,16 +283,16 @@ def main():
         df["domain"] = "Other"
 
     to_process = (
-        df[df["domain"] == "Other"].index.tolist()
-        if args.only_other
-        else df.index.tolist()
+        df[df["domain"] == "Other"].index.tolist() if args.only_other else df.index.tolist()
     )
     if args.limit:
         to_process = to_process[: args.limit]
     n = len(to_process)
 
     if not args.github_token and not os.environ.get("GITHUB_TOKEN"):
-        print("WARNING: No GitHub token set. README fetches will hit rate limits after ~60 requests.")
+        print(
+            "WARNING: No GitHub token set. README fetches will hit rate limits after ~60 requests."
+        )
         print("  Set --github_token or export GITHUB_TOKEN to classify all tools properly.")
 
     github_token = args.github_token or os.environ.get("GITHUB_TOKEN")
@@ -293,13 +300,13 @@ def main():
     for i, idx in enumerate(to_process):
         tool_name = str(df.at[idx, "tool_name"])
         readme = extract_readme(results_dir or ".", tool_name, args.repos_csv, github_token)
-        df.at[idx, "domain"] = classify_with_claude(
-            readme or "", tool_name, api_key, model=args.model
-        ) or "Other"
+        df.at[idx, "domain"] = (
+            classify_with_claude(readme or "", tool_name, api_key, model=args.model) or "Other"
+        )
         if args.verbose:
-            print(f"{i+1}/{n} {tool_name} -> {df.at[idx, 'domain']}")
+            print(f"{i + 1}/{n} {tool_name} -> {df.at[idx, 'domain']}")
         elif (i + 1) % args.batch_size == 0:
-            print(f"{i+1}/{n}")
+            print(f"{i + 1}/{n}")
         if (i + 1) % args.batch_size == 0:
             df.to_csv(args.output_csv, index=False)
         time.sleep(args.delay_seconds)

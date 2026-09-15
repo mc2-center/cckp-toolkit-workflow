@@ -1,6 +1,6 @@
-# Contributing to Cancer Complexity Toolkit Workflow
+# Contributing to the Software Sustainability Toolkit
 
-We love your input! We want to make contributing to the Cancer Complexity Toolkit Workflow as easy and transparent as possible, whether it's:
+We love your input! We want to make contributing to the Software Sustainability Toolkit as easy and transparent as possible, whether it's:
 
 - Reporting a bug
 - Discussing the current state of the code
@@ -26,8 +26,8 @@ We use the `main` branch as the primary development branch. All changes should b
 ## Any contributions you make will be under the MIT Software License
 In short, when you submit code changes, your submissions are understood to be under the same [MIT License](http://choosealicense.com/licenses/mit/) that covers the project. Feel free to contact the maintainers if that's a concern.
 
-## Report bugs using GitHub's [issue tracker](https://github.com/yourusername/cckp-toolkit-workflow/issues)
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/yourusername/cckp-toolkit-workflow/issues/new); it's that easy!
+## Report bugs using GitHub's [issue tracker](https://github.com/mc2-center/software-sustainability-toolkit/issues)
+We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/mc2-center/software-sustainability-toolkit/issues/new); it's that easy!
 
 ## Write bug reports with detail, background, and sample code
 
@@ -50,4 +50,4 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 * Add comments for complex logic
 
 ## License
-By contributing, you agree that your contributions will be licensed under its MIT License. 
+By contributing, you agree that your contributions will be licensed under its MIT License.

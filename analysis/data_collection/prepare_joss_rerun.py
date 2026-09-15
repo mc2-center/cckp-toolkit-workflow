@@ -18,12 +18,12 @@ def list_s3_files(s3_path: str) -> List[str]:
     s3_path = s3_path[5:]
     bucket, prefix = s3_path.split("/", 1) if "/" in s3_path else (s3_path, "")
 
-    s3 = boto3.client('s3')
+    s3 = boto3.client("s3")
     files = []
-    paginator = s3.get_paginator('list_objects_v2')
+    paginator = s3.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        if 'Contents' in page:
-            for obj in page['Contents']:
+        if "Contents" in page:
+            for obj in page["Contents"]:
                 files.append(f"s3://{bucket}/{obj['Key']}")
     return files
 
@@ -71,12 +71,12 @@ def find_repos_with_results(output_dir: str) -> List[Tuple[str, str, str]]:
 
 def get_repo_url_from_sample_sheet(sample_sheet: str, repo_name: str) -> str:
     try:
-        with open(sample_sheet, 'r') as f:
+        with open(sample_sheet, "r") as f:
             for line in f.readlines()[1:]:
                 line = line.strip()
                 if not line:
                     continue
-                url = line.split(',')[0].strip() if ',' in line else line.strip()
+                url = line.split(",")[0].strip() if "," in line else line.strip()
                 if repo_name in url or url.endswith(f"{repo_name}.git"):
                     return url
     except Exception as e:
@@ -85,46 +85,46 @@ def get_repo_url_from_sample_sheet(sample_sheet: str, repo_name: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Prepare CSV for re-running JOSS analysis"
-    )
+    parser = argparse.ArgumentParser(description="Prepare CSV for re-running JOSS analysis")
     parser.add_argument(
         "--output_dir",
         required=True,
-        help="Output directory (S3 or local) containing existing results"
+        help="Output directory (S3 or local) containing existing results",
     )
     parser.add_argument(
         "--output_csv",
         default="joss_rerun_input.csv",
-        help="Output CSV file path (default: joss_rerun_input.csv)"
+        help="Output CSV file path (default: joss_rerun_input.csv)",
     )
     parser.add_argument(
-        "--sample_sheet",
-        help="Original sample sheet to extract repo URLs (optional)"
+        "--sample_sheet", help="Original sample sheet to extract repo URLs (optional)"
     )
-    
+
     args = parser.parse_args()
 
     print(f"Scanning {args.output_dir} for existing results...")
     repos = find_repos_with_results(args.output_dir)
     print(f"Found {len(repos)} repositories with both Almanack and test results")
 
-    with open(args.output_csv, 'w') as f:
+    with open(args.output_csv, "w") as f:
         for repo_name, almanack_file, test_file in repos:
             repo_url = None
             if args.sample_sheet:
                 repo_url = get_repo_url_from_sample_sheet(args.sample_sheet, repo_name)
             if not repo_url:
                 repo_url = f"https://github.com/unknown/{repo_name}.git"
-                print(f"Warning: Could not find URL for {repo_name}, using placeholder", file=sys.stderr)
+                print(
+                    f"Warning: Could not find URL for {repo_name}, using placeholder",
+                    file=sys.stderr,
+                )
             f.write(f"{repo_url}\n")
 
     print(f"Created {args.output_csv} with {len(repos)} repositories")
     print(f"\nTo run JOSS analysis:")
-    print(f"  nextflow run rerun_joss.nf --sample_sheet {args.output_csv} --output_dir {args.output_dir}")
+    print(
+        f"  nextflow run rerun_joss.nf --sample_sheet {args.output_csv} --output_dir {args.output_dir}"
+    )
 
 
 if __name__ == "__main__":
     main()
-
-

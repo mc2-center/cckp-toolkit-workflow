@@ -10,7 +10,13 @@
  * 3. Runs Almanack analysis
  * 4. Generates a JSON report
  * 5. Appends the Almanack status to the previous status file
- * 
+ *
+ * Almanack reads GITHUB_TOKEN to authenticate the GitHub API calls behind its remote
+ * metrics (stargazers, forks, subscribers, issue counts). Authenticated requests are
+ * limited to 5,000 an hour against 60 unauthenticated, so a cohort of any size will
+ * exhaust the anonymous quota and leave those metrics empty for most repositories.
+ * Export GITHUB_TOKEN before launching; nextflow.config forwards it to the task.
+ *
  * Input: Tuple containing:
  * - repo_url: GitHub repository URL
  * - repo_name: Repository name
@@ -46,6 +52,14 @@ process RunAlmanack {
     echo "Running Almanack on: ${repo_name}" >&2
     echo "Repository URL: ${repo_url}" >&2
     echo "Output directory: ${out_dir}" >&2
+
+    # Report whether the token reached the task without echoing it. The :+ expansion yields
+    # a fixed placeholder, so the value stays out of the trace that set -x writes.
+    if [ -n "\${GITHUB_TOKEN:+x}" ]; then
+        echo "GitHub API calls will be authenticated" >&2
+    else
+        echo "No GITHUB_TOKEN in the environment: GitHub metrics are limited to 60 requests an hour and will be missing for most repositories" >&2
+    fi
 
     # Install Almanack and its dependencies
     pip install --upgrade pip

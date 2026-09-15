@@ -1,0 +1,48 @@
+# Dependabot version updates. This is separate from Dependabot security updates, which are
+# enabled in the repository settings and are not affected by anything in this file:
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuring-dependabot-version-updates
+#
+# Every ecosystem is grouped into a single pull request per run, so a month's updates arrive
+# as one reviewable change rather than one pull request per dependency.
+
+version: 2
+updates:
+  # Pinned action versions in .github/workflows/. Left unattended these drift several major
+  # versions behind, which is how checkout@v3 survived here; the bumps are almost always a
+  # Node runtime change on the runner rather than an interface change.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # The analysis environment. pyproject.toml and uv.lock live in analysis/, not at the root,
+  # so the directory has to point there.
+  - package-ecosystem: "uv"
+    directory: "/analysis"
+    schedule:
+      interval: "monthly"
+    groups:
+      python-packages:
+        patterns:
+          - "*"
+
+  # Hook versions in .pre-commit-config.yaml, which are pinned by tag and so have the same
+  # drift problem as the actions above.
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      pre-commit-hooks:
+        patterns:
+          - "*"
+
+  # The base image in docker/almanack/Dockerfile.
+  - package-ecosystem: "docker"
+    directory: "/docker/almanack"
+    schedule:
+      interval: "monthly"

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "docs" / "manuscript_drafts" / "figures"
@@ -89,20 +89,20 @@ def fig5_stars_vs_mentions():
     """Two-panel bar chart of stars vs CZI-mentions SHAP rankings for the same 11 features."""
     rows = [
         # (feature_label, stars_shap, mentions_shap)
-        ("License",           0.129, 0.006),
-        ("Citation",          0.114, 0.002),
-        ("Default branch",    0.090, 0.011),
-        ("Contributing",      0.081, 0.004),
-        ("Common docs",       0.040, 0.005),
-        ("README",            0.015, 0.000),
-        ("Code of conduct",   0.015, 0.001),
-        ("Uses issues",       0.011, 0.002),
-        ("PRs enabled",       0.007, 0.027),
-        ("DOI valid",         0.000, 0.000),
-        ("DOI resolvable",    0.000, 0.000),
+        ("License", 0.129, 0.006),
+        ("Citation", 0.114, 0.002),
+        ("Default branch", 0.090, 0.011),
+        ("Contributing", 0.081, 0.004),
+        ("Common docs", 0.040, 0.005),
+        ("README", 0.015, 0.000),
+        ("Code of conduct", 0.015, 0.001),
+        ("Uses issues", 0.011, 0.002),
+        ("PRs enabled", 0.007, 0.027),
+        ("DOI valid", 0.000, 0.000),
+        ("DOI resolvable", 0.000, 0.000),
     ]
     labels = [r[0] for r in rows]
-    stars  = [r[1] for r in rows]
+    stars = [r[1] for r in rows]
     mentions = [r[2] for r in rows]
 
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(7.0, 4.0), sharey=True)
@@ -115,7 +115,8 @@ def fig5_stars_vs_mentions():
     axA.set_xlabel("Mean |SHAP|", fontsize=9.5)
     axA.set_title("Predicting log10(GitHub stars + 1)\nR² = 0.225", fontsize=9.5, pad=8)
     axA.tick_params(axis="x", labelsize=8.5)
-    for sp in ("top", "right"): axA.spines[sp].set_visible(False)
+    for sp in ("top", "right"):
+        axA.spines[sp].set_visible(False)
     axA.grid(True, axis="x", linestyle=":", color="#CCCCCC", linewidth=0.5, alpha=0.6)
     axA.set_axisbelow(True)
 
@@ -123,12 +124,17 @@ def fig5_stars_vs_mentions():
     axB.set_xlabel("Mean |SHAP|", fontsize=9.5)
     axB.set_title("Predicting log10(CZI mentions + 1)\nR² = 0.363", fontsize=9.5, pad=8)
     axB.tick_params(axis="x", labelsize=8.5)
-    for sp in ("top", "right"): axB.spines[sp].set_visible(False)
+    for sp in ("top", "right"):
+        axB.spines[sp].set_visible(False)
     axB.grid(True, axis="x", linestyle=":", color="#CCCCCC", linewidth=0.5, alpha=0.6)
     axB.set_axisbelow(True)
 
-    fig.suptitle("Same cohort (n = 5,156 tools with star data; 613 with CZI mention)",
-                 fontsize=9, y=0.99, color="#3A3A3A")
+    fig.suptitle(
+        "Same cohort (n = 5,156 tools with star data; 613 with CZI mention)",
+        fontsize=9,
+        y=0.99,
+        color="#3A3A3A",
+    )
     plt.tight_layout(pad=0.6, rect=(0, 0, 1, 0.96))
     out_png = OUT_DIR / "fig_5_stars_vs_mentions.png"
     out_pdf = OUT_DIR / "fig_5_stars_vs_mentions.pdf"
@@ -143,19 +149,19 @@ def fig5_landscape_vs_impact():
     # 8 sustainability checks with full-cohort coverage and non-zero SHAP
     points = [
         # (label, pass_rate_pct, mean_abs_shap, group)
-        ("License",          56.0, 0.126, "fix_first"),
-        ("Citation",         23.4, 0.122, "fix_first"),
-        ("Default branch",   41.5, 0.080, "fix_first"),
-        ("Contributing",      4.2, 0.056, "fix_first"),
-        ("Common docs",       8.8, 0.048, "fix_first"),
-        ("README",           97.2, 0.022, "github_default"),
-        ("Code of conduct",   2.5, 0.016, "other"),
-        ("Uses issues",      96.9, 0.009, "github_default"),
+        ("License", 56.0, 0.126, "fix_first"),
+        ("Citation", 23.4, 0.122, "fix_first"),
+        ("Default branch", 41.5, 0.080, "fix_first"),
+        ("Contributing", 4.2, 0.056, "fix_first"),
+        ("Common docs", 8.8, 0.048, "fix_first"),
+        ("README", 97.2, 0.022, "github_default"),
+        ("Code of conduct", 2.5, 0.016, "other"),
+        ("Uses issues", 96.9, 0.009, "github_default"),
     ]
     color_for_group = {
-        "fix_first":      COLOR_FINDING,
+        "fix_first": COLOR_FINDING,
         "github_default": COLOR_MEASURE,
-        "other":          COLOR_DATA,
+        "other": COLOR_DATA,
     }
 
     fig, ax = plt.subplots(figsize=(7.0, 4.8))
@@ -165,45 +171,64 @@ def fig5_landscape_vs_impact():
     ax.set_ylabel("Mean |SHAP| from sustainability-only model", fontsize=10)
 
     # Subtle quadrant shading: upper-left = fix-first, lower-right = github-default
-    ax.axhspan(0.035, 0.145, xmin=0.00, xmax=0.55, alpha=0.06,
-               facecolor=COLOR_FINDING, zorder=0)
-    ax.axhspan(-0.005, 0.035, xmin=0.65, xmax=1.0, alpha=0.06,
-               facecolor=COLOR_MEASURE, zorder=0)
+    ax.axhspan(0.035, 0.145, xmin=0.00, xmax=0.55, alpha=0.06, facecolor=COLOR_FINDING, zorder=0)
+    ax.axhspan(-0.005, 0.035, xmin=0.65, xmax=1.0, alpha=0.06, facecolor=COLOR_MEASURE, zorder=0)
 
     # Quadrant annotations: single-line callouts in empty regions
-    ax.text(2, 0.141,
-            "Fix-first cluster: uncommon practices that most strongly predict adoption",
-            fontsize=9, color="#2A2A2A", fontweight="bold", ha="left", va="top")
-    ax.text(98, 0.040,
-            "GitHub-default cluster: near-universal artifacts, weak predictors of adoption",
-            fontsize=9, color="#2A2A2A", fontweight="bold", ha="right", va="top")
+    ax.text(
+        2,
+        0.141,
+        "Fix-first cluster: uncommon practices that most strongly predict adoption",
+        fontsize=9,
+        color="#2A2A2A",
+        fontweight="bold",
+        ha="left",
+        va="top",
+    )
+    ax.text(
+        98,
+        0.040,
+        "GitHub-default cluster: near-universal artifacts, weak predictors of adoption",
+        fontsize=9,
+        color="#2A2A2A",
+        fontweight="bold",
+        ha="right",
+        va="top",
+    )
 
     # Plot points
-    for label, pass_rate, shap, group in points:
+    for _label, pass_rate, shap, group in points:
         color = color_for_group[group]
-        ax.scatter(pass_rate, shap, s=110, color=color, alpha=0.85,
-                   edgecolor="#1A1A1A", linewidth=0.8, zorder=3)
+        ax.scatter(
+            pass_rate,
+            shap,
+            s=110,
+            color=color,
+            alpha=0.85,
+            edgecolor="#1A1A1A",
+            linewidth=0.8,
+            zorder=3,
+        )
 
     # Per-point label placement (manually tuned to avoid overlap)
     offsets = {
-        "License":         ( 6,  0.004),
-        "Citation":        ( 4,  0.004),
-        "Default branch":  ( 4,  0.004),
-        "Contributing":    ( 4,  0.003),
-        "Common docs":     ( 4,  0.003),
-        "README":          (-4, -0.006),
-        "Code of conduct": ( 4,  0.001),
-        "Uses issues":     (-4, -0.006),
+        "License": (6, 0.004),
+        "Citation": (4, 0.004),
+        "Default branch": (4, 0.004),
+        "Contributing": (4, 0.003),
+        "Common docs": (4, 0.003),
+        "README": (-4, -0.006),
+        "Code of conduct": (4, 0.001),
+        "Uses issues": (-4, -0.006),
     }
     label_ha = {
-        "README":      "right",
+        "README": "right",
         "Uses issues": "right",
     }
-    for label, pass_rate, shap, group in points:
+    for label, pass_rate, shap, _group in points:
         dx, dy = offsets[label]
         ha = label_ha.get(label, "left")
-        ax.text(pass_rate + dx, shap + dy, label,
-                fontsize=9, color="#1A1A1A", ha=ha, va="center")
+        ax.text(pass_rate + dx, shap + dy, label, fontsize=9, color="#1A1A1A", ha=ha, va="center")
 
     ax.tick_params(axis="both", which="major", labelsize=9)
     for spine in ("top", "right"):
@@ -232,9 +257,13 @@ def fig1_framework():
     hub_x, hub_y = 5.5, 8.5
     hub_w, hub_h = 9.0, 6.5
     add_box(
-        ax, hub_x, hub_y, hub_w, hub_h,
+        ax,
+        hub_x,
+        hub_y,
+        hub_w,
+        hub_h,
         "Measurement",
-        "Cancer Complexity Toolkit\n(per repository):\nAlmanack sustainability checks,\nJOSS-style review score,\nAI-written summary report",
+        "Software Sustainability Toolkit\n(per repository):\nAlmanack sustainability checks,\nJOSS-style review score,\nAI-written summary report",
         COLOR_MEASURE,
     )
 
@@ -242,14 +271,22 @@ def fig1_framework():
     top_y = 13.5
     ana_x, ana_w, ana_h = 16.0, 6.5, 3.5
     add_box(
-        ax, ana_x, top_y, ana_w, ana_h,
+        ax,
+        ana_x,
+        top_y,
+        ana_w,
+        ana_h,
         "Analysis",
         "Statistical model on 4,431 tools:\nwhich sustainability checks\npredict community adoption?",
         COLOR_ANALYSIS,
     )
     rank_x, rank_w, rank_h = 24.5, 7.0, 3.5
     add_box(
-        ax, rank_x, top_y, rank_w, rank_h,
+        ax,
+        rank_x,
+        top_y,
+        rank_w,
+        rank_h,
         "Empirical ranking",
         "Top five predictive practices:\nlicense, citation, default branch,\ncontributing guide, common docs",
         COLOR_FINDING,
@@ -259,26 +296,29 @@ def fig1_framework():
     bot_y = 3.0
     int_x, int_w, int_h = 19.5, 11.0, 3.7
     add_box(
-        ax, int_x, bot_y, int_w, int_h,
+        ax,
+        int_x,
+        bot_y,
+        int_w,
+        int_h,
         "Intervention",
         "Claude Code skill suite (toolkit-skills):\nfor a single repository, runs the Toolkit measurements\nand gives the maintainer a prioritized list of fixes",
         COLOR_INTERVENE,
     )
 
     # Solid arrows: Almanack -> Analysis, Almanack -> Intervention
-    add_arrow(ax, hub_x + hub_w / 2 + 0.1, hub_y + 1.2,
-              ana_x - ana_w / 2 - 0.15, top_y)
-    add_arrow(ax, hub_x + hub_w / 2 + 0.1, hub_y - 1.2,
-              int_x - int_w / 2 - 0.15, bot_y + 0.4)
+    add_arrow(ax, hub_x + hub_w / 2 + 0.1, hub_y + 1.2, ana_x - ana_w / 2 - 0.15, top_y)
+    add_arrow(ax, hub_x + hub_w / 2 + 0.1, hub_y - 1.2, int_x - int_w / 2 - 0.15, bot_y + 0.4)
     # Analysis -> Empirical ranking
-    add_arrow(ax, ana_x + ana_w / 2 + 0.15, top_y,
-              rank_x - rank_w / 2 - 0.15, top_y)
+    add_arrow(ax, ana_x + ana_w / 2 + 0.15, top_y, rank_x - rank_w / 2 - 0.15, top_y)
 
     # Dashed loopback: Intervention -> Almanack (bottom curve)
     add_arrow(
         ax,
-        int_x - int_w / 2 - 0.05, bot_y - int_h / 2 + 0.2,
-        hub_x, hub_y - hub_h / 2 - 0.1,
+        int_x - int_w / 2 - 0.05,
+        bot_y - int_h / 2 + 0.2,
+        hub_x,
+        hub_y - hub_h / 2 - 0.1,
         style=dict(
             linestyle=(0, (4, 3)),
             connectionstyle="arc3,rad=-0.35",
@@ -296,14 +336,46 @@ def fig1_framework():
     )
 
     # Section anchors
-    ax.text(hub_x, hub_y + hub_h / 2 + 0.4, "§3.1, §3.2", ha="center", va="bottom",
-            fontsize=FS_ANCHOR, color=TEXT_COLOR, fontweight="bold")
-    ax.text(ana_x, top_y + ana_h / 2 + 0.4, "§3.3, §4.3", ha="center", va="bottom",
-            fontsize=FS_ANCHOR, color=TEXT_COLOR, fontweight="bold")
-    ax.text(rank_x, top_y + rank_h / 2 + 0.4, "§4.3", ha="center", va="bottom",
-            fontsize=FS_ANCHOR, color=TEXT_COLOR, fontweight="bold")
-    ax.text(int_x, bot_y + int_h / 2 + 0.4, "§5.4", ha="center", va="bottom",
-            fontsize=FS_ANCHOR, color=TEXT_COLOR, fontweight="bold")
+    ax.text(
+        hub_x,
+        hub_y + hub_h / 2 + 0.4,
+        "§3.1, §3.2",
+        ha="center",
+        va="bottom",
+        fontsize=FS_ANCHOR,
+        color=TEXT_COLOR,
+        fontweight="bold",
+    )
+    ax.text(
+        ana_x,
+        top_y + ana_h / 2 + 0.4,
+        "§3.3, §4.3",
+        ha="center",
+        va="bottom",
+        fontsize=FS_ANCHOR,
+        color=TEXT_COLOR,
+        fontweight="bold",
+    )
+    ax.text(
+        rank_x,
+        top_y + rank_h / 2 + 0.4,
+        "§4.3",
+        ha="center",
+        va="bottom",
+        fontsize=FS_ANCHOR,
+        color=TEXT_COLOR,
+        fontweight="bold",
+    )
+    ax.text(
+        int_x,
+        bot_y + int_h / 2 + 0.4,
+        "§5.4",
+        ha="center",
+        va="bottom",
+        fontsize=FS_ANCHOR,
+        color=TEXT_COLOR,
+        fontweight="bold",
+    )
 
     plt.tight_layout(pad=0.2)
     out_png = OUT_DIR / "fig_1_framework.png"
@@ -326,7 +398,11 @@ def fig2_cohort_funnel():
     top_w, top_h = 13.0, 3.0
     top_y = 19.0
     add_box(
-        ax, 14, top_y, top_w, top_h,
+        ax,
+        14,
+        top_y,
+        top_w,
+        top_h,
         "Full dataset: 10,244 unique tools",
         "Almanack signals computed for every repository\n(used for the landscape analysis in §4.1)",
         COLOR_DATA,
@@ -347,7 +423,9 @@ def fig2_cohort_funnel():
         "PubMed PMIDs and / or\nCZI mentions. Used in §4.3\nrobustness and §4.4 deadness.",
     ]
     cohort_colors = [COLOR_MEASURE, COLOR_FINDING, COLOR_INTERVENE]
-    for cx, title, body, color in zip(cohort_xs, cohort_titles, cohort_bodies, cohort_colors):
+    for cx, title, body, color in zip(
+        cohort_xs, cohort_titles, cohort_bodies, cohort_colors, strict=True
+    ):
         add_box(ax, cx, cohort_y, cohort_w, cohort_h, title, body, color)
 
     # Arrows from full dataset to each cohort
@@ -360,7 +438,11 @@ def fig2_cohort_funnel():
     bottom_w, bottom_h = 22.0, 3.0
     bottom_y = 3.5
     add_box(
-        ax, 14, bottom_y, bottom_w, bottom_h,
+        ax,
+        14,
+        bottom_y,
+        bottom_w,
+        bottom_h,
         "Joined Almanack + literature-linked table",
         "Cohort size per analysis is reported next to each result\n(landscape, domain comparison, predictors, deadness)",
         COLOR_ANALYSIS,

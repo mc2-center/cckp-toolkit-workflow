@@ -41,7 +41,9 @@ CHECK_COL_TO_SHORT = {
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Apply refit logistic weights and run domain summary")
+    parser = argparse.ArgumentParser(
+        description="Apply refit logistic weights and run domain summary"
+    )
     parser.add_argument(
         "--metrics_csv",
         type=str,
@@ -79,7 +81,9 @@ def main():
         raise SystemExit("weights_csv must contain check_col and weight_logistic")
 
     w_map = dict(zip(weights["check_col"], weights["weight_logistic"]))
-    active_checks = [c for c in CHECK_COL_TO_SHORT.keys() if c in metrics.columns and c in w_map and w_map[c] > 0]
+    active_checks = [
+        c for c in CHECK_COL_TO_SHORT.keys() if c in metrics.columns and c in w_map and w_map[c] > 0
+    ]
     if not active_checks:
         raise SystemExit("No active checks with positive logistic weights found.")
 
@@ -179,4 +183,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

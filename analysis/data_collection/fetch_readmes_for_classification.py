@@ -44,7 +44,7 @@ def main() -> None:
     REPOS_CSV = args.repos_csv
     README_CAP_CHARS = args.cap_chars
 
-    token = os.environ.get('GITHUB_TOKEN')
+    token = os.environ.get("GITHUB_TOKEN")
     if not token:
         print("WARNING: no GITHUB_TOKEN set; will hit 60/hr public rate limit")
 
@@ -56,8 +56,8 @@ def main() -> None:
 
     n_ok = n_skip = n_fail = 0
     for i, row in enumerate(rows, 1):
-        tool = row['tool_name']
-        url = (row.get('repo_url') or '').strip()
+        tool = row["tool_name"]
+        url = (row.get("repo_url") or "").strip()
         out_path = OUT_DIR / f"{tool}.md"
         if out_path.exists():
             n_skip += 1
@@ -87,5 +87,5 @@ def main() -> None:
     print(f"Cache: {OUT_DIR}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -28,8 +28,12 @@ import duckdb
 def parse_args() -> argparse.Namespace:
     script_dir = Path(__file__).resolve().parent
     repo_root = script_dir.parent.parent
-    default_data_dir = repo_root / "data" / "czi_software_mentions" / "doi_10_5061_dryad_zgmsbccjk__v20241112"
-    default_output = repo_root / "combined_datasets" / "czi_software_mentions_disambiguated_gh_links.parquet"
+    default_data_dir = (
+        repo_root / "data" / "czi_software_mentions" / "doi_10_5061_dryad_zgmsbccjk__v20241112"
+    )
+    default_output = (
+        repo_root / "combined_datasets" / "czi_software_mentions_disambiguated_gh_links.parquet"
+    )
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(

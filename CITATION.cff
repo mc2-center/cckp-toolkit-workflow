@@ -27,11 +27,11 @@ authors:
     given-names: "Jineta"
     affiliation: "Sage Bionetworks"
     orcid: "https://orcid.org/0000-0002-1775-3645"
-title: "Cancer Complexity Toolkit: Software Sustainability as a Driver of Scientific Impact"
+title: "Software Sustainability Toolkit"
 version: 1.0.0
 date-released: 2026-06-05
-url: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
-repository-code: "https://github.com/Sage-Bionetworks/cckp-toolkit-workflow"
+url: "https://github.com/mc2-center/software-sustainability-toolkit"
+repository-code: "https://github.com/mc2-center/software-sustainability-toolkit"
 # DOI placeholders. Uncomment and fill in each value as it is minted
 # doi: <journal article DOI, once published>
 # identifiers:
@@ -56,7 +56,7 @@ license: MIT
 #   # the deposit is made; the CFF schema rejects non-DOI strings, so it stays
 #   # commented rather than holding a dummy value.
 #   - type: dataset
-#     title: "Data archive for the Cancer Complexity Toolkit sustainability analysis"
+#     title: "Data archive for the Software Sustainability Toolkit analysis"
 #     authors:
 #       - name: "The authors of this work"
 #     doi: "<10.5281/zenodo.xxxxxxx>"

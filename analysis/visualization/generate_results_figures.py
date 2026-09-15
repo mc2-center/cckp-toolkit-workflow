@@ -32,6 +32,7 @@ FS_TICK = 8
 def _coerce01(s: pd.Series) -> pd.Series:
     """Coerce a mixed-type Almanack signal column to nullable 0/1 numeric."""
     if s.dtype == object:
+
         def cast(v):
             t = str(v).strip().lower()
             if t in ("true", "1", "1.0"):
@@ -39,6 +40,7 @@ def _coerce01(s: pd.Series) -> pd.Series:
             if t in ("false", "0", "0.0"):
                 return 0
             return np.nan
+
         return s.map(cast)
     return pd.to_numeric(s, errors="coerce")
 
@@ -120,17 +122,17 @@ def _weighted_score(df: pd.DataFrame, weights: dict) -> pd.Series:
 
 def make_fig4():
     """Two-panel violin on the LLM-classified non-Other cohort."""
-    combined = pd.read_csv(
-        RESULTS_DIR / "combined_almanack_full_classified.csv", low_memory=False
-    )
+    combined = pd.read_csv(RESULTS_DIR / "combined_almanack_full_classified.csv", low_memory=False)
     shap = pd.read_csv(RESULTS_DIR / "shap_importance_sust.csv")
 
     weights_df = shap[(shap["feature"] != "domain_enc") & (shap["mean_abs_shap"] > 0)]
     weights = dict(zip(weights_df["feature"], weights_df["mean_abs_shap"]))
 
-    if 'almanack_score' not in combined.columns:
-        bool_signals = [c for c in combined.columns if c.startswith('repo_') and combined[c].dtype == object]
-        combined['almanack_score'] = _weighted_score(combined, {c: 1.0 for c in bool_signals[:10]})
+    if "almanack_score" not in combined.columns:
+        bool_signals = [
+            c for c in combined.columns if c.startswith("repo_") and combined[c].dtype == object
+        ]
+        combined["almanack_score"] = _weighted_score(combined, {c: 1.0 for c in bool_signals[:10]})
 
     cohort = combined[
         combined["almanack_score"].notna()
@@ -145,10 +147,7 @@ def make_fig4():
 
     # Order domains by reweighted mean (descending) so the two panels stay aligned
     order = (
-        sub.groupby("domain")["weighted_score"]
-        .mean()
-        .sort_values(ascending=False)
-        .index.tolist()
+        sub.groupby("domain")["weighted_score"].mean().sort_values(ascending=False).index.tolist()
     )
 
     palette = sns.color_palette("Set2", n_colors=len(order))

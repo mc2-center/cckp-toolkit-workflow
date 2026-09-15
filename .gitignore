@@ -4,6 +4,7 @@ work/
 .nextflow.log*
 results/
 .nf-test/
+.nf-test.log*
 .DS_Store
 
 # analysis outputs
@@ -29,6 +30,9 @@ Job-*.csv
 
 # Secrets (keep .env out of git; .env.template is committed)
 .env
+*.token
+.github_token
+secrets/
 
 # OS and IDE
 .vscode/
@@ -48,3 +52,4 @@ __pycache__/
 *.csv.gz
 *.json.gz
 *.tar.gz
+*.zip

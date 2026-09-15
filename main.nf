@@ -2,8 +2,8 @@
 nextflow.enable.dsl=2
 
 /**
- * Main workflow for CCKP Toolkit
- * 
+ * Main workflow for the Software Sustainability Toolkit
+ *
  * This workflow processes GitHub repositories to:
  * 1. Clone and perform initial checks (ProcessRepo)
  * 2. Run Almanack analysis (RunAlmanack)
@@ -68,7 +68,7 @@ workflow {
     loadEnvFile('.env')
 
     // Parameter validation
-    if ((params.repo_url == null || params.repo_url.toString().trim() == '') && 
+    if ((params.repo_url == null || params.repo_url.toString().trim() == '') &&
         (params.sample_sheet == null || params.sample_sheet.toString().trim() == '')) {
         throw new IllegalArgumentException("ERROR: Provide either a sample_sheet or repo_url parameter")
     }

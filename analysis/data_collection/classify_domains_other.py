@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Classify tools by domain using Claude via AWS Bedrock; writes tool_name,domain CSV."""
+
 import json
 import sys
 import time
@@ -46,21 +47,18 @@ def classify_tool(bedrock_client, tool_name: str, text: str, model_id: str) -> s
     prompt = CLASSIFICATION_PROMPT.format(tool_name=tool_name, text=text[:4000])
 
     try:
-        body = json.dumps({
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 50,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ]
-        })
-
-        response = bedrock_client.invoke_model(
-            modelId=model_id,
-            body=body
+        body = json.dumps(
+            {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 50,
+                "messages": [{"role": "user", "content": prompt}],
+            }
         )
 
-        response_body = json.loads(response['body'].read())
-        domain = response_body['content'][0]['text'].strip()
+        response = bedrock_client.invoke_model(modelId=model_id, body=body)
+
+        response_body = json.loads(response["body"].read())
+        domain = response_body["content"][0]["text"].strip()
 
         if domain not in DOMAIN_CATEGORIES:
             domain_lower = domain.lower()
@@ -78,10 +76,10 @@ def classify_batch(
     input_csv: str,
     output_csv: str,
     model_id: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
-    delay: float = 0.1
+    delay: float = 0.1,
 ):
     """Classify all tools in input CSV and write results."""
-    bedrock_client = boto3.client('bedrock-runtime', region_name='us-west-2')
+    bedrock_client = boto3.client("bedrock-runtime", region_name="us-west-2")
 
     df = pd.read_csv(input_csv)
     print(f"Classifying {len(df)} tools from {input_csv}")
@@ -89,14 +87,14 @@ def classify_batch(
 
     results = []
     for i, row in df.iterrows():
-        tool_name = row['tool_name']
-        text = row['text']
+        tool_name = row["tool_name"]
+        text = row["text"]
 
         domain = classify_tool(bedrock_client, tool_name, text, model_id)
-        results.append({'tool_name': tool_name, 'domain': domain})
+        results.append({"tool_name": tool_name, "domain": domain})
 
         if (i + 1) % 25 == 0:
-            print(f"  [{i+1}/{len(df)}] {tool_name}: {domain}")
+            print(f"  [{i + 1}/{len(df)}] {tool_name}: {domain}")
 
         time.sleep(delay)
 
@@ -104,7 +102,7 @@ def classify_batch(
     out_df.to_csv(output_csv, index=False)
     print(f"\nWrote {len(out_df)} classifications to {output_csv}")
     print(f"\nDomain distribution:")
-    print(out_df['domain'].value_counts().to_string())
+    print(out_df["domain"].value_counts().to_string())
 
 
 if __name__ == "__main__":
