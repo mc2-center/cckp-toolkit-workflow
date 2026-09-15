@@ -3,8 +3,14 @@
 /**
  * Process: AIAnalysis
  *
- * Uses Claude (Anthropic API) to analyze JOSS and Almanack results
- * and generate actionable sustainability recommendations.
+ * Analyzes JOSS and Almanack results with a language model and generates actionable
+ * sustainability recommendations.
+ *
+ * The provider is selected by LLM_PROVIDER and the model by LLM_MODEL, both read by
+ * analyze.py and both optional; the defaults are in that script. Anthropic is the only
+ * provider implemented, which is why the client installed below and the credential checked
+ * below are Anthropic's. Adding a provider means a function in analyze.py plus a matching
+ * client and credential here.
  */
 
 process AIAnalysis {
@@ -13,7 +19,7 @@ process AIAnalysis {
     maxRetries 2
     time '30m'
     publishDir "${params.output_dir}", mode: 'copy', pattern: '*.html'
-    containerOptions { "-e ANTHROPIC_API_KEY" }
+    containerOptions { "-e ANTHROPIC_API_KEY -e LLM_PROVIDER -e LLM_MODEL" }
 
     input:
         tuple val(repo_url), val(repo_name), path(almanack_results), path(joss_report)
